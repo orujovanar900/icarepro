@@ -66,7 +66,7 @@ export function Login() {
 
             <div className="w-full max-w-md space-y-8">
                 <div className="text-center">
-                    <h1 className="text-4xl font-bold font-heading tracking-tight text-gold">İcarə Pro</h1>
+                    <h1 className="text-4xl font-extrabold font-heading tracking-tight text-gold">İcarə Pro</h1>
                     <p className="mt-2 text-sm text-text">Sistemi idarə etmək üçün daxil olun</p>
                 </div>
 

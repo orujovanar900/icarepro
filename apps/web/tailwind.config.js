@@ -22,8 +22,9 @@ export default {
             },
             fontFamily: {
                 sans: ["Outfit", "sans-serif"],
-                display: ["Playfair Display", "serif"],
-                heading: ["Playfair Display", "serif"],
+                display: ["Outfit", "sans-serif"],
+                heading: ["Outfit", "sans-serif"],
+                mono: ["Outfit", "sans-serif"],
             },
         },
     },

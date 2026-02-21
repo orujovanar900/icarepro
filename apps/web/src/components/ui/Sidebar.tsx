@@ -40,7 +40,7 @@ export function Sidebar() {
     return (
         <aside className="flex h-screen w-60 flex-col border-r border-border bg-surface shrink-0 hidden md:flex">
             <div className="flex h-16 items-center px-6">
-                <h1 className="text-2xl font-bold font-heading text-gold">İcarə Pro</h1>
+                <h1 className="text-2xl font-extrabold font-heading text-gold">İcarə Pro</h1>
             </div>
             <nav className="flex-1 space-y-1 p-4">
                 {navItems.map((item) => (
