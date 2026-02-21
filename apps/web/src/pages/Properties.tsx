@@ -1,0 +1,1 @@
+export function Properties() { return <div className="p-6"><h1 className="text-3xl font-heading text-text">Properties</h1><p className="text-muted mt-2">This is a placeholder for the Properties page.</p></div>; }

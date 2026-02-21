@@ -1,9 +1,35 @@
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Sora:wght@100..800&display=swap');
 
-body {
-  font-family: system-ui, -apple-system, sans-serif;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg: #080C14;
+    --color-surface: #0F1929;
+    --color-card: #141E30;
+    --color-border: #192840;
+    --color-gold: #C9A84C;
+    --color-gold2: #F0C96A;
+    --color-blue: #60A5FA;
+    --color-green: #34D399;
+    --color-red: #F87171;
+    --color-orange: #FB923C;
+    --color-text: #E8F0FE;
+    --color-muted: #64748B;
+  }
+
+  body {
+    @apply bg-bg text-text font-sans antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading text-text;
+  }
 }

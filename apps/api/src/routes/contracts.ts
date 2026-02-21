@@ -73,7 +73,7 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
         ])
 
         // Добавляем computed debt для каждого контракта
-        const contractsWithDebt = await Promise.all(contracts.map(async (c) => {
+        const contractsWithDebt = await Promise.all(contracts.map(async (c: any) => {
             if (c.status !== 'ACTIVE') return { ...c, debt: 0 }
 
             const totalPaidAgg = await fastify.prisma.payment.aggregate({

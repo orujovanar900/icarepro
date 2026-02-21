@@ -70,7 +70,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
             : 0
 
         // Один запрос: сумма платежей за выбранный месяц по каждому контракту
-        const contractIds = activeContracts.map((c) => c.id)
+        const contractIds = activeContracts.map((c: any) => c.id)
         const monthPaymentsRaw = contractIds.length > 0
             ? await fastify.prisma.payment.groupBy({
                 by: ['contractId'],
@@ -78,7 +78,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
                 where: { contractId: { in: contractIds }, periodMonth: month, periodYear: year },
             })
             : []
-        const monthPaymentMap = new Map(monthPaymentsRaw.map((r) => [r.contractId, Number(r._sum.amount ?? 0)]))
+        const monthPaymentMap = new Map(monthPaymentsRaw.map((r: any) => [r.contractId, Number(r._sum.amount ?? 0)]))
 
         // Долги по активным контрактам
         let totalDebt = 0
@@ -98,7 +98,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
                 (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1
             )
             const totalExpected = Number(c.monthlyRent) * monthsElapsed
-            const totalPaid = c.payments.reduce((s, p) => s + Number(p.amount), 0)
+            const totalPaid = c.payments.reduce((s: number, p: any) => s + Number(p.amount), 0)
             const debt = Math.max(0, totalExpected - totalPaid)
             totalDebt += debt
 
@@ -106,7 +106,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
             const isInPeriod = c.startDate <= monthEnd && c.endDate >= monthStart
             if (isInPeriod) {
                 const monthPaid = monthPaymentMap.get(c.id) ?? 0
-                currentMonthDebt += Math.max(0, Number(c.monthlyRent) - monthPaid)
+                currentMonthDebt += Math.max(0, Number(c.monthlyRent as any) - (monthPaid as any))
             }
 
             if (debt > 0) {
@@ -137,7 +137,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
             }),
         ])
 
-        const incomeByMonth = new Map(yearPayments.map((r) => [r.periodMonth ?? 0, Number(r._sum.amount ?? 0)]))
+        const incomeByMonth = new Map(yearPayments.map((r: any) => [r.periodMonth ?? 0, Number(r._sum.amount ?? 0)]))
         const totalYearExpenses = Number(yearExpensesAgg._sum.amount ?? 0)
 
         const monthlyChart = Array.from({ length: 12 }, (_, i) => ({
@@ -146,7 +146,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
             expenses: Math.round(totalYearExpenses / 12),
         }))
 
-        const expiringContracts = expiringContractsRaw.map((c) => ({
+        const expiringContracts = expiringContractsRaw.map((c: any) => ({
             contractId: c.id,
             number: c.number,
             tenantName: c.tenant.fullName,
