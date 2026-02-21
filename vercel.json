@@ -1,0 +1,7 @@
+{
+    "version": 2,
+    "buildCommand": "pnpm --filter @icare/web build",
+    "outputDirectory": "apps/web/dist",
+    "installCommand": "pnpm install --filter @icare/web...",
+    "framework": "vite"
+}
