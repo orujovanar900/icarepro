@@ -68,9 +68,9 @@ export function Income() {
         }
     });
 
-    const payments = paymentsData?.data || [];
-    const totalAmount = paymentsData?.meta?.totalAmount || 0;
-    const activeContracts = contractsData?.data || [];
+    const payments = Array.isArray(paymentsData?.data) ? paymentsData.data : (paymentsData?.data?.data || []);
+    const totalAmount = paymentsData?.meta?.totalAmount || paymentsData?.data?.meta?.totalAmount || 0;
+    const activeContracts = Array.isArray(contractsData?.data) ? contractsData.data : (contractsData?.data?.data || []);
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);

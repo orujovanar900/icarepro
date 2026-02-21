@@ -38,7 +38,7 @@ export function Tenants() {
         },
     });
 
-    const tenants = tenantsData?.data || [];
+    const tenants = Array.isArray(tenantsData?.data) ? tenantsData.data : (tenantsData?.data?.data || []);
     const canAddTenant = user?.role === 'OWNER' || user?.role === 'STAFF';
 
     // Calculate Debt for each tenant based on their ACTIVE contracts' payments
@@ -68,7 +68,7 @@ export function Tenants() {
         }
     });
 
-    const activeContractsList = contractsData?.data || [];
+    const activeContractsList = Array.isArray(contractsData?.data) ? contractsData.data : (contractsData?.data?.data || []);
 
     const finalTenants = tenantsWithDebt.map((t: any) => {
         let calculatedDebt = 0;

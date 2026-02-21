@@ -49,12 +49,13 @@ export function Contracts() {
             if (debouncedSearch) params.append('search', debouncedSearch);
 
             const res = await api.get(`/contracts?${params.toString()}`);
-            return res.data; // expects { success: true, data: [...], meta: { total, ... } }
+            console.log('Contracts page API response:', res.data);
+            return res.data;
         },
     });
 
-    const contracts = data?.data || [];
-    const meta = data?.meta || { total: 0 };
+    const contracts = Array.isArray(data?.data) ? data.data : (data?.data?.data || []);
+    const meta = data?.meta || data?.data?.meta || { total: 0 };
     const totalPages = Math.ceil(meta.total / limit);
 
     const getStatusBadgeVariant = (statusString: string) => {

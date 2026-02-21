@@ -22,10 +22,10 @@ export function TopBar() {
             <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gold/20 text-gold">
-                        {user?.firstName?.charAt(0) || <UserIcon className="h-4 w-4" />}
+                        {user?.name?.charAt(0) || <UserIcon className="h-4 w-4" />}
                     </div>
                     <span className="text-sm font-medium hidden sm:inline-block">
-                        {user?.firstName} {user?.lastName}
+                        {user?.name}
                     </span>
                     <span className="rounded bg-border px-1.5 py-0.5 text-xs text-muted ml-2">
                         {user?.role}

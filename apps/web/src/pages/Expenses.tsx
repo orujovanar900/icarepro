@@ -63,8 +63,8 @@ export function Expenses() {
         },
     });
 
-    const expenses = expensesData?.data || [];
-    const totalAmount = expensesData?.meta?.totalAmount || 0;
+    const expenses = Array.isArray(expensesData?.data) ? expensesData.data : (expensesData?.data?.data || []);
+    const totalAmount = expensesData?.meta?.totalAmount || expensesData?.data?.meta?.totalAmount || 0;
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);

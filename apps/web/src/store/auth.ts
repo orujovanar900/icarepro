@@ -6,9 +6,9 @@ type Role = 'OWNER' | 'STAFF' | 'TENANT';
 interface User {
     id: string;
     email: string;
-    firstName: string;
-    lastName: string;
+    name: string;
     role: Role;
+    organizationId: string;
 }
 
 interface AuthState {
@@ -17,6 +17,7 @@ interface AuthState {
     isAuthenticated: boolean;
     login: (data: { user: User; token: string }) => void;
     logout: () => void;
+    setUser: (user: User) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -37,6 +38,7 @@ export const useAuthStore = create<AuthState>()(
                     token: null,
                     isAuthenticated: false,
                 }),
+            setUser: (user) => set({ user }),
         }),
         {
             name: 'auth-storage', // name of the item in the storage (must be unique)

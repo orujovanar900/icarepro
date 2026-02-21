@@ -34,7 +34,8 @@ export function Properties() {
             const params = new URLSearchParams();
             if (debouncedSearch) params.append('search', debouncedSearch);
             const res = await api.get(`/properties?${params.toString()}`);
-            return res.data;
+            console.log('Properties API response:', res.data);
+            return res.data.data || res.data;
         },
     });
 
@@ -43,15 +44,16 @@ export function Properties() {
         queryFn: async () => {
             // Fetch all active contracts to map debt and tenant names to properties
             const res = await api.get(`/contracts?status=ACTIVE&limit=1000`);
-            return res.data;
+            console.log('Contracts API response:', res.data);
+            return res.data.data || res.data;
         },
     });
 
     const isLoading = propsLoading || contractsLoading;
     const isError = propsError;
 
-    const properties = propertiesData?.data || [];
-    const activeContracts = contractsData?.data || [];
+    const properties = Array.isArray(propertiesData) ? propertiesData : (propertiesData?.data || []);
+    const activeContracts = Array.isArray(contractsData) ? contractsData : (contractsData?.data || []);
 
     const canAddProperty = user?.role === 'OWNER' || user?.role === 'STAFF';
 

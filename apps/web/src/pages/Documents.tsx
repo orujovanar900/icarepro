@@ -33,7 +33,7 @@ export function Documents() {
         },
     });
 
-    const documents = documentsData?.data || [];
+    const documents = Array.isArray(documentsData?.data) ? documentsData.data : (documentsData?.data?.data || []);
 
     // Fetch active contracts for selectors
     const { data: contractsData } = useQuery({
@@ -43,7 +43,7 @@ export function Documents() {
             return res.data;
         }
     });
-    const activeContracts = contractsData?.data || [];
+    const activeContracts = Array.isArray(contractsData?.data) ? contractsData.data : (contractsData?.data?.data || []);
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
