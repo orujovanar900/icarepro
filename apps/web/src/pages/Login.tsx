@@ -36,7 +36,7 @@ export function Login() {
             setIsLoading(true);
             const response = await api.post('/auth/login', data);
 
-            const { user, token } = response.data;
+            const { user, token } = response.data.data;
             login({ user, token });
 
             addToast({ type: 'success', message: 'Uğurla daxil oldunuz!' });
