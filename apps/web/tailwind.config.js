@@ -21,7 +21,8 @@ export default {
                 muted: "var(--color-muted)",
             },
             fontFamily: {
-                sans: ["Sora", "sans-serif"],
+                sans: ["Outfit", "sans-serif"],
+                display: ["Playfair Display", "serif"],
                 heading: ["Playfair Display", "serif"],
             },
         },
