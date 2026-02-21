@@ -6,9 +6,12 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Contracts } from './pages/Contracts';
+import { ContractDetail } from './pages/ContractDetail';
 import { Properties } from './pages/Properties';
 import { Income } from './pages/Income';
 import { Expenses } from './pages/Expenses';
+import { Tenants } from './pages/Tenants';
+import { TenantDetail } from './pages/TenantDetail';
 import { Documents } from './pages/Documents';
 import { Users } from './pages/Users';
 import { Settings } from './pages/Settings';
@@ -26,8 +29,11 @@ export default function App() {
                         <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/contracts" element={<Contracts />} />
+                        <Route path="/contracts/:id" element={<ContractDetail />} />
                         <Route path="/properties" element={<Properties />} />
                         <Route path="/income" element={<Income />} />
+                        <Route path="/tenants" element={<Tenants />} />
+                        <Route path="/tenants/:id" element={<TenantDetail />} />
                         <Route path="/documents" element={<Documents />} />
 
                         {/* OWNER only routes */}
