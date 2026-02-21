@@ -55,8 +55,34 @@ function CountUpNumber({ value }: { value: number }) {
 
     return <>{formatMoney(count)}</>;
 }
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: any }> {
+    constructor(props: { children: React.ReactNode }) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
 
-export function Dashboard() {
+    static getDerivedStateFromError(error: any) {
+        return { hasError: true, error };
+    }
+
+    override componentDidCatch(error: any, errorInfo: any) {
+        console.error("Dashboard Error:", error, errorInfo);
+    }
+
+    override render() {
+        if (this.state.hasError) {
+            return (
+                <div className="p-6 m-6 bg-red/10 border border-red text-red rounded-lg overflow-auto max-w-full">
+                    <h2 className="text-xl font-bold mb-2">Dashboard Error</h2>
+                    <pre className="text-xs whitespace-pre-wrap">{String(this.state.error?.stack || this.state.error)}</pre>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
+
+function DashboardContent() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
 
@@ -75,6 +101,12 @@ export function Dashboard() {
         queryKey: ['recentPayments'],
         queryFn: fetchRecentPayments,
     });
+
+    // Debugging payload
+    useEffect(() => {
+        if (dashboard) console.log('Dashboard data:', dashboard);
+        if (recentPayments) console.log('Recent Payments data:', recentPayments);
+    }, [dashboard, recentPayments]);
 
     // Generate Month Options
     const months = [
@@ -218,13 +250,13 @@ export function Dashboard() {
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={dashboard?.monthlyChart || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#192840" vertical={false} />
-                                        <XAxis dataKey="month" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => months[val - 1]?.substring(0, 3)} />
-                                        <YAxis stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val} ₼`} />
+                                        <XAxis dataKey="month" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val: any) => months[val - 1]?.substring(0, 3) || ''} />
+                                        <YAxis stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val: any) => `${val} ₼`} />
                                         <Tooltip
                                             cursor={{ fill: '#0F1929' }}
                                             contentStyle={{ backgroundColor: '#141E30', borderColor: '#192840', borderRadius: '8px', color: '#E8F0FE' }}
-                                            formatter={(value: number) => [formatMoney(value), '']}
-                                            labelFormatter={(label: number) => months[label - 1]}
+                                            formatter={(value: any) => [formatMoney(value), '']}
+                                            labelFormatter={(label: any) => months[label - 1] || ''}
                                         />
                                         <Legend wrapperStyle={{ paddingTop: '20px' }} />
                                         <Bar dataKey="income" name="Mədaxil" fill="#34D399" radius={[4, 4, 0, 0]} maxBarSize={40} />
@@ -335,5 +367,13 @@ export function Dashboard() {
                 </CardContent>
             </Card>
         </div>
+    );
+}
+
+export function Dashboard() {
+    return (
+        <ErrorBoundary>
+            <DashboardContent />
+        </ErrorBoundary>
     );
 }
