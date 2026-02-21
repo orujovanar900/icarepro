@@ -1,7 +1,7 @@
 {
     "version": 2,
-    "buildCommand": "pnpm --filter @icare/web build",
+    "buildCommand": "npm run build --workspace=apps/web",
     "outputDirectory": "apps/web/dist",
-    "installCommand": "pnpm install --filter @icare/web...",
+    "installCommand": "npm install",
     "framework": "vite"
 }
