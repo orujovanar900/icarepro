@@ -1,0 +1,454 @@
+{
+    "_type": "ThunderCollection",
+    "version": "1.1",
+    "name": "İcarə Pro API",
+    "variables": [
+        {
+            "name": "baseUrl",
+            "value": "http://localhost:4000"
+        },
+        {
+            "name": "token",
+            "value": ""
+        }
+    ],
+    "folders": [
+        {
+            "name": "Auth",
+            "items": [
+                {
+                    "name": "Login",
+                    "method": "POST",
+                    "url": "{{baseUrl}}/auth/login",
+                    "body": {
+                        "type": "json",
+                        "raw": "{\"email\":\"admin@icare.pro.az\",\"password\":\"anar900\"}"
+                    }
+                },
+                {
+                    "name": "Me",
+                    "method": "GET",
+                    "url": "{{baseUrl}}/auth/me",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Change Password",
+                    "method": "POST",
+                    "url": "{{baseUrl}}/auth/change-password",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ],
+                    "body": {
+                        "type": "json",
+                        "raw": "{\"currentPassword\":\"anar900\",\"newPassword\":\"NewPass123!\"}"
+                    }
+                },
+                {
+                    "name": "Logout",
+                    "method": "POST",
+                    "url": "{{baseUrl}}/auth/logout"
+                }
+            ]
+        },
+        {
+            "name": "Dashboard",
+            "items": [
+                {
+                    "name": "Dashboard (current month)",
+                    "method": "GET",
+                    "url": "{{baseUrl}}/dashboard?month=2&year=2026",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Contracts",
+            "items": [
+                {
+                    "name": "List Contracts",
+                    "method": "GET",
+                    "url": "{{baseUrl}}/contracts?limit=20&offset=0",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ]
+                },
+                {
+                    "name": "List Contracts (Active, search)",
+                    "method": "GET",
+                    "url": "{{baseUrl}}/contracts?status=ACTIVE&search=Əli",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Contract",
+                    "method": "GET",
+                    "url": "{{baseUrl}}/contracts/CONTRACT_ID",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Create Contract",
+                    "method": "POST",
+                    "url": "{{baseUrl}}/contracts",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ],
+                    "body": {
+                        "type": "json",
+                        "raw": "{\"number\":\"K-2026-001\",\"propertyId\":\"PROPERTY_ID\",\"tenantId\":\"TENANT_ID\",\"rentalType\":\"RESIDENTIAL_LONG\",\"monthlyRent\":500,\"startDate\":\"2026-01-01\",\"endDate\":\"2026-12-31\"}"
+                    }
+                },
+                {
+                    "name": "Update Contract",
+                    "method": "PATCH",
+                    "url": "{{baseUrl}}/contracts/CONTRACT_ID",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ],
+                    "body": {
+                        "type": "json",
+                        "raw": "{\"monthlyRent\":550}"
+                    }
+                },
+                {
+                    "name": "Archive Contract",
+                    "method": "PATCH",
+                    "url": "{{baseUrl}}/contracts/CONTRACT_ID/archive",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Payments",
+            "items": [
+                {
+                    "name": "List Payments",
+                    "method": "GET",
+                    "url": "{{baseUrl}}/payments?month=2&year=2026",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Create Payment",
+                    "method": "POST",
+                    "url": "{{baseUrl}}/payments",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ],
+                    "body": {
+                        "type": "json",
+                        "raw": "{\"contractId\":\"CONTRACT_ID\",\"amount\":500,\"paymentDate\":\"2026-02-05\",\"paymentType\":\"CASH\",\"periodMonth\":2,\"periodYear\":2026}"
+                    }
+                },
+                {
+                    "name": "Delete Payment",
+                    "method": "DELETE",
+                    "url": "{{baseUrl}}/payments/PAYMENT_ID",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Properties",
+            "items": [
+                {
+                    "name": "List Properties",
+                    "method": "GET",
+                    "url": "{{baseUrl}}/properties",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Get Property",
+                    "method": "GET",
+                    "url": "{{baseUrl}}/properties/PROPERTY_ID",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Create Property",
+                    "method": "POST",
+                    "url": "{{baseUrl}}/properties",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ],
+                    "body": {
+                        "type": "json",
+                        "raw": "{\"number\":\"A-101\",\"name\":\"Ofis A-101\",\"building\":\"Biznes Mərkəzi\",\"address\":\"Nizami 28, Bakı\",\"area\":45.5}"
+                    }
+                },
+                {
+                    "name": "Update Property",
+                    "method": "PATCH",
+                    "url": "{{baseUrl}}/properties/PROPERTY_ID",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ],
+                    "body": {
+                        "type": "json",
+                        "raw": "{\"name\":\"Ofis A-101 (renovated)\"}"
+                    }
+                },
+                {
+                    "name": "Delete Property",
+                    "method": "DELETE",
+                    "url": "{{baseUrl}}/properties/PROPERTY_ID",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Tenants",
+            "items": [
+                {
+                    "name": "List Tenants",
+                    "method": "GET",
+                    "url": "{{baseUrl}}/tenants",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Create Tenant",
+                    "method": "POST",
+                    "url": "{{baseUrl}}/tenants",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ],
+                    "body": {
+                        "type": "json",
+                        "raw": "{\"fullName\":\"Əliyev Murad\",\"phone\":\"+994501234567\",\"email\":\"murad@email.com\",\"voen\":\"1234567890\"}"
+                    }
+                },
+                {
+                    "name": "Update Tenant",
+                    "method": "PATCH",
+                    "url": "{{baseUrl}}/tenants/TENANT_ID",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ],
+                    "body": {
+                        "type": "json",
+                        "raw": "{\"phone\":\"+994509876543\"}"
+                    }
+                },
+                {
+                    "name": "Delete Tenant",
+                    "method": "DELETE",
+                    "url": "{{baseUrl}}/tenants/TENANT_ID",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Expenses",
+            "items": [
+                {
+                    "name": "List Expenses",
+                    "method": "GET",
+                    "url": "{{baseUrl}}/expenses",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Create Expense",
+                    "method": "POST",
+                    "url": "{{baseUrl}}/expenses",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ],
+                    "body": {
+                        "type": "json",
+                        "raw": "{\"amount\":250,\"date\":\"2026-02-10\",\"category\":\"Maintenance\",\"description\":\"Santexnik işləri\"}"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Users",
+            "items": [
+                {
+                    "name": "List Users",
+                    "method": "GET",
+                    "url": "{{baseUrl}}/users",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Create User (Staff)",
+                    "method": "POST",
+                    "url": "{{baseUrl}}/users",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ],
+                    "body": {
+                        "type": "json",
+                        "raw": "{\"email\":\"staff@icare.pro.az\",\"name\":\"Staf İşçi\",\"role\":\"STAFF\"}"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Meter Readings",
+            "items": [
+                {
+                    "name": "List Readings",
+                    "method": "GET",
+                    "url": "{{baseUrl}}/meter-readings?propertyId=PROPERTY_ID",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Create Reading",
+                    "method": "POST",
+                    "url": "{{baseUrl}}/meter-readings",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ],
+                    "body": {
+                        "type": "json",
+                        "raw": "{\"propertyId\":\"PROPERTY_ID\",\"meterType\":\"ELECTRICITY\",\"readingDate\":\"2026-02-01\",\"value\":1523.5,\"periodMonth\":2,\"periodYear\":2026}"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Audit Log",
+            "items": [
+                {
+                    "name": "List Audit Log",
+                    "method": "GET",
+                    "url": "{{baseUrl}}/audit-log?limit=50",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ]
+                },
+                {
+                    "name": "Filter by entity type",
+                    "method": "GET",
+                    "url": "{{baseUrl}}/audit-log?entityType=Contract",
+                    "headers": [
+                        {
+                            "name": "Authorization",
+                            "value": "Bearer {{token}}"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Health",
+            "items": [
+                {
+                    "name": "Health Check",
+                    "method": "GET",
+                    "url": "{{baseUrl}}/health"
+                }
+            ]
+        }
+    ]
+}

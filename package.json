@@ -1,0 +1,22 @@
+{
+  "name": "icare-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "db:migrate": "turbo run db:migrate --filter=@icare/database",
+    "db:seed": "turbo run db:seed --filter=@icare/database",
+    "db:studio": "turbo run db:studio --filter=@icare/database"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3",
+    "prettier": "^3.4.2"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=8"
+  },
+  "packageManager": "pnpm@8.15.9"
+}

@@ -1,0 +1,44 @@
+{
+    "$schema": "https://turbo.build/schema.json",
+    "ui": "tui",
+    "tasks": {
+        "build": {
+            "dependsOn": [
+                "^build"
+            ],
+            "inputs": [
+                "$TURBO_DEFAULT$",
+                ".env*"
+            ],
+            "outputs": [
+                "dist/**"
+            ]
+        },
+        "dev": {
+            "cache": false,
+            "persistent": true
+        },
+        "db:migrate": {
+            "cache": false,
+            "env": [
+                "DATABASE_URL"
+            ]
+        },
+        "db:seed": {
+            "cache": false,
+            "env": [
+                "DATABASE_URL"
+            ],
+            "dependsOn": [
+                "db:migrate"
+            ]
+        },
+        "db:studio": {
+            "cache": false,
+            "persistent": true,
+            "env": [
+                "DATABASE_URL"
+            ]
+        }
+    }
+}

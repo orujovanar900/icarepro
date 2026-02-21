@@ -1,0 +1,25 @@
+{
+    "name": "@icare/database",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "db:migrate": "prisma migrate dev",
+        "db:seed": "tsx prisma/seed.ts",
+        "db:studio": "prisma studio",
+        "generate": "prisma generate"
+    },
+    "dependencies": {
+        "@prisma/client": "^5.22.0",
+        "bcrypt": "^6.0.0"
+    },
+    "devDependencies": {
+        "@types/bcrypt": "^6.0.0",
+        "@types/node": "^22.13.4",
+        "prisma": "^5.22.0",
+        "tsx": "^4.19.2",
+        "typescript": "^5.7.3"
+    },
+    "prisma": {
+        "seed": "tsx prisma/seed.ts"
+    }
+}

@@ -1,0 +1,297 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────
+
+enum UserRole {
+  OWNER
+  STAFF
+  TENANT
+}
+
+enum OrgPlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+// Тип аренды
+enum RentalType {
+  RESIDENTIAL_LONG   // Тип 1: долгосрочная жилая (фикс. аренда/мес)
+  COMMERCIAL         // Тип 2: коммерческая (базовая + % от выручки)
+  RESIDENTIAL_SHORT  // Тип 3: краткосрочная (посуточно)
+  PARKING            // Тип 4: парковочное место (дневная ставка)
+  SUBLEASE           // Тип 5: субаренда (дочерний контракт)
+}
+
+enum PaymentType {
+  CASH
+  BANK
+  CARD
+  ONLINE
+}
+
+enum DocumentType {
+  CONTRACT
+  ACT
+  DEBT_NOTICE
+  INVOICE
+  RECEIPT
+  ADDENDUM
+  TERMINATION
+  PHOTO_REPORT
+}
+
+enum MeterType {
+  ELECTRICITY
+  WATER_COLD
+  WATER_HOT
+  GAS
+  HEAT
+}
+
+// ─────────────────────────────────────────
+// Models
+// ─────────────────────────────────────────
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  plan      OrgPlan  @default(FREE)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  users         User[]
+  properties    Property[]
+  tenants       Tenant[]
+  contracts     Contract[]
+  payments      Payment[]
+  expenses      Expense[]
+  documents     Document[]
+  auditLogs     AuditLog[]
+  meterReadings MeterReading[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String   @id @default(cuid())
+  organizationId String
+  email          String
+  passwordHash   String
+  name           String
+  role           UserRole @default(STAFF)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  payments     Payment[]
+  expenses     Expense[]
+  auditLogs    AuditLog[]
+  tenant       Tenant?
+
+  @@unique([organizationId, email])
+  @@map("users")
+}
+
+model Property {
+  id             String  @id @default(cuid())
+  organizationId String
+  number         String
+  name           String
+  building       String
+  address        String
+  area           Decimal @db.Decimal(10, 2)
+  isActive       Boolean @default(true)
+
+  organization  Organization    @relation(fields: [organizationId], references: [id])
+  contracts     Contract[]
+  photos        PropertyPhoto[]
+  meterReadings MeterReading[]
+
+  @@unique([organizationId, number])
+  @@map("properties")
+}
+
+model Tenant {
+  id             String  @id @default(cuid())
+  organizationId String
+  fullName       String
+  phone          String
+  email          String?
+  voen           String? // Azərbaycan vergi ID
+  userId         String? @unique
+
+  organization    Organization     @relation(fields: [organizationId], references: [id])
+  user            User?            @relation(fields: [userId], references: [id])
+  contracts       Contract[]
+  tenantDocuments TenantDocument[]
+
+  @@unique([organizationId, voen])
+  @@map("tenants")
+}
+
+model Contract {
+  id               String         @id @default(cuid())
+  organizationId   String
+  number           String
+  propertyId       String
+  tenantId         String
+  rentalType       RentalType     @default(RESIDENTIAL_LONG)
+  monthlyRent      Decimal        @db.Decimal(12, 2)
+  startDate        DateTime       @db.Date
+  endDate          DateTime       @db.Date
+  status           ContractStatus @default(DRAFT)
+
+  // Дополнительные поля по типу аренды
+  taxRate          Decimal?       @db.Decimal(5, 2)   // % НДС (информационно)
+  depositAmount    Decimal?       @db.Decimal(12, 2)  // залог
+  baseRent         Decimal?       @db.Decimal(12, 2)  // Тип 2: базовая аренда
+  revenuePercent   Decimal?       @db.Decimal(5, 2)   // Тип 2: % от выручки
+  dailyRate        Decimal?       @db.Decimal(12, 2)  // Тип 3/4: суточная ставка
+  parentContractId String?                             // Тип 5: ссылка на родительский контракт
+  notes            String?
+
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  property       Property     @relation(fields: [propertyId], references: [id])
+  tenant         Tenant       @relation(fields: [tenantId], references: [id])
+  parentContract Contract?    @relation("subcontracts", fields: [parentContractId], references: [id])
+  subContracts   Contract[]   @relation("subcontracts")
+  payments       Payment[]
+  documents      Document[]
+
+  @@unique([organizationId, number])
+  @@map("contracts")
+}
+
+model Payment {
+  id             String      @id @default(cuid())
+  organizationId String
+  contractId     String
+  amount         Decimal     @db.Decimal(12, 2)
+  paymentDate    DateTime    @db.Date
+  periodMonth    Int?        // 1-12 — за какой месяц (null для посуточных)
+  periodYear     Int?
+  periodStart    DateTime?   @db.Date  // для посуточных: заезд
+  periodEnd      DateTime?   @db.Date  // для посуточных: выезд
+  paymentType    PaymentType
+  isPenalty      Boolean     @default(false)
+  penaltyNote    String?
+  note           String?
+  createdBy      String
+
+  organization  Organization @relation(fields: [organizationId], references: [id])
+  contract      Contract     @relation(fields: [contractId], references: [id])
+  createdByUser User         @relation(fields: [createdBy], references: [id])
+
+  @@map("payments")
+}
+
+model Expense {
+  id             String   @id @default(cuid())
+  organizationId String
+  amount         Decimal  @db.Decimal(12, 2)
+  date           DateTime @db.Date
+  category       String
+  description    String?
+  createdBy      String
+
+  organization  Organization @relation(fields: [organizationId], references: [id])
+  createdByUser User         @relation(fields: [createdBy], references: [id])
+
+  @@map("expenses")
+}
+
+model Document {
+  id             String       @id @default(cuid())
+  organizationId String
+  contractId     String
+  type           DocumentType
+  filePath       String
+  generatedAt    DateTime     @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  contract     Contract     @relation(fields: [contractId], references: [id])
+
+  @@map("documents")
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  action         String
+  entityType     String
+  entityId       String
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model MeterReading {
+  id             String    @id @default(cuid())
+  organizationId String
+  propertyId     String
+  meterType      MeterType
+  readingDate    DateTime  @db.Date
+  value          Decimal   @db.Decimal(12, 3)
+  consumption    Decimal?  @db.Decimal(12, 3) // авто: currentValue - previousValue
+  periodMonth    Int
+  periodYear     Int
+  note           String?
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  property     Property     @relation(fields: [propertyId], references: [id])
+
+  @@map("meter_readings")
+}
+
+model PropertyPhoto {
+  id          String   @id @default(cuid())
+  propertyId  String
+  url         String
+  caption     String?
+  sortOrder   Int      @default(0)
+  uploadedAt  DateTime @default(now())
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  @@map("property_photos")
+}
+
+model TenantDocument {
+  id         String       @id @default(cuid())
+  tenantId   String
+  type       DocumentType
+  filePath   String
+  name       String
+  uploadedAt DateTime     @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@map("tenant_documents")
+}
