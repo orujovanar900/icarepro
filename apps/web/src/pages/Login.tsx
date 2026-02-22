@@ -9,6 +9,7 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/Card';
+import { Eye, EyeOff } from 'lucide-react';
 
 const loginSchema = z.object({
     email: z.string().email('Geçərli bir e-poçt ünvanı daxil edin.'),
@@ -22,6 +23,8 @@ export function Login() {
     const { login } = useAuthStore();
     const { addToast } = useToastStore();
     const [isLoading, setIsLoading] = React.useState(false);
+    const [showPass, setShowPass] = React.useState(false);
+    const [remember, setRemember] = React.useState(true);
 
     const {
         register,
@@ -37,6 +40,13 @@ export function Login() {
             const response = await api.post('/auth/login', data);
 
             const { user, token } = response.data.data;
+
+            if (!remember) {
+                sessionStorage.setItem('auth-session-only', 'true');
+            } else {
+                sessionStorage.removeItem('auth-session-only');
+            }
+
             login({ user, token });
 
             addToast({ type: 'success', message: 'Uğurla daxil oldunuz!' });
@@ -69,6 +79,9 @@ export function Login() {
                     <h1 className="text-4xl font-extrabold font-heading tracking-tight text-gold">
                         İcarə <span className="text-white font-light">Pro</span>
                     </h1>
+                    <p style={{ fontStyle: 'italic', color: '#8899B0', fontSize: '13px' }} className="mt-1 mb-2">
+                        "Mülkünüzü ağıllı idarə edin"
+                    </p>
                     <p className="mt-2 text-sm text-text">Sistemi idarə etmək üçün daxil olun</p>
                 </div>
 
@@ -87,11 +100,31 @@ export function Login() {
                             />
                             <Input
                                 label="Şifrə"
-                                type="password"
+                                type={showPass ? 'text' : 'password'}
                                 placeholder="••••••••"
                                 {...register('password')}
                                 error={errors.password?.message}
+                                rightElement={
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPass(!showPass)}
+                                        style={{ color: '#4A6080' }}
+                                        className="hover:!text-[#C9A84C] transition-colors flex items-center justify-center p-1"
+                                    >
+                                        {showPass ? <Eye size={18} /> : <EyeOff size={18} />}
+                                    </button>
+                                }
                             />
+
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }} className="text-sm text-muted cursor-pointer hover:text-text transition-colors w-fit pt-2">
+                                <input
+                                    type="checkbox"
+                                    checked={remember}
+                                    onChange={e => setRemember(e.target.checked)}
+                                    className="accent-gold w-4 h-4 cursor-pointer"
+                                />
+                                <span>Məni xatırla</span>
+                            </label>
                         </CardContent>
                         <CardFooter>
                             <Button type="submit" variant="primary" className="w-full" size="lg" isLoading={isLoading}>

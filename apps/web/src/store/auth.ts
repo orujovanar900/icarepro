@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 type Role = 'OWNER' | 'STAFF' | 'TENANT';
 
@@ -32,16 +32,36 @@ export const useAuthStore = create<AuthState>()(
                     token: data.token,
                     isAuthenticated: true,
                 }),
-            logout: () =>
+            logout: () => {
                 set({
                     user: null,
                     token: null,
                     isAuthenticated: false,
-                }),
+                });
+                sessionStorage.removeItem('auth-session-only');
+            },
             setUser: (user) => set({ user }),
         }),
         {
             name: 'auth-storage', // name of the item in the storage (must be unique)
+            storage: createJSONStorage(() => ({
+                getItem: (name) => {
+                    return localStorage.getItem(name) || sessionStorage.getItem(name);
+                },
+                setItem: (name, value) => {
+                    if (sessionStorage.getItem('auth-session-only') === 'true') {
+                        sessionStorage.setItem(name, value);
+                        localStorage.removeItem(name);
+                    } else {
+                        localStorage.setItem(name, value);
+                        sessionStorage.removeItem(name);
+                    }
+                },
+                removeItem: (name) => {
+                    localStorage.removeItem(name);
+                    sessionStorage.removeItem(name);
+                },
+            }))
         }
     )
 );
