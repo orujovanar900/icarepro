@@ -3,27 +3,88 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Download, Save, RefreshCw } from 'lucide-react';
+import { Loader2, Download, Save, RefreshCw, Upload, FileText, CheckCircle2 } from 'lucide-react';
+import { Document, Packer, Paragraph, AlignmentType } from "docx";
+import { saveAs } from "file-saver";
+import * as mammoth from "mammoth";
+import * as pdfjsLib from "pdfjs-dist";
 
-const SYSTEM = `Sən İcarə Pro-nun AI Sənəd Ustasısan.
-Azərbaycan dilində mehriban söhbət edərək icarə sənədləri hazırlayırsan.
-Hər cavabında MÜTLƏq bu formatı istifadə et:
-<msg>Mesajın buraya</msg>
-<upd>{"sahə":"dəyər"}</upd>
-<chips>["Chip 1", "Chip 2"]</chips>
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+
+const SYSTEM = `Sən İcarə Pro-nun ekspert hüquqi köməkçisisən.
+Azərbaycan qanunvericiliyini yaxşı bilirsən.
+
+Vəzifən: İstifadəçi ilə söhbət edərək peşəkar icarə sənədi hazırlamaq.
+
+QAYDALAR:
+1. Sadəcə məlumat yazmırsan — hüquqi cəhətdən düzgün, peşəkar ifadələr işlədirsən
+2. Lazım gəldikdə izah edirsən — məsələn depozit nə üçün vacibdir, hansı müddət daha etibarlıdır
+3. Ağıllı təkliflər verirsən — məsələn "Adətən ticarət obyektləri üçün 1 illik müqavilə tövsiyə olunur"
+4. Məbləği formatla: "1500" → "1.500 ₼"
+5. Tarixi formatla: "yanvar 2026" → "01.01.2026"
+6. Hər cavabda MÜTLƏq bu format:
+   <msg>Mesajın</msg>
+   <upd>{"sahə":"dəyər"}</upd>
+   <chips>["Seçim 1","Seçim 2","Seçim 3"]</chips>
+
 SAHƏLƏR: landlord, tenant, voen, phone, address, area, rent, deposit, paydate, period, utilities, extra
-Bir dəfədə 1 sual ver.
-Sıra: landlord→tenant→address→rent→paydate→period→utilities→extra
+
+AĞILLI SUALLAR VƏ TƏKLİFLƏR:
+- İcarəçi fiziki şəxsdirsə VÖEN istəmə
+- Depozit soruşanda: "Adətən 1-2 aylıq icarə haqqı qədər depozit götürülür. Sizin üçün tövsiyə: X ₼"
+- Müddət soruşanda: "Bu obyekt üçün minimum 6 ay tövsiyə olunur"
+- Kommunal soruşanda: "Ticarət obyektlərində adətən icarəçi ödəyir"
+- Bitdikdə sənədi qısa xülasə et
+
 Hamısı bitdikdə: <upd>{"_done":true}</upd>
 
-Mərhələlərə uyğun <chips> nümunələri:
-- Salamlaşmadan sonra: ["Müqavilə", "Akt", "Borc Bildirişi"]
-- İcarəyə verən (landlord) sualından sonra: ["Fiziki şəxs", "Hüquqi şəxs"]
-- İcarəçi adından (tenant) sonra: ["VÖEN əlavə et", "VÖEN yoxdur"]
-- Ünvan (address) sualından sonra: ["Sahəni əlavə et", "Keçək"]
-- İcarə haqqı (rent) sualından sonra: ["Depozit var", "Depozit yoxdur"]
-- Müddət (period) sualından sonra: ["Əlavə şərt yoxdur", "Əlavə şərt var"]
-- Kommunal (utilities) sualından sonra: ["Kommunal icarəçi ödəyir", "Kommunal sahibkar ödəyir"]`;
+Əgər istifadəçi şablon yükləyibsə, həmin şablonu əsas götür, strukturunu qoru.`;
+
+async function downloadWord(doc: any) {
+    const document = new Document({
+        sections: [{
+            properties: {},
+            children: [
+                new Paragraph({
+                    text: "İCARƏ MÜQAVİLƏSİ",
+                    alignment: AlignmentType.CENTER,
+                    style: "Heading1"
+                }),
+                new Paragraph({
+                    text: `Bakı şəhəri · ${new Date().getFullYear()}-ci il`,
+                    alignment: AlignmentType.CENTER,
+                }),
+                new Paragraph({ text: "" }),
+                new Paragraph({ text: "TƏRƏFLƏR", style: "Heading2" }),
+                new Paragraph({ text: `İcarəyə verən: ${doc.landlord || "___"}` }),
+                new Paragraph({ text: `İcarəçi: ${doc.tenant || "___"}` }),
+                new Paragraph({ text: `VÖEN: ${doc.voen || "—"}` }),
+                new Paragraph({ text: `Əlaqə: ${doc.phone || "—"}` }),
+                new Paragraph({ text: "" }),
+                new Paragraph({ text: "OBYEKT", style: "Heading2" }),
+                new Paragraph({ text: `Ünvan: ${doc.address || "___"}` }),
+                new Paragraph({ text: `Sahə: ${doc.area ? doc.area + " m²" : "—"}` }),
+                new Paragraph({ text: "" }),
+                new Paragraph({ text: "MALİYYƏ", style: "Heading2" }),
+                new Paragraph({ text: `Aylıq icarə: ${doc.rent ? "₼ " + doc.rent : "___"}` }),
+                new Paragraph({ text: `Depozit: ${doc.deposit ? "₼ " + doc.deposit : "—"}` }),
+                new Paragraph({ text: `Ödəniş tarixi: ${doc.paydate ? "Hər ayın " + doc.paydate + "-i" : "___"}` }),
+                new Paragraph({ text: "" }),
+                new Paragraph({ text: "MÜDDƏT", style: "Heading2" }),
+                new Paragraph({ text: `İcarə müddəti: ${doc.period || "___"}` }),
+                new Paragraph({ text: "" }),
+                new Paragraph({ text: "ÜMUMİ MÜDDƏALAR", style: "Heading2" }),
+                new Paragraph({ text: "1. İcarəçi obyekti müqavilədə göstərilən məqsəd üçün istifadə etməyi öhdəsinə götürür." }),
+                new Paragraph({ text: `2. İcarə haqqı hər ayın ${doc.paydate || "___"}-dək ödənilməlidir.` }),
+                new Paragraph({ text: `3. Kommunal xərclər ${doc.utilities || "___"} tərəfindən ödənilir.` }),
+                new Paragraph({ text: "4. Müqavilə hər iki tərəfin razılığı ilə uzadıla bilər." }),
+                ...(doc.extra ? [new Paragraph({ text: `5. ${doc.extra}` })] : []),
+            ]
+        }]
+    });
+    const blob = await Packer.toBlob(document);
+    saveAs(blob, `Muqavile_${doc.tenant || "yeni"}.docx`);
+}
 
 const DOCS = [
     { id: "contract", icon: "📋", label: "Müqavilə", title: "İCARƏ MÜQAVİLƏSİ" },
@@ -55,6 +116,7 @@ export function SanadUstasi() {
         enabled: !!contractId,
     });
 
+    const { user } = useAuthStore();
     const [docType, setDocType] = useState("contract");
     const [msgs, setMsgs] = useState<Message[]>([]);
     const [input, setInput] = useState("");
@@ -63,15 +125,26 @@ export function SanadUstasi() {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [done, setDone] = useState(false);
+    const [userTemplate, setUserTemplate] = useState<string>("");
 
     const bottomRef = useRef<HTMLDivElement>(null);
     const printAreaRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const activeDocType = DOCS.find(d => d.id === docType) || DOCS[0];
 
     // Initialize state when component mounts or contract data is loaded
     useEffect(() => {
-        if (contractId && isContractLoading) return; // Wait for contract to load
+        const savedTemplate = localStorage.getItem(`sanad_template_${user?.id}`);
+        if (savedTemplate) {
+            setUserTemplate(savedTemplate);
+            setMsgs([{
+                from: "ai",
+                text: "Son şablonunuz yüklüdür. Müqaviləni bu şablonla başlayaq yoxsa dəyişmək istəyirsiniz?",
+                chips: ["Bəli, eyni şablonla", "Xeyr, yeni şablon yükləyim", "Şablonsuz davam edək"]
+            }]);
+            return;
+        }
 
         let initialDoc: Record<string, any> = {};
         let initialMsg = `Salam! 👋 Mən **Sənəd Ustası**yam.\n\nYuxarıdan sənəd növünü seçin.\n\nBaşlayaq — **İcarəyə verənin adını** yazın:`;
@@ -99,7 +172,7 @@ export function SanadUstasi() {
         setMsgs([{ from: "ai", text: initialMsg, chips: initialChips }]);
         setHist([]);
         setDone(false);
-    }, [contractId, isContractLoading, contractDetails]);
+    }, [contractId, isContractLoading, contractDetails, user?.id]);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -135,6 +208,22 @@ export function SanadUstasi() {
         setInput("");
 
         setMsgs(p => [...p, { from: "user", text: messageText }]);
+
+        // Handle quick intercept options for Template state
+        if (messageText === "Xeyr, yeni şablon yükləyim") {
+            setUserTemplate("");
+            if (user?.id) localStorage.removeItem(`sanad_template_${user.id}`);
+            if (fileInputRef.current) fileInputRef.current.click();
+            return;
+        } else if (messageText === "Şablonsuz davam edək" || messageText === "Bəli, eyni şablonla") {
+            if (messageText === "Şablonsuz davam edək") {
+                setUserTemplate("");
+                if (user?.id) localStorage.removeItem(`sanad_template_${user.id}`);
+            }
+            setMsgs(p => [...p, { from: "ai", text: "Əla! O zaman icarəyə verənin adını daxil edin:", chips: ["Fiziki şəxs", "Hüquqi şəxs"] }]);
+            return;
+        }
+
         const newHistory = [...hist, { role: "user" as const, content: messageText }];
         setHist(newHistory);
         setLoading(true);
@@ -143,6 +232,11 @@ export function SanadUstasi() {
             const apiKey = import.meta.env["VITE_ANTHROPIC_API_KEY"];
             if (!apiKey) {
                 throw new Error("API key is missing");
+            }
+
+            let activeSystem = SYSTEM;
+            if (userTemplate) {
+                activeSystem += `\n\nİstifadəçinin öz şablonu:\n${userTemplate}\n\nBu şablonu əsas götür, strukturunu qoru, boş yerləri doldur.`;
             }
 
             const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -156,7 +250,7 @@ export function SanadUstasi() {
                 body: JSON.stringify({
                     model: "claude-sonnet-4-20250514",
                     max_tokens: 1000,
-                    system: SYSTEM + `\nSənəd Növü: ${activeDocType?.title || ""}\nMövcuD Məlumatlar: ${JSON.stringify(doc)}`,
+                    system: activeSystem + `\nSənəd Növü: ${activeDocType?.title || ""}\nMövcuD Məlumatlar: ${JSON.stringify(doc)}`,
                     messages: newHistory
                 })
             });
@@ -237,6 +331,48 @@ export function SanadUstasi() {
         }
     }
 
+    async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setLoading(true);
+        let extractedText = "";
+
+        try {
+            if (file.type === "application/pdf") {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const content = await page.getTextContent();
+                    extractedText += content.items.map((item: any) => item.str).join(" ") + "\n";
+                }
+            } else if (file.name.endsWith('.docx')) {
+                const arrayBuffer = await file.arrayBuffer();
+                const result = await mammoth.extractRawText({ arrayBuffer });
+                extractedText = result.value;
+            } else {
+                extractedText = await file.text();
+            }
+
+            setUserTemplate(extractedText);
+            if (user?.id) localStorage.setItem(`sanad_template_${user.id}`, extractedText);
+
+            setMsgs([
+                { from: "user", text: `📎 Şablon yükləndi: ${file.name}` },
+                { from: "ai", text: "Şablonunuzu aldım! Hansı məlumatları doldurmaq lazımdır?", chips: ["Məlumatları daxil edək"] }
+            ]);
+            setDoc({});
+            setHist([]);
+            setDone(false);
+        } catch (err) {
+            console.error("File parse error", err);
+            alert("Faylı oxumaq mümkün olmadı.");
+        } finally {
+            setLoading(false);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+        }
+    }
+
     const fallback = (v: any, p = "__________") => v || p;
 
     if (isContractLoading) {
@@ -281,17 +417,34 @@ export function SanadUstasi() {
                     ))}
                 </div>
 
-                <button
-                    onClick={() => {
-                        setMsgs([{ from: "ai", text: "Yeni sənəd! İcarəyə verənin adını yazın:", chips: ["Fiziki şəxs", "Hüquqi şəxs"] }]);
-                        setHist([]);
-                        setDoc({});
-                        setDone(false);
-                    }}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer border border-[#192840] text-[#8899B0] hover:text-white hover:bg-[#1A2840] transition-colors"
-                >
-                    <RefreshCw className="w-3.5 h-3.5" /> Sıfırla
-                </button>
+                <div className="flex items-center gap-3">
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                        accept=".txt,.pdf,.docx"
+                        className="hidden"
+                    />
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer border border-[#192840] text-white bg-[#1A2840] hover:bg-[#20324c] transition-colors"
+                    >
+                        {userTemplate ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <Upload className="w-3.5 h-3.5" />}
+                        {userTemplate ? "✓ Şablon yükləndi" : "📎 Şablon Yüklə"}
+                    </button>
+
+                    <button
+                        onClick={() => {
+                            setMsgs([{ from: "ai", text: "Yeni sənəd! İcarəyə verənin adını yazın:", chips: ["Fiziki şəxs", "Hüquqi şəxs"] }]);
+                            setHist([]);
+                            setDoc({});
+                            setDone(false);
+                        }}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer border border-[#192840] text-[#8899B0] hover:text-white hover:bg-[#1A2840] transition-colors"
+                    >
+                        <RefreshCw className="w-3.5 h-3.5" /> Sıfırla
+                    </button>
+                </div>
             </div>
 
             <div className="flex flex-1 overflow-hidden">
@@ -408,21 +561,37 @@ export function SanadUstasi() {
                                     {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                                     {saving ? "Saxlanılır..." : "Sənədlərə Əlavə Et"}
                                 </button>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => downloadWord(doc)}
+                                        className="px-4 py-2 rounded-lg text-xs font-bold bg-[#2B579A] text-white hover:bg-[#1A365D] transition-colors shadow-sm flex items-center gap-2"
+                                    >
+                                        <FileText className="w-3.5 h-3.5" /> Word Yüklə
+                                    </button>
+                                    <button
+                                        onClick={() => window.print()}
+                                        className="px-4 py-2 rounded-lg text-xs font-bold bg-[#C9A84C] text-[#080C14] hover:bg-[#F0C96A] transition-colors shadow-sm flex items-center gap-2"
+                                    >
+                                        <Download className="w-3.5 h-3.5" /> PDF Yüklə
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <button
+                                    disabled={progressPercent < 60}
+                                    className="px-4 py-2 rounded-lg text-xs font-bold bg-[#1C3050] text-[#4A6080] cursor-not-allowed border-none flex items-center gap-2"
+                                >
+                                    <FileText className="w-3.5 h-3.5" /> Word Yüklə
+                                </button>
                                 <button
                                     onClick={() => window.print()}
-                                    className="px-4 py-2 rounded-lg text-xs font-bold bg-[#C9A84C] text-[#080C14] hover:bg-[#F0C96A] transition-colors shadow-sm flex items-center gap-2"
+                                    disabled={progressPercent < 60}
+                                    className="px-4 py-2 rounded-lg text-xs font-bold bg-[#1C3050] text-[#4A6080] cursor-not-allowed border-none flex items-center gap-2"
                                 >
                                     <Download className="w-3.5 h-3.5" /> PDF Yüklə
                                 </button>
                             </div>
-                        ) : (
-                            <button
-                                onClick={() => window.print()}
-                                disabled={progressPercent < 60}
-                                className="px-4 py-2 rounded-lg text-xs font-bold bg-[#1C3050] text-[#4A6080] cursor-not-allowed border-none flex items-center gap-2"
-                            >
-                                <Download className="w-3.5 h-3.5" /> PDF Yüklə
-                            </button>
                         )}
                     </div>
 
