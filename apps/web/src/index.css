@@ -31,4 +31,30 @@
   h6 {
     @apply font-heading text-text;
   }
+
+  /* Mobile Global Fixes */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  @media (max-width: 768px) {
+
+    button,
+    .btn {
+      min-height: 44px;
+    }
+
+    input,
+    select,
+    textarea {
+      min-height: 44px;
+      font-size: 16px !important;
+      /* Prevents auto-zoom on iOS */
+    }
+
+    /* Prevent content from being hidden behind the fixed bottom nav */
+    main {
+      padding-bottom: 70px !important;
+    }
+  }
 }

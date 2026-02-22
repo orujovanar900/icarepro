@@ -142,15 +142,15 @@ function DashboardContent() {
             {/* Header & Filters */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h1 className="text-3xl font-extrabold font-heading text-text">İdarə Paneli</h1>
-                <div className="flex gap-4">
+                <div className="flex gap-2 sm:gap-4 w-full sm:w-auto">
                     <Select
-                        className="w-[120px]"
+                        className="flex-1 sm:w-[120px]"
                         value={month}
                         onChange={(e) => handlePeriodChange('month', e.target.value)}
                         options={monthOptions}
                     />
                     <Select
-                        className="w-[100px]"
+                        className="flex-1 sm:w-[100px]"
                         value={year}
                         onChange={(e) => handlePeriodChange('year', e.target.value)}
                         options={yearOptions}
@@ -159,9 +159,9 @@ function DashboardContent() {
             </div>
 
             {/* KPIs */}
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 {/* Cari Ay Balans (gold) */}
-                <Card variant="elevated" className="border-gold/20 relative overflow-hidden">
+                <Card variant="elevated" className="border-gold/20 relative overflow-hidden p-4 sm:p-0 rounded-2xl sm:rounded-lg">
                     <div className="absolute -top-4 -right-4 p-4 opacity-5">
                         <Wallet className="w-32 h-32 text-gold" />
                     </div>
@@ -180,7 +180,7 @@ function DashboardContent() {
                 </Card>
 
                 {/* Cari Ay Mədaxil (teal/green) */}
-                <Card variant="elevated">
+                <Card variant="elevated" className="p-4 sm:p-0 rounded-2xl sm:rounded-lg">
                     <CardHeader className="pb-2 flex flex-row items-center justify-between">
                         <CardTitle className="text-sm font-medium text-muted">Cari Ay Mədaxil</CardTitle>
                         <TrendingUp className="w-5 h-5 text-green" />
@@ -202,7 +202,7 @@ function DashboardContent() {
                 {/* Cəmi Borc (red) */}
                 <Card
                     variant="elevated"
-                    className="border-red/20 cursor-pointer hover:border-red/50 transition-colors"
+                    className="border-red/20 cursor-pointer hover:border-red/50 transition-colors p-4 sm:p-0 rounded-2xl sm:rounded-lg"
                     onClick={() => {
                         document.getElementById('debtors-list')?.scrollIntoView({ behavior: 'smooth' });
                     }}
@@ -221,7 +221,7 @@ function DashboardContent() {
                 </Card>
 
                 {/* Bu Ay Üzrə Borc (orange) */}
-                <Card variant="elevated" className="border-orange/20">
+                <Card variant="elevated" className="border-orange/20 p-4 sm:p-0 rounded-2xl sm:rounded-lg">
                     <CardHeader className="pb-2 flex flex-row items-center justify-between">
                         <CardTitle className="text-sm font-medium text-muted">Bu Ay Üzrə Borc</CardTitle>
                         <Calendar className="w-5 h-5 text-orange" />
@@ -244,9 +244,15 @@ function DashboardContent() {
                     </CardHeader>
                     <CardContent>
                         {isDashboardLoading ? (
-                            <div className="h-[300px] w-full bg-surface animate-pulse rounded" />
+                            <div className="h-[200px] sm:h-[300px] w-full bg-surface animate-pulse rounded" />
                         ) : (
-                            <div className="h-[300px] w-full mt-4">
+                            <div className="h-[200px] sm:h-[300px] w-full mt-4 chart-container">
+                                <style dangerouslySetInnerHTML={{
+                                    __html: `
+                                    @media (max-width: 768px) {
+                                        .recharts-legend-wrapper { display: none !important; }
+                                    }
+                                `}} />
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={dashboard?.monthlyChart || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#192840" vertical={false} />
@@ -296,11 +302,11 @@ function DashboardContent() {
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                {dashboard?.debtors?.map((debtor: any, idx: number) => {
+                                {dashboard?.debtors?.slice(0, window.innerWidth < 768 ? 3 : undefined).map((debtor: any, idx: number) => {
                                     const initials = debtor.tenantName.substring(0, 2).toUpperCase();
                                     return (
                                         <div key={idx} className="flex items-center justify-between p-2 hover:bg-surface rounded-lg transition-colors cursor-pointer group" onClick={() => navigate(`/contracts/${debtor.contractId}`)}>
-                                            <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-3 w-[70%]">
                                                 <div className="w-10 h-10 shrink-0 rounded-full bg-red/10 text-red border border-red/20 flex items-center justify-center font-bold text-sm">
                                                     {initials}
                                                 </div>
@@ -309,12 +315,17 @@ function DashboardContent() {
                                                     <p className="text-xs text-muted truncate">Müqavilə: {debtor.contractNumber}</p>
                                                 </div>
                                             </div>
-                                            <div className="text-right shrink-0 pl-2">
+                                            <div className="text-right shrink-0">
                                                 <p className="text-sm font-bold text-red">{formatMoney(debtor.debtAmount)}</p>
                                             </div>
                                         </div>
                                     )
                                 })}
+                                {dashboard?.debtors?.length > 3 && window.innerWidth < 768 && (
+                                    <Button variant="ghost" size="sm" onClick={() => navigate('/contracts?tab=debtors')} className="w-full mt-2 text-gold hover:text-gold2 group">
+                                        Hamısına bax <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
+                                    </Button>
+                                )}
                             </div>
                         )}
                     </CardContent>

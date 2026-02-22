@@ -137,52 +137,84 @@ export function Contracts() {
                             <p>Müqavilə tapılmadı.</p>
                         </div>
                     ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Obyekt / İcarəçi</TableHead>
-                                    <TableHead>Məbləğ (Aylıq)</TableHead>
-                                    <TableHead>Müddət</TableHead>
-                                    <TableHead className="text-right">Borc</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
+                        <>
+                            {/* Desktop Table View */}
+                            <div className="hidden md:block">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Obyekt / İcarəçi</TableHead>
+                                            <TableHead>Məbləğ (Aylıq)</TableHead>
+                                            <TableHead>Müddət</TableHead>
+                                            <TableHead className="text-right">Borc</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {contracts.map((contract: any) => (
+                                            <TableRow
+                                                key={contract.id}
+                                                className="cursor-pointer hover:bg-surface transition-colors"
+                                                onClick={() => navigate(`/contracts/${contract.id}`)}
+                                            >
+                                                <TableCell>
+                                                    <Badge variant={getStatusBadgeVariant(contract.status)}>
+                                                        {getStatusText(contract.status)}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <p className="font-medium text-text group-hover:text-gold transition-colors">{contract.property.name}</p>
+                                                    <p className="text-xs text-muted flex items-center gap-1 mt-1">
+                                                        {contract.tenant.fullName} • N: {contract.number}
+                                                    </p>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="font-medium text-text">{formatMoney(contract.monthlyRent)}</span>
+                                                </TableCell>
+                                                <TableCell className="text-sm text-muted">
+                                                    {new Date(contract.startDate).toLocaleDateString('az-AZ')} - <br />
+                                                    {new Date(contract.endDate).toLocaleDateString('az-AZ')}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {contract.debt > 0 ? (
+                                                        <span className="font-bold text-red">{formatMoney(contract.debt)}</span>
+                                                    ) : (
+                                                        <span className="text-muted">Yoxdur</span>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                            {/* Mobile Card List View */}
+                            <div className="md:hidden flex flex-col divide-y divide-border">
                                 {contracts.map((contract: any) => (
-                                    <TableRow
-                                        key={contract.id}
-                                        className="cursor-pointer hover:bg-surface transition-colors"
+                                    <div
+                                        key={`mob-${contract.id}`}
+                                        className="p-4 cursor-pointer hover:bg-surface transition-colors flex items-center justify-between"
                                         onClick={() => navigate(`/contracts/${contract.id}`)}
                                     >
-                                        <TableCell>
-                                            <Badge variant={getStatusBadgeVariant(contract.status)}>
-                                                {getStatusText(contract.status)}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <p className="font-medium text-text group-hover:text-gold transition-colors">{contract.property.name}</p>
-                                            <p className="text-xs text-muted flex items-center gap-1 mt-1">
-                                                {contract.tenant.fullName} • N: {contract.number}
-                                            </p>
-                                        </TableCell>
-                                        <TableCell>
-                                            <span className="font-medium text-text">{formatMoney(contract.monthlyRent)}</span>
-                                        </TableCell>
-                                        <TableCell className="text-sm text-muted">
-                                            {new Date(contract.startDate).toLocaleDateString('az-AZ')} - <br />
-                                            {new Date(contract.endDate).toLocaleDateString('az-AZ')}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            {contract.debt > 0 ? (
-                                                <span className="font-bold text-red">{formatMoney(contract.debt)}</span>
-                                            ) : (
-                                                <span className="text-muted">Yoxdur</span>
-                                            )}
-                                        </TableCell>
-                                    </TableRow>
+                                        <div className="flex-1 min-w-0 pr-4">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <span className="text-xs text-muted font-medium">N: {contract.number}</span>
+                                                <Badge variant={getStatusBadgeVariant(contract.status)} className="text-[10px] px-1.5 py-0 h-4">
+                                                    {getStatusText(contract.status)}
+                                                </Badge>
+                                            </div>
+                                            <p className="font-bold text-text truncate">{contract.tenant.fullName}</p>
+                                            <p className="text-sm text-muted truncate mb-3">{contract.property.name}</p>
+
+                                            <div className="flex items-center justify-between text-sm">
+                                                <span className="font-bold text-gold">{formatMoney(contract.monthlyRent)}/ay</span>
+                                                {contract.debt > 0 && <span className="font-bold text-red ml-2">Borc: {formatMoney(contract.debt)}</span>}
+                                            </div>
+                                        </div>
+                                        <ChevronRight className="w-5 h-5 text-muted shrink-0" />
+                                    </div>
                                 ))}
-                            </TableBody>
-                        </Table>
+                            </div>
+                        </>
                     )}
                 </CardContent>
             </Card>
