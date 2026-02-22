@@ -30,13 +30,19 @@ export function Sidebar() {
     const { user } = useAuthStore();
 
     const navItems = React.useMemo(() => {
-        if (user?.role === 'STAFF') {
-            return allNavItems.filter(
-                (item) => !['Məxaric', 'İstifadəçilər', 'Parametrlər'].includes(item.name)
-            );
+        let items = allNavItems;
+
+        // Only owners can see Users and Settings
+        if (user?.role !== 'OWNER') {
+            items = items.filter((item) => !['İstifadəçilər', 'Parametrlər'].includes(item.name));
         }
-        // OWNER sees everything, TENANT might have a completely different view later if supported
-        return allNavItems;
+
+        // Staff specific limits
+        if (user?.role === 'STAFF') {
+            items = items.filter((item) => item.name !== 'Məxaric');
+        }
+
+        return items;
     }, [user?.role]);
 
     return (

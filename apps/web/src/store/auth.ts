@@ -9,6 +9,7 @@ interface User {
     name: string;
     role: Role;
     organizationId: string;
+    telegramChatId?: string;
 }
 
 interface AuthState {

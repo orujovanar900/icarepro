@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { api } from '@/lib/api';
 import { useToastStore } from '@/store/toast';
-import { Settings as SettingsIcon, User, Building, Lock } from 'lucide-react';
+import { Settings as SettingsIcon, User, Building, Lock, MessageCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -13,6 +13,7 @@ export function Settings() {
 
     // Profile State
     const [name, setName] = useState(user?.name || '');
+    const [telegramChatId, setTelegramChatId] = useState(user?.telegramChatId || '');
     const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
     // Password State
@@ -25,7 +26,7 @@ export function Settings() {
         if (!user) return;
         setIsUpdatingProfile(true);
         try {
-            const res = await api.patch(`/users/${user.id}`, { name });
+            const res = await api.patch(`/users/${user.id}`, { name, telegramChatId });
             setUser(res.data.data); // Update local store
             addToast({ message: 'Profil uğurla yeniləndi', type: 'success' });
         } catch (err: any) {
@@ -96,7 +97,38 @@ export function Settings() {
                                 value={user?.email || ''}
                                 disabled
                             />
-                            <Button type="submit" disabled={isUpdatingProfile || name === user?.name}>
+                            <Button type="submit" disabled={isUpdatingProfile || (name === user?.name && telegramChatId === (user?.telegramChatId || ''))}>
+                                {isUpdatingProfile ? 'Yenilənir...' : 'Yadda Saxla'}
+                            </Button>
+                        </form>
+                    </CardContent>
+                </Card>
+
+                {/* Telegram Settings */}
+                <Card variant="default" className="md:col-span-2">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <MessageCircle className="w-5 h-5 text-[#2AABEE]" /> Telegram Bildirişləri
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={handleUpdateProfile} className="space-y-4 max-w-md">
+                            <p className="text-sm text-muted mb-2">
+                                Gündəlik avtomatik xəbərdarlıqları Telegram vasitəsilə almaq üçün bot ilə əlaqə yaradın.
+                            </p>
+                            <div className="bg-[#131F30] border border-[#192840] rounded-lg p-4 mb-4 text-sm text-[#E8F0FE]">
+                                1. Telegram-da <b>@IcareProBot</b> səhifəsini tapın.<br />
+                                2. Bota <code className="text-[#C9A84C]">/start</code> yazın.<br />
+                                3. Bot sizə Chat ID-nizi göndərəcək.<br />
+                                4. Həmin ID-ni aşağıdakı xanaya daxil edib yadda saxlayın.
+                            </div>
+                            <Input
+                                label="Telegram Chat ID"
+                                value={telegramChatId}
+                                onChange={(e) => setTelegramChatId(e.target.value)}
+                                placeholder="Məsələn: 123456789"
+                            />
+                            <Button type="submit" disabled={isUpdatingProfile || telegramChatId === (user?.telegramChatId || '')}>
                                 {isUpdatingProfile ? 'Yenilənir...' : 'Yadda Saxla'}
                             </Button>
                         </form>

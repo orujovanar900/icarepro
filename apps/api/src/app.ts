@@ -20,6 +20,7 @@ import meterReadingsRoutes from './routes/meter-readings.js'
 import documentsRoutes from './routes/documents.js'
 
 import './types.js'
+import './cron/alerts.js'
 
 export async function buildApp() {
     const app = Fastify({ logger: { level: process.env['LOG_LEVEL'] ?? 'info' } })

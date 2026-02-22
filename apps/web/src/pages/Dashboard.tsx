@@ -10,6 +10,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSkeleton } from '@/components/ui/Table';
 import { Button } from '@/components/ui/Button';
+import { Modal } from '@/components/ui/Modal';
+import * as XLSX from 'xlsx';
 
 // Helper to format currency
 const formatMoney = (amount: number) => {
@@ -137,12 +139,84 @@ function DashboardContent() {
 
     const incomeChange = previousMonthIncome === 0 ? 100 : Math.round(((dashboard?.monthlyIncome || 0) - previousMonthIncome) / previousMonthIncome * 100);
 
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [reportMonth, setReportMonth] = useState(String(month));
+    const [reportYear, setReportYear] = useState(String(year));
+    const [isExporting, setIsExporting] = useState(false);
+
+    const handleExportExcel = async () => {
+        setIsExporting(true);
+        try {
+            // Fetch comprehensive data for the selected month/year
+            const [dashRes, contractsRes, paymentsRes] = await Promise.all([
+                api.get(`/dashboard?month=${reportMonth}&year=${reportYear}`),
+                api.get(`/contracts?limit=1000`),
+                api.get(`/payments?limit=1000`)
+            ]);
+
+            const dData = dashRes.data.data;
+            const cData = contractsRes.data.data;
+            const pData = paymentsRes.data.data;
+
+            const wb = XLSX.utils.book_new();
+
+            // Sheet 1: Xülasə
+            const summaryWs = XLSX.utils.json_to_sheet([
+                { 'Göstərici': 'Cari Ay Balans', 'Məbləğ': dData.balance },
+                { 'Göstərici': 'Cari Ay Mədaxil', 'Məbləğ': dData.monthlyIncome },
+                { 'Göstərici': 'Cəmi Borc', 'Məbləğ': dData.totalDebt },
+                { 'Göstərici': 'Bu Ay Üzrə Borc', 'Məbləğ': dData.currentMonthDebt }
+            ]);
+            XLSX.utils.book_append_sheet(wb, summaryWs, "Xülasə");
+
+            // Sheet 2: Müqavilələr
+            const formattedContracts = cData.map((c: any) => ({
+                'Nömrə': c.number,
+                'İcarəçi': c.tenant?.fullName,
+                'Obyekt': c.property?.name,
+                'Növ': c.rentalType,
+                'Aylıq İcarə': c.monthlyRent,
+                'Status': c.status,
+                'Borc': c.debt
+            }));
+            const contractsWs = XLSX.utils.json_to_sheet(formattedContracts);
+            XLSX.utils.book_append_sheet(wb, contractsWs, "Müqavilələr");
+
+            // Sheet 3: Ödənişlər
+            // Filter payments for that month
+            const monthPayments = pData.filter((p: any) => p.periodMonth === Number(reportMonth) && p.periodYear === Number(reportYear));
+            const formattedPayments = monthPayments.map((p: any) => ({
+                'Tarix': new Date(p.paymentDate).toLocaleDateString('az-AZ'),
+                'İcarəçi': p.contract?.tenant?.fullName,
+                'Obyekt': p.contract?.property?.name,
+                'Məbləğ': p.amount,
+                'Növ': p.paymentType
+            }));
+            const paymentsWs = XLSX.utils.json_to_sheet(formattedPayments.length > 0 ? formattedPayments : [{ 'Tarix': 'Məlumat yoxdur' }]);
+            XLSX.utils.book_append_sheet(wb, paymentsWs, "Ödənişlər");
+
+            XLSX.writeFile(wb, `IcarePro_Hesabat_${reportMonth}_${reportYear}.xlsx`);
+        } catch (error) {
+            console.error("Export failed", error);
+            alert("Hesabat generasiyası xətası.");
+        } finally {
+            setIsExporting(false);
+            setIsReportModalOpen(false);
+        }
+    };
+
+    const handlePrintPDF = () => {
+        // Just trigger standard window print which will use our @media print CSS to isolate the dashboard
+        window.print();
+        setIsReportModalOpen(false);
+    };
+
     return (
-        <div className="flex-1 space-y-6 p-6 pb-24 max-w-7xl mx-auto">
+        <div className="flex-1 space-y-6 p-6 pb-24 max-w-7xl mx-auto print-dashboard">
             {/* Header & Filters */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h1 className="text-3xl font-extrabold font-heading text-text">İdarə Paneli</h1>
-                <div className="flex gap-2 sm:gap-4 w-full sm:w-auto">
+                <div className="flex gap-2 sm:gap-4 w-full sm:w-auto no-print">
                     <Select
                         className="flex-1 sm:w-[120px]"
                         value={month}
@@ -155,6 +229,21 @@ function DashboardContent() {
                         onChange={(e) => handlePeriodChange('year', e.target.value)}
                         options={yearOptions}
                     />
+                    <Button onClick={() => setIsReportModalOpen(true)} className="flex items-center gap-2 whitespace-nowrap bg-gold hover:bg-gold2 text-black">
+                        📊 Hesabat
+                    </Button>
+                </div>
+            </div>
+
+            {/* Print Header Logo & Date Only Visible on Print */}
+            <div className="hidden print-only-header text-center mb-10 w-full pb-4 border-b border-black">
+                <h1 className="text-4xl font-extrabold text-[#C9A84C] mb-2">
+                    İcarə <span className="font-light text-black">Pro</span>
+                </h1>
+                <h2 className="text-xl font-bold text-black border-b border-black pb-2 mb-2 w-full max-w-[200px] mx-auto border-transparent">Maliyyə Hesabatı</h2>
+                <div className="flex justify-between w-full mt-8">
+                    <div className="text-left font-bold text-black border border-black p-2 bg-gray-100">Ay: {months[month - 1]}</div>
+                    <div className="text-right font-bold text-black border border-black p-2 bg-gray-100">İl: {year}</div>
                 </div>
             </div>
 
@@ -377,6 +466,43 @@ function DashboardContent() {
                     )}
                 </CardContent>
             </Card>
+
+            <Modal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} title="Maliyyə Hesabatı Yarat">
+                <div className="space-y-4">
+                    <p className="text-sm text-muted">Aylıq maliyyə hesabatını generə etmək üçün ayı və ili seçin.</p>
+                    <div className="flex gap-4">
+                        <Select
+                            label="Ay"
+                            options={monthOptions}
+                            value={reportMonth}
+                            onChange={(e) => setReportMonth(e.target.value)}
+                        />
+                        <Select
+                            label="İl"
+                            options={yearOptions}
+                            value={reportYear}
+                            onChange={(e) => setReportYear(e.target.value)}
+                        />
+                    </div>
+                    <div className="flex gap-4 pt-4 border-t border-border mt-6">
+                        <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={handleExportExcel}
+                            disabled={isExporting}
+                        >
+                            {isExporting ? 'Yüklənir...' : 'Excel Yüklə'}
+                        </Button>
+                        <Button
+                            className="flex-1 bg-gold hover:bg-gold2 text-black"
+                            onClick={handlePrintPDF}
+                            disabled={isExporting}
+                        >
+                            {isExporting ? 'Hazırlanır...' : 'PDF Yüklə'}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }

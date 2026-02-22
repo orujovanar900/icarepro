@@ -57,4 +57,100 @@
       padding-bottom: 70px !important;
     }
   }
+
+  @media print {
+    body {
+      margin: 0;
+      padding: 0;
+      background: white !important;
+      color: black !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* Hide everything standard */
+    body * {
+      visibility: hidden;
+    }
+
+    /* Hide specific layout wrappers */
+    aside,
+    nav,
+    header,
+    footer,
+    .no-print {
+      display: none !important;
+      visibility: hidden !important;
+    }
+
+    /* Reveal only Dashboard or SanadUstasi */
+    .print-dashboard,
+    .print-dashboard * {
+      visibility: visible;
+      color: black !important;
+      background-color: white !important;
+      border-color: black !important;
+    }
+
+    .print-styles,
+    .print-styles * {
+      visibility: visible;
+    }
+
+    .print-dashboard {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      margin: 0;
+      padding: 2cm;
+    }
+
+    .print-only-header {
+      display: block !important;
+      visibility: visible !important;
+    }
+
+    /* Redefine card styles for print */
+    .print-dashboard .bg-card,
+    .print-dashboard .bg-surface {
+      background: transparent !important;
+      border: 1px solid black !important;
+      box-shadow: none !important;
+      color: black !important;
+    }
+
+    /* Text colors for print */
+    .print-dashboard .text-text,
+    .print-dashboard .text-muted,
+    .print-dashboard .text-gold,
+    .print-dashboard .text-green,
+    .print-dashboard .text-red,
+    .print-dashboard .text-orange {
+      color: black !important;
+    }
+
+    /* Table styles for print */
+    .print-dashboard table {
+      border-collapse: collapse !important;
+      width: 100% !important;
+    }
+
+    .print-dashboard th,
+    .print-dashboard td {
+      border: 1px solid black !important;
+      padding: 8px !important;
+      color: black !important;
+    }
+
+    /* Disable chart on print to save space, or just outline it */
+    .print-dashboard .chart-container {
+      display: none !important;
+    }
+
+    @page {
+      size: A4 portrait;
+      margin: 0;
+    }
+  }
 }
