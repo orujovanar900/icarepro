@@ -126,6 +126,7 @@ export function SanadUstasi() {
     const [saving, setSaving] = useState(false);
     const [done, setDone] = useState(false);
     const [userTemplate, setUserTemplate] = useState<string>("");
+    const [useCustomTemplate, setUseCustomTemplate] = useState(false);
 
     const bottomRef = useRef<HTMLDivElement>(null);
     const printAreaRef = useRef<HTMLDivElement>(null);
@@ -138,6 +139,7 @@ export function SanadUstasi() {
         const savedTemplate = localStorage.getItem(`sanad_template_${user?.id}`);
         if (savedTemplate) {
             setUserTemplate(savedTemplate);
+            setUseCustomTemplate(true);
             setMsgs([{
                 from: "ai",
                 text: "Son şablonunuz yüklüdür. Müqaviləni bu şablonla başlayaq yoxsa dəyişmək istəyirsiniz?",
@@ -212,12 +214,14 @@ export function SanadUstasi() {
         // Handle quick intercept options for Template state
         if (messageText === "Xeyr, yeni şablon yükləyim") {
             setUserTemplate("");
+            setUseCustomTemplate(false);
             if (user?.id) localStorage.removeItem(`sanad_template_${user.id}`);
             if (fileInputRef.current) fileInputRef.current.click();
             return;
         } else if (messageText === "Şablonsuz davam edək" || messageText === "Bəli, eyni şablonla") {
             if (messageText === "Şablonsuz davam edək") {
                 setUserTemplate("");
+                setUseCustomTemplate(false);
                 if (user?.id) localStorage.removeItem(`sanad_template_${user.id}`);
             }
             setMsgs(p => [...p, { from: "ai", text: "Əla! O zaman icarəyə verənin adını daxil edin:", chips: ["Fiziki şəxs", "Hüquqi şəxs"] }]);
@@ -366,6 +370,7 @@ export function SanadUstasi() {
             }
 
             setUserTemplate(extractedText);
+            setUseCustomTemplate(true);
             if (user?.id) localStorage.setItem(`sanad_template_${user.id}`, extractedText);
 
             setMsgs([
@@ -617,90 +622,98 @@ export function SanadUstasi() {
                             </div>
 
                             <div className="relative z-10">
-                                <h1 className="text-lg font-bold text-center mb-1 text-black uppercase tracking-wider">{activeDocType?.title || "SƏNƏD"}</h1>
-                                <div className="text-center text-xs text-gray-500 mb-10 pb-4 border-b border-gray-200">
-                                    Bakı şəhəri &nbsp;&nbsp;•&nbsp;&nbsp; {fallback(doc.date, "__________________")}
-                                </div>
+                                {useCustomTemplate ? (
+                                    <div className="whitespace-pre-wrap text-[13px] leading-relaxed text-black font-serif text-justify">
+                                        {userTemplate}
+                                    </div>
+                                ) : (
+                                    <>
+                                        <h1 className="text-lg font-bold text-center mb-1 text-black uppercase tracking-wider">{activeDocType?.title || "SƏNƏD"}</h1>
+                                        <div className="text-center text-xs text-gray-500 mb-10 pb-4 border-b border-gray-200">
+                                            Bakı şəhəri &nbsp;&nbsp;•&nbsp;&nbsp; {fallback(doc.date, "__________________")}
+                                        </div>
 
-                                <div className="space-y-6">
-                                    <div className="grid grid-cols-2 gap-x-12 gap-y-6">
-                                        <div>
-                                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Tərəflər</div>
-                                            <div className="space-y-3 bg-gray-50/50 p-4 rounded border border-gray-100/50">
-                                                <div className="flex justify-between items-end border-b border-gray-100 pb-1">
-                                                    <span className="text-gray-500 italic">İcarəyə verən:</span>
-                                                    <span className={`font-semibold ${!doc.landlord ? 'text-gray-300' : 'text-black'}`}>{fallback(doc.landlord)}</span>
+                                        <div className="space-y-6">
+                                            <div className="grid grid-cols-2 gap-x-12 gap-y-6">
+                                                <div>
+                                                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Tərəflər</div>
+                                                    <div className="space-y-3 bg-gray-50/50 p-4 rounded border border-gray-100/50">
+                                                        <div className="flex justify-between items-end border-b border-gray-100 pb-1">
+                                                            <span className="text-gray-500 italic">İcarəyə verən:</span>
+                                                            <span className={`font-semibold ${!doc.landlord ? 'text-gray-300' : 'text-black'}`}>{fallback(doc.landlord)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-end border-b border-gray-100 pb-1">
+                                                            <span className="text-gray-500 italic">İcarəçi:</span>
+                                                            <span className={`font-semibold ${!doc.tenant ? 'text-gray-300' : 'text-black'}`}>{fallback(doc.tenant)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-end border-b border-gray-100 pb-1">
+                                                            <span className="text-gray-500 italic">VÖEN:</span>
+                                                            <span className={`font-semibold ${!doc.voen ? 'text-gray-300' : 'text-black'}`}>{fallback(doc.voen, "(Tələb olunmur)")}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-end border-b border-gray-100 pb-1">
+                                                            <span className="text-gray-500 italic">Əlaqə:</span>
+                                                            <span className={`font-semibold ${!doc.phone ? 'text-gray-300' : 'text-black'}`}>{fallback(doc.phone, "(Daxil edilməyib)")}</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="flex justify-between items-end border-b border-gray-100 pb-1">
-                                                    <span className="text-gray-500 italic">İcarəçi:</span>
-                                                    <span className={`font-semibold ${!doc.tenant ? 'text-gray-300' : 'text-black'}`}>{fallback(doc.tenant)}</span>
+
+                                                <div>
+                                                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Obyekt Və Maliyyə</div>
+                                                    <div className="space-y-3 bg-gray-50/50 p-4 rounded border border-gray-100/50 h-full">
+                                                        <div className="flex justify-between items-end border-b border-gray-100 pb-1">
+                                                            <span className="text-gray-500 italic">Ünvan:</span>
+                                                            <span className={`font-semibold text-right max-w-[150px] truncate ${!doc.address ? 'text-gray-300' : 'text-black'}`}>{fallback(doc.address)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-end border-b border-gray-100 pb-1">
+                                                            <span className="text-gray-500 italic">İcarə Haqqı:</span>
+                                                            <span className={`font-semibold ${!doc.rent ? 'text-gray-300' : 'text-black'}`}>{doc.rent ? `₼ ${doc.rent}` : "__________"}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-end border-b border-gray-100 pb-1">
+                                                            <span className="text-gray-500 italic">Depozit:</span>
+                                                            <span className={`font-semibold ${!doc.deposit ? 'text-gray-300' : 'text-black'}`}>{doc.deposit ? `₼ ${doc.deposit}` : "(Yoxdur)"}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-end border-b border-gray-100 pb-1">
+                                                            <span className="text-gray-500 italic">Ödəniş Tarixi:</span>
+                                                            <span className={`font-semibold ${!doc.paydate ? 'text-gray-300' : 'text-black'}`}>{doc.paydate ? `Hər ayın ${doc.paydate}-i` : "__________"}</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <div className="flex justify-between items-end border-b border-gray-100 pb-1">
-                                                    <span className="text-gray-500 italic">VÖEN:</span>
-                                                    <span className={`font-semibold ${!doc.voen ? 'text-gray-300' : 'text-black'}`}>{fallback(doc.voen, "(Tələb olunmur)")}</span>
+                                            </div>
+
+                                            <div className="mt-8 pt-6 border-t border-gray-200">
+                                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Ümumi Müddəalar</div>
+                                                <div className="space-y-3 text-[12.5px] text-gray-800 text-justify">
+                                                    <p><span className="font-bold mr-2 text-black">1.</span>İcarəçi obyekti (ünvanı: <span className="font-semibold">{fallback(doc.address, "__________")}</span>) müqavilədə göstərilən məqsəd üçün istifadə etməyi öhdəsinə götürür.</p>
+
+                                                    <p><span className="font-bold mr-2 text-black">2.</span>İcarə haqqı olan <span className="font-semibold">₼ {fallback(doc.rent, "___")}</span> hər ayın <span className="font-semibold">{fallback(doc.paydate, "___")}</span> tarixinədək ödənilməlidir.</p>
+
+                                                    <p><span className="font-bold mr-2 text-black">3.</span>Müqavilənin müddəti: <span className="font-semibold">{fallback(doc.period, "__________________")}</span> olaraq müəyyən edilir.</p>
+
+                                                    <p><span className="font-bold mr-2 text-black">4.</span>Kommunal xərclər (işıq, su, qaz) <span className="font-semibold">{fallback(doc.utilities, "__________________")}</span> tərəfindən ödənilir.</p>
+
+                                                    <p><span className="font-bold mr-2 text-black">5.</span>Müqaviləyə xitam verildikdə obyekt ilkin formasına qaytarılmalı və təhvil verilməlidir.</p>
+
+                                                    {doc.extra && (
+                                                        <p><span className="font-bold mr-2 text-black">6. Əlavə şərtlər:</span> <span className="text-black">{doc.extra}</span></p>
+                                                    )}
                                                 </div>
-                                                <div className="flex justify-between items-end border-b border-gray-100 pb-1">
-                                                    <span className="text-gray-500 italic">Əlaqə:</span>
-                                                    <span className={`font-semibold ${!doc.phone ? 'text-gray-300' : 'text-black'}`}>{fallback(doc.phone, "(Daxil edilməyib)")}</span>
+                                            </div>
+
+                                            <div className="mt-16 pt-10 flex justify-between">
+                                                <div className="w-[40%]">
+                                                    <div className="text-[9px] text-gray-400 uppercase tracking-widest mb-4">İcarəyə verən</div>
+                                                    <div className="font-bold text-sm text-black mb-8 border-b border-dashed border-gray-300 pb-1">{fallback(doc.landlord, "____________________")}</div>
+                                                    <div className="text-[10px] text-gray-500">İmza: _________________</div>
+                                                </div>
+                                                <div className="w-[40%] text-right">
+                                                    <div className="text-[9px] text-gray-400 uppercase tracking-widest mb-4">İcarəçi</div>
+                                                    <div className="font-bold text-sm text-black mb-8 border-b border-dashed border-gray-300 pb-1">{fallback(doc.tenant, "____________________")}</div>
+                                                    <div className="text-[10px] text-gray-500">İmza: _________________</div>
                                                 </div>
                                             </div>
                                         </div>
-
-                                        <div>
-                                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Obyekt Və Maliyyə</div>
-                                            <div className="space-y-3 bg-gray-50/50 p-4 rounded border border-gray-100/50 h-full">
-                                                <div className="flex justify-between items-end border-b border-gray-100 pb-1">
-                                                    <span className="text-gray-500 italic">Ünvan:</span>
-                                                    <span className={`font-semibold text-right max-w-[150px] truncate ${!doc.address ? 'text-gray-300' : 'text-black'}`}>{fallback(doc.address)}</span>
-                                                </div>
-                                                <div className="flex justify-between items-end border-b border-gray-100 pb-1">
-                                                    <span className="text-gray-500 italic">İcarə Haqqı:</span>
-                                                    <span className={`font-semibold ${!doc.rent ? 'text-gray-300' : 'text-black'}`}>{doc.rent ? `₼ ${doc.rent}` : "__________"}</span>
-                                                </div>
-                                                <div className="flex justify-between items-end border-b border-gray-100 pb-1">
-                                                    <span className="text-gray-500 italic">Depozit:</span>
-                                                    <span className={`font-semibold ${!doc.deposit ? 'text-gray-300' : 'text-black'}`}>{doc.deposit ? `₼ ${doc.deposit}` : "(Yoxdur)"}</span>
-                                                </div>
-                                                <div className="flex justify-between items-end border-b border-gray-100 pb-1">
-                                                    <span className="text-gray-500 italic">Ödəniş Tarixi:</span>
-                                                    <span className={`font-semibold ${!doc.paydate ? 'text-gray-300' : 'text-black'}`}>{doc.paydate ? `Hər ayın ${doc.paydate}-i` : "__________"}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-8 pt-6 border-t border-gray-200">
-                                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Ümumi Müddəalar</div>
-                                        <div className="space-y-3 text-[12.5px] text-gray-800 text-justify">
-                                            <p><span className="font-bold mr-2 text-black">1.</span>İcarəçi obyekti (ünvanı: <span className="font-semibold">{fallback(doc.address, "__________")}</span>) müqavilədə göstərilən məqsəd üçün istifadə etməyi öhdəsinə götürür.</p>
-
-                                            <p><span className="font-bold mr-2 text-black">2.</span>İcarə haqqı olan <span className="font-semibold">₼ {fallback(doc.rent, "___")}</span> hər ayın <span className="font-semibold">{fallback(doc.paydate, "___")}</span> tarixinədək ödənilməlidir.</p>
-
-                                            <p><span className="font-bold mr-2 text-black">3.</span>Müqavilənin müddəti: <span className="font-semibold">{fallback(doc.period, "__________________")}</span> olaraq müəyyən edilir.</p>
-
-                                            <p><span className="font-bold mr-2 text-black">4.</span>Kommunal xərclər (işıq, su, qaz) <span className="font-semibold">{fallback(doc.utilities, "__________________")}</span> tərəfindən ödənilir.</p>
-
-                                            <p><span className="font-bold mr-2 text-black">5.</span>Müqaviləyə xitam verildikdə obyekt ilkin formasına qaytarılmalı və təhvil verilməlidir.</p>
-
-                                            {doc.extra && (
-                                                <p><span className="font-bold mr-2 text-black">6. Əlavə şərtlər:</span> <span className="text-black">{doc.extra}</span></p>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-16 pt-10 flex justify-between">
-                                        <div className="w-[40%]">
-                                            <div className="text-[9px] text-gray-400 uppercase tracking-widest mb-4">İcarəyə verən</div>
-                                            <div className="font-bold text-sm text-black mb-8 border-b border-dashed border-gray-300 pb-1">{fallback(doc.landlord, "____________________")}</div>
-                                            <div className="text-[10px] text-gray-500">İmza: _________________</div>
-                                        </div>
-                                        <div className="w-[40%] text-right">
-                                            <div className="text-[9px] text-gray-400 uppercase tracking-widest mb-4">İcarəçi</div>
-                                            <div className="font-bold text-sm text-black mb-8 border-b border-dashed border-gray-300 pb-1">{fallback(doc.tenant, "____________________")}</div>
-                                            <div className="text-[10px] text-gray-500">İmza: _________________</div>
-                                        </div>
-                                    </div>
-                                </div>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>
