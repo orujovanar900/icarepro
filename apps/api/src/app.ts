@@ -30,6 +30,8 @@ export async function buildApp() {
     await app.register(cors, {
         origin: [
             'http://localhost:5173',
+            'https://icarepro.pages.dev',
+            /https:\/\/.*\.icarepro\.pages\.dev/,
             process.env['FRONTEND_URL'] ?? 'https://icare-pro-afd3bf.netlify.app'
         ],
         credentials: true,
