@@ -10,18 +10,20 @@ import {
     FolderOpen,
     Users,
     Settings,
+    Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const allNavItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Contracts', path: '/contracts', icon: FileText },
-    { name: 'Properties', path: '/properties', icon: Home },
-    { name: 'Income', path: '/income', icon: TrendingUp },
-    { name: 'Expenses', path: '/expenses', icon: Receipt },
-    { name: 'Documents', path: '/documents', icon: FolderOpen },
-    { name: 'Users', path: '/users', icon: Users },
-    { name: 'Settings', path: '/settings', icon: Settings },
+    { name: 'İdarə Paneli', path: '/dashboard', icon: LayoutDashboard },
+    { name: 'Müqavilələr', path: '/contracts', icon: FileText },
+    { name: 'Obyektlər', path: '/properties', icon: Home },
+    { name: 'Mədaxil', path: '/income', icon: TrendingUp },
+    { name: 'Məxaric', path: '/expenses', icon: Receipt },
+    { name: 'Sənədlər', path: '/documents', icon: FolderOpen },
+    { name: '✦ Sənəd Ustası', path: '/sanad-ustasi', icon: Sparkles, isSpecial: true },
+    { name: 'İstifadəçilər', path: '/users', icon: Users },
+    { name: 'Parametrlər', path: '/settings', icon: Settings },
 ];
 
 export function Sidebar() {
@@ -30,7 +32,7 @@ export function Sidebar() {
     const navItems = React.useMemo(() => {
         if (user?.role === 'STAFF') {
             return allNavItems.filter(
-                (item) => !['Expenses', 'Users', 'Settings'].includes(item.name)
+                (item) => !['Məxaric', 'İstifadəçilər', 'Parametrlər'].includes(item.name)
             );
         }
         // OWNER sees everything, TENANT might have a completely different view later if supported
@@ -50,9 +52,11 @@ export function Sidebar() {
                         className={({ isActive }) =>
                             cn(
                                 'group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                                isActive
-                                    ? 'bg-gold/10 text-gold'
-                                    : 'text-muted hover:bg-surface/50 hover:text-text'
+                                item.isSpecial
+                                    ? 'bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/20 shadow-sm mt-2 mb-2'
+                                    : isActive
+                                        ? 'bg-gold/10 text-gold'
+                                        : 'text-muted hover:bg-surface/50 hover:text-text'
                             )
                         }
                     >
@@ -61,7 +65,9 @@ export function Sidebar() {
                                 <item.icon
                                     className={cn(
                                         'mr-3 h-5 w-5 flex-shrink-0 transition-colors',
-                                        isActive ? 'text-gold' : 'text-muted group-hover:text-text'
+                                        item.isSpecial
+                                            ? 'text-[#C9A84C]'
+                                            : isActive ? 'text-gold' : 'text-muted group-hover:text-text'
                                     )}
                                 />
                                 {item.name}

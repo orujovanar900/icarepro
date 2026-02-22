@@ -15,6 +15,7 @@ const Expenses = React.lazy(() => import('./pages/Expenses').then(m => ({ defaul
 const Tenants = React.lazy(() => import('./pages/Tenants').then(m => ({ default: m.Tenants })));
 const TenantDetail = React.lazy(() => import('./pages/TenantDetail').then(m => ({ default: m.TenantDetail })));
 const Documents = React.lazy(() => import('./pages/Documents').then(m => ({ default: m.Documents })));
+const SanadUstasi = React.lazy(() => import('./pages/SanadUstasi').then(m => ({ default: m.SanadUstasi })));
 const Users = React.lazy(() => import('./pages/Users').then(m => ({ default: m.Users })));
 const Settings = React.lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 
@@ -28,6 +29,9 @@ export default function App() {
 
                     {/* Protected Routes directly hitting the AppLayout */}
                     <Route element={<ProtectedRoute />}>
+                        {/* Full Screen AI Chat Interface */}
+                        <Route path="/sanad-ustasi" element={<SanadUstasi />} />
+
                         <Route element={<AppLayout />}>
                             <Route path="/" element={<Navigate to="/dashboard" replace />} />
                             <Route path="/dashboard" element={<Dashboard />} />

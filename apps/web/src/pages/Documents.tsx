@@ -1,96 +1,213 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FileText, Plus, Download, Filter } from 'lucide-react';
+import { FileText, Search, ChevronRight, ArrowLeft, Download, Trash2, Sparkles } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { useToastStore } from '@/store/toast';
 import { Card, CardContent } from '@/components/ui/Card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSkeleton } from '@/components/ui/Table';
+import { TableSkeleton } from '@/components/ui/Table';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
-import { Modal } from '@/components/ui/Modal';
+
+// Formatting helpers
+const formatCurrency = (val: any) => val ? `₼ ${Number(val).toLocaleString('az-AZ')}` : '—';
+const formatDate = (d: string) => new Date(d).toLocaleDateString('az-AZ');
 
 export function Documents() {
     const { user } = useAuthStore();
     const queryClient = useQueryClient();
     const addToast = useToastStore((state) => state.addToast);
+    const navigate = useNavigate();
 
-    const [filterType, setFilterType] = useState('');
-    const [filterContract, setFilterContract] = useState('');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const selectedContractId = searchParams.get('contractId');
 
-    // Fetch documents
-    const { data: documentsData, isLoading, isError, refetch } = useQuery({
-        queryKey: ['documents', filterType, filterContract],
+    // Level 1 State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [statusFilter, setStatusFilter] = useState('ACTIVE');
+
+    // Fetch Contracts (Level 1)
+    const { data: contractsData, isLoading: isContractsLoading } = useQuery({
+        queryKey: ['contracts-with-docs', statusFilter],
         queryFn: async () => {
-            const params = new URLSearchParams();
-            if (filterType) params.append('type', filterType);
-            if (filterContract) params.append('contractId', filterContract);
-
-            // Note: If backend endpoint /documents does not exist yet, this might 404.
-            // But we implement the UI per requirements.
-            const res = await api.get(`/documents?${params.toString()}`);
+            const res = await api.get(`/contracts?status=${statusFilter}&include=documents`);
             return res.data;
         },
     });
 
-    const documents = Array.isArray(documentsData?.data) ? documentsData.data : (documentsData?.data?.data || []);
-
-    // Fetch active contracts for selectors
-    const { data: contractsData } = useQuery({
-        queryKey: ['active-contracts-short'],
+    // Fetch Specific Contract Documents (Level 2)
+    const { data: contractDocsData, isLoading: isDocsLoading } = useQuery({
+        queryKey: ['contract-documents', selectedContractId],
         queryFn: async () => {
-            const res = await api.get('/contracts?status=ACTIVE&limit=100');
+            // Note: will require backend /documents GET route implementation later
+            const res = await api.get(`/documents?contractId=${selectedContractId}`);
             return res.data;
+        },
+        enabled: !!selectedContractId,
+    });
+
+    const deleteDocMutation = useMutation({
+        mutationFn: async (id: string) => {
+            await api.delete(`/documents/${id}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['contract-documents', selectedContractId] });
+            queryClient.invalidateQueries({ queryKey: ['contracts-with-docs'] });
+            addToast({ message: 'Sənəd silindi', type: 'success' });
+        },
+        onError: () => {
+            addToast({ message: 'Silinmə zamanı xəta baş verdi', type: 'error' });
         }
     });
-    const activeContracts = Array.isArray(contractsData?.data) ? contractsData.data : (contractsData?.data?.data || []);
 
-    // Modal State
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [formContractId, setFormContractId] = useState('');
-    const [formDocType, setFormDocType] = useState('CONTRACT');
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const contracts = Array.isArray(contractsData?.data) ? contractsData.data : (contractsData?.data?.data || []);
+    const documents = Array.isArray(contractDocsData?.data) ? contractDocsData.data : [];
 
-    const documentTypes = [
-        { label: 'Müqavilə (CONTRACT)', value: 'CONTRACT' },
-        { label: 'Təhvil-təslim aktı (ACT)', value: 'ACT' },
-        { label: 'Borc xəbərdarlığı (DEBT_NOTICE)', value: 'DEBT_NOTICE' },
-        { label: 'Hesab-faktura (INVOICE)', value: 'INVOICE' },
-        { label: 'Qəbz (RECEIPT)', value: 'RECEIPT' },
-    ];
-
-    const generateDocMutation = useMutation({
-        mutationFn: async (payload: any) => {
-            const res = await api.post('/documents/generate', payload);
-            return res.data;
-        },
-        onSuccess: (data) => {
-            queryClient.invalidateQueries({ queryKey: ['documents'] });
-            addToast({ message: 'Sənəd uğurla yaradıldı', type: 'success' });
-            setIsModalOpen(false);
-
-            // Optionally auto-download or open
-            if (data?.data?.filePath) {
-                window.open(data.data.filePath, '_blank');
-            }
-        },
-        onError: (err: any) => {
-            addToast({ message: err.response?.data?.error || 'Xəta baş verdi. Sistem API-si mövcud olmaya bilər.', type: 'error' });
-        },
-        onSettled: () => setIsSubmitting(false)
+    const filteredContracts = contracts.filter((c: any) => {
+        if (!searchQuery) return true;
+        const q = searchQuery.toLowerCase();
+        return (
+            c.number?.toLowerCase().includes(q) ||
+            c.tenant?.fullName?.toLowerCase().includes(q) ||
+            c.property?.name?.toLowerCase().includes(q)
+        );
     });
 
-    const handleGenerate = (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsSubmitting(true);
-        generateDocMutation.mutate({
-            contractId: formContractId,
-            type: formDocType
-        });
-    };
+    // Determine what to render based on URL state
+    if (selectedContractId) {
+        // Find contract info from the list if possible, or wait
+        const contractInfo = contracts.find((c: any) => c.id === selectedContractId) || (contractDocsData as any)?.contractInfo;
 
-    const canGenerate = user?.role === 'OWNER' || user?.role === 'STAFF';
+        return (
+            <div className="flex-1 space-y-6 p-6 max-w-7xl mx-auto pb-24">
+                {/* Level 2: Documents for Contract */}
+                <div className="flex items-center gap-3 text-sm text-muted mb-2">
+                    <button onClick={() => setSearchParams({})} className="hover:text-text transition-colors flex items-center gap-1">
+                        Sənədlər
+                    </button>
+                    <ChevronRight className="w-4 h-4" />
+                    <span className="text-text font-medium">
+                        {contractInfo ? `${contractInfo.number} (${contractInfo.tenant?.fullName})` : 'Yüklənir...'}
+                    </span>
+                </div>
 
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div className="flex items-center gap-4">
+                        <Button variant="outline" size="sm" onClick={() => setSearchParams({})}>
+                            <ArrowLeft className="w-4 h-4" />
+                        </Button>
+                        <h1 className="text-3xl font-extrabold font-heading text-text flex items-center gap-2">
+                            Müqavilə Sənədləri
+                        </h1>
+                    </div>
+
+                    <Button
+                        onClick={() => navigate(`/sanad-ustasi?contractId=${selectedContractId}`)}
+                        className="bg-gold/10 text-gold border border-gold/30 hover:bg-gold/20 shadow-sm"
+                    >
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        ✦ Sənəd Ustası ilə Yarat
+                    </Button>
+                </div>
+
+                {contractInfo && (
+                    <Card className="bg-surface border-border">
+                        <CardContent className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                                <p className="text-muted text-xs uppercase font-semibold mb-1">İcarəçi</p>
+                                <p className="font-medium text-text">{contractInfo.tenant?.fullName}</p>
+                            </div>
+                            <div>
+                                <p className="text-muted text-xs uppercase font-semibold mb-1">Obyekt</p>
+                                <p className="font-medium text-text">{contractInfo.property?.name}</p>
+                            </div>
+                            <div>
+                                <p className="text-muted text-xs uppercase font-semibold mb-1">Məbləğ</p>
+                                <p className="font-medium text-text">{formatCurrency(contractInfo.monthlyRent)}/ay</p>
+                            </div>
+                            <div>
+                                <p className="text-muted text-xs uppercase font-semibold mb-1">Müddət</p>
+                                <p className="font-medium text-text">{formatDate(contractInfo.startDate)} - {formatDate(contractInfo.endDate)}</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {isDocsLoading ? (
+                    <Card><CardContent className="p-4"><TableSkeleton rows={4} columns={3} /></CardContent></Card>
+                ) : documents.length === 0 ? (
+                    <Card className="border-dashed border-2 bg-transparent">
+                        <CardContent className="p-16 text-center text-muted flex flex-col items-center">
+                            <FileText className="w-12 h-12 opacity-20 mb-4" />
+                            <h3 className="text-lg font-medium text-text mb-2">Bu müqavilə üçün sənəd yoxdur</h3>
+                            <p className="max-w-sm mb-6">Siz AI Sənəd Ustası vasitəsilə akt, qəbz və bildirişlər yarada bilərsiniz.</p>
+                            <Button
+                                onClick={() => navigate(`/sanad-ustasi?contractId=${selectedContractId}`)}
+                                className="bg-gold hover:bg-gold/90 text-[#080C14] font-bold"
+                            >
+                                İlk Sənədi Yarat
+                            </Button>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <div className="grid gap-4">
+                        {documents.map((doc: any) => (
+                            <Card key={doc.id} className="hover:border-border transition-colors group">
+                                <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-lg bg-surface flex items-center justify-center shrink-0">
+                                            <FileText className="w-5 h-5 text-muted" />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-surface text-muted uppercase tracking-wide">
+                                                    {doc.type}
+                                                </span>
+                                                <h3 className="font-medium text-text">{doc.title || `${doc.type} Sənədi`}</h3>
+                                            </div>
+                                            <p className="text-xs text-muted">
+                                                Yaradılıb: {new Date(doc.generatedAt || doc.createdAt).toLocaleString('az-AZ')}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                                        <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => {
+                                            if (doc.filePath) window.open(doc.filePath, '_blank');
+                                            else if (doc.content) {
+                                                const win = window.open('', '_blank');
+                                                win?.document.write(doc.content);
+                                                win?.document.close();
+                                                setTimeout(() => win?.print(), 500);
+                                            } else {
+                                                addToast({ message: 'Sənəd faylı tapılmadı', type: 'error' });
+                                            }
+                                        }}>
+                                            <Download className="w-4 h-4 mr-2" /> PDF Bax
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-red hover:text-red hover:bg-red/10 h-9 w-9 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={() => {
+                                                if (confirm('Sənədi silmək istədiyinizə əminsiniz?')) {
+                                                    deleteDocMutation.mutate(doc.id);
+                                                }
+                                            }}
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // Level 1: List of Contracts
     return (
         <div className="flex-1 space-y-6 p-6 max-w-7xl mx-auto pb-24">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -98,134 +215,79 @@ export function Documents() {
                     <FileText className="w-8 h-8 text-gold" />
                     Sənədlər
                 </h1>
-                {canGenerate && (
-                    <Button onClick={() => setIsModalOpen(true)}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Sənəd Yarat
-                    </Button>
-                )}
+                <Select
+                    value={statusFilter}
+                    onChange={(e: any) => setStatusFilter(e.target.value)}
+                    options={[
+                        { label: 'Aktiv Müqavilələr', value: 'ACTIVE' },
+                        { label: 'Arxivlənmiş', value: 'ARCHIVED' },
+                        { label: 'Qaralamalar', value: 'DRAFT' },
+                    ]}
+                    className="w-48 bg-surface border-border disabled:opacity-100 text-sm"
+                />
             </div>
 
-            <Card variant="elevated">
-                <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
-                    <div className="w-full sm:w-64">
-                        <Select
-                            label="Sənəd Növü"
-                            value={filterType}
-                            onChange={(e) => setFilterType(e.target.value)}
-                            options={[
-                                { label: 'Bütün növlər', value: '' },
-                                ...documentTypes
-                            ]}
-                        />
-                    </div>
-                    <div className="w-full sm:w-64">
-                        <Select
-                            label="Müqavilə üzrə filtrlə"
-                            value={filterContract}
-                            onChange={(e) => setFilterContract(e.target.value)}
-                            options={[
-                                { label: 'Bütün müqavilələr', value: '' },
-                                ...activeContracts.map((c: any) => ({
-                                    label: `${c.number} - ${c.tenant.fullName}`,
-                                    value: c.id
-                                }))
-                            ]}
-                        />
-                    </div>
-                </CardContent>
+            <Card className="bg-surface border-border p-2">
+                <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                    <input
+                        type="text"
+                        placeholder="İcarəçi, müqavilə nömrəsi və ya obyekt axtarın..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-transparent border-none text-sm text-text placeholder:text-muted focus:ring-0 pl-10 py-2.5 outline-none"
+                    />
+                </div>
             </Card>
 
-            <Card variant="default">
-                <CardContent className="p-0">
-                    {isLoading ? (
-                        <div className="p-4"><TableSkeleton rows={8} columns={4} /></div>
-                    ) : isError ? (
-                        <div className="text-center py-12 text-red">
-                            <p>Məlumatları yükləmək mümkün olmadı və ya API mövcud deyil.</p>
-                            <Button variant="outline" onClick={() => refetch()} className="mt-4">Yenidən cəhd et</Button>
-                        </div>
-                    ) : documents.length === 0 ? (
-                        <div className="text-center py-16 text-muted">
-                            <Filter className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                            <p>Sənəd tapılmadı.</p>
-                        </div>
-                    ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Növ</TableHead>
-                                    <TableHead>Müqavilə</TableHead>
-                                    <TableHead>Yaradılma Tarixi</TableHead>
-                                    <TableHead className="text-right">Əməliyyat</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {documents.map((doc: any) => (
-                                    <TableRow key={doc.id} className="hover:bg-surface transition-colors">
-                                        <TableCell>
-                                            <span className="font-semibold text-text">{doc.type}</span>
-                                        </TableCell>
-                                        <TableCell className="text-sm text-text">
-                                            {doc.contract?.number || 'Məchul'}
-                                            <span className="text-muted ml-1">({doc.contract?.tenant?.fullName})</span>
-                                        </TableCell>
-                                        <TableCell className="text-sm text-muted">
-                                            {new Date(doc.generatedAt).toLocaleString('az-AZ')}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => window.open(doc.filePath, '_blank')}
-                                            >
-                                                <Download className="w-4 h-4 text-gold mr-2" /> Endir
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    )}
-                </CardContent>
-            </Card>
+            {isContractsLoading ? (
+                <Card><CardContent className="p-4"><TableSkeleton rows={8} columns={4} /></CardContent></Card>
+            ) : filteredContracts.length === 0 ? (
+                <div className="text-center py-16 text-muted">
+                    <FileText className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                    <p>Müqavilə tapılmadı.</p>
+                </div>
+            ) : (
+                <div className="grid gap-3">
+                    {filteredContracts.map((contract: any) => (
+                        <Card
+                            key={contract.id}
+                            className="hover:border-gold/30 hover:bg-surface/80 cursor-pointer transition-all border-border"
+                            onClick={() => setSearchParams({ contractId: contract.id })}
+                        >
+                            <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="bg-surface border border-border rounded-lg p-3 shrink-0">
+                                        <FileText className="w-5 h-5 text-gold" />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <h3 className="font-semibold text-text text-base">{contract.tenant?.fullName}</h3>
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-surface border border-border text-muted">
+                                                {contract.number}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-muted">{contract.property?.name}</p>
+                                    </div>
+                                </div>
 
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Yeni Sənəd Yarat (Generasiya)">
-                <form onSubmit={handleGenerate} className="space-y-4">
-                    <Select
-                        label="Müqavilə Seçin"
-                        required
-                        value={formContractId}
-                        onChange={(e) => setFormContractId(e.target.value)}
-                        options={[
-                            { label: 'Seçin...', value: '' },
-                            ...activeContracts.map((c: any) => ({
-                                label: `${c.number} - ${c.tenant.fullName} (${c.property.name})`,
-                                value: c.id
-                            }))
-                        ]}
-                    />
-
-                    <Select
-                        label="Sənəd Növü"
-                        required
-                        value={formDocType}
-                        onChange={(e) => setFormDocType(e.target.value)}
-                        options={documentTypes}
-                    />
-
-                    <p className="text-xs text-muted mb-4 border-l-2 pl-2 border-gold/50">
-                        Qeyd: Sənəd generasiya olunduqdan sonra avtomatik bulud yaddaşına (Supabase Storage) yüklənəcək.
-                    </p>
-
-                    <div className="flex gap-4 pt-4 mt-6 border-t border-border">
-                        <Button type="button" variant="outline" className="flex-1" onClick={() => setIsModalOpen(false)}>Ləğv et</Button>
-                        <Button type="submit" className="flex-1" disabled={isSubmitting || !formContractId}>
-                            {isSubmitting ? 'Yaradılır...' : 'Generasiya Et'}
-                        </Button>
-                    </div>
-                </form>
-            </Modal>
+                                <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto border-t border-border sm:border-0 pt-3 sm:pt-0 mt-2 sm:mt-0">
+                                    <div className="text-left sm:text-right">
+                                        <p className="text-xs text-muted mb-0.5">Aylıq İcarə</p>
+                                        <p className="font-medium text-text">{formatCurrency(contract.monthlyRent)}</p>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-surface border border-border text-xs font-bold text-text" title="Sənəd sayı">
+                                            {(contract.documents && contract.documents.length) || 0}
+                                        </div>
+                                        <ChevronRight className="w-5 h-5 text-muted" />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
