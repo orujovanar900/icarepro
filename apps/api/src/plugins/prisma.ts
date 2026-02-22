@@ -1,6 +1,7 @@
 import fp from 'fastify-plugin'
-import { PrismaClient } from '@prisma/client'
 import type { FastifyPluginAsync } from 'fastify'
+import { PrismaClient } from '@prisma/client'
+import { prisma } from '../lib/prisma.js'
 
 declare module 'fastify' {
     interface FastifyInstance {
@@ -9,16 +10,9 @@ declare module 'fastify' {
 }
 
 const prismaPlugin: FastifyPluginAsync = fp(async (fastify) => {
-    const prisma = new PrismaClient({
-        log: process.env['NODE_ENV'] === 'development' ? ['error', 'warn'] : ['error'],
-    })
-
     await prisma.$connect()
     fastify.decorate('prisma', prisma)
-
-    fastify.addHook('onClose', async () => {
-        await prisma.$disconnect()
-    })
+    // Remove onClose disconnect hook so the global singleton survives fastify hot reloads
 })
 
 export default prismaPlugin
