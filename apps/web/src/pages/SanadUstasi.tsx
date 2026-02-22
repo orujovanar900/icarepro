@@ -94,6 +94,9 @@ const DOCS = [
 ];
 
 const splitIntoPages = (text: string) => {
+    if (text.includes("===PAGE_BREAK===")) {
+        return text.split("===PAGE_BREAK===").filter(page => page.trim().length > 0);
+    }
     const charsPerPage = 3000;
     const pages = [];
     for (let i = 0; i < text.length; i += charsPerPage) {
@@ -368,7 +371,8 @@ export function SanadUstasi() {
                 for (let i = 1; i <= pdf.numPages; i++) {
                     const page = await pdf.getPage(i);
                     const content = await page.getTextContent();
-                    extractedText += content.items.map((item: any) => item.str).join(" ") + "\n";
+                    const pageText = content.items.map((item: any) => item.str).join(" ");
+                    extractedText += pageText + "\n===PAGE_BREAK===\n";
                 }
             } else if (file.name.endsWith('.docx')) {
                 const arrayBuffer = await file.arrayBuffer();
