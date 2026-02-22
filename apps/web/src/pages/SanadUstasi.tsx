@@ -75,6 +75,7 @@ export function SanadUstasi() {
 
         let initialDoc: Record<string, any> = {};
         let initialMsg = `Salam! 👋 Mən **Sənəd Ustası**yam.\n\nYuxarıdan sənəd növünü seçin.\n\nBaşlayaq — **İcarəyə verənin adını** yazın:`;
+        let initialChips = ["Fiziki şəxs", "Hüquqi şəxs"];
 
         if (contractId && contractDetails?.data) {
             const data = contractDetails.data;
@@ -91,10 +92,11 @@ export function SanadUstasi() {
                 period: `${new Date(data.startDate).toLocaleDateString()} - ${new Date(data.endDate).toLocaleDateString()}`
             };
             initialMsg = `Müqavilə məlumatları yükləndi! 📝\n\nBu müqavilə üçün hansı sənədi hazırlayım?`;
+            initialChips = ["Müqavilə", "Qəbul-Təhvil Aktı", "Borc Bildirişi", "Qəbz"];
         }
 
         setDoc(initialDoc);
-        setMsgs([{ from: "ai", text: initialMsg, chips: [] }]);
+        setMsgs([{ from: "ai", text: initialMsg, chips: initialChips }]);
         setHist([]);
         setDone(false);
     }, [contractId, isContractLoading, contractDetails]);
@@ -113,11 +115,13 @@ export function SanadUstasi() {
         setDocType(id);
 
         let newMsg = `**${d.title}** hazırlayırıq.\nİcarəyə verənin adını yazın:`;
+        let newChips = ["Fiziki şəxs", "Hüquqi şəxs"];
         if (contractId && contractDetails?.data) {
             newMsg = `**${d.title}** hazırlayırıq. Müqavilədən öncədən yüklənmiş məlumatları istifadə edirəm. Çatışmayan məlumatları davam edək. İcarə haqqı ödəniş tarixini qeyd edin (məs: hər ayın 5-i).`;
+            newChips = ["Hər ayın 1-i", "Hər ayın 5-i", "Hər ayın 10-u"];
         }
 
-        setMsgs([{ from: "ai", text: newMsg, chips: [] }]);
+        setMsgs([{ from: "ai", text: newMsg, chips: newChips }]);
         if (!contractId) {
             setDoc({});
             setHist([]);
@@ -279,7 +283,7 @@ export function SanadUstasi() {
 
                 <button
                     onClick={() => {
-                        setMsgs([{ from: "ai", text: "Yeni sənəd! İcarəyə verənin adını yazın:", chips: [] }]);
+                        setMsgs([{ from: "ai", text: "Yeni sənəd! İcarəyə verənin adını yazın:", chips: ["Fiziki şəxs", "Hüquqi şəxs"] }]);
                         setHist([]);
                         setDoc({});
                         setDone(false);
@@ -299,7 +303,7 @@ export function SanadUstasi() {
                             <b className="text-sm font-semibold tracking-wide text-white">AI Sənəd Ustası</b>
                         </div>
                         <div className="text-xs text-[#4A6080] mt-1.5 flex items-center gap-1.5">
-                            Claude 3.5 Sonnet <span className="text-[#334155]">•</span> {activeDocType?.title || "Sənəd"}
+                            {activeDocType?.title || "Sənəd"}
                         </div>
                     </div>
 
