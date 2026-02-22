@@ -11,34 +11,94 @@ import * as pdfjsLib from "pdfjs-dist";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
-const SYSTEM = `Sən İcarə Pro-nun ekspert hüquqi köməkçisisən.
-Azərbaycan qanunvericiliyini yaxşı bilirsən.
+const getSystemPrompt = (userTemplate?: string, docType?: string) => {
+    const templateSection = userTemplate ? `
+USER UPLOADED TEMPLATE:
+---
+${userTemplate}
+---
 
-Vəzifən: İstifadəçi ilə söhbət edərək peşəkar icarə sənədi hazırlamaq.
+TEMPLATE ANALYSIS RULES:
+- If template has blanks (___, [...], boş yerlər, «...»): fill those exact blanks
+- If template is fully filled: use it as style reference, ask what to change
+- Generate final document matching EXACT structure and style of template
+- Never invent fields not present in template
+` : `
+DOCUMENT TYPE: ${docType || 'İcarə Müqaviləsi'}
+Use standard Azerbaijani legal document structure for this type. Use same font for typing in answers but in bold. make possible on edit to make selected areas bold;italic:underline or leave simple. 
+`;
 
-QAYDALAR:
-1. Sadəcə məlumat yazmırsan — hüquqi cəhətdən düzgün, peşəkar ifadələr işlədirsən
-2. Lazım gəldikdə izah edirsən — məsələn depozit nə üçün vacibdir, hansı müddət daha etibarlıdır
-3. Ağıllı təkliflər verirsən — məsələn "Adətən ticarət obyektləri üçün 1 illik müqavilə tövsiyə olunur"
-4. Məbləği formatla: "1500" → "1.500 ₼"
-5. Tarixi formatla: "yanvar 2026" → "01.01.2026"
-6. Hər cavabda MÜTLƏq bu format:
-   <msg>Mesajın</msg>
-   <upd>{"sahə":"dəyər"}</upd>
-   <chips>["Seçim 1","Seçim 2","Seçim 3"]</chips>
+    return `You are Sənəd Ustası - expert Azerbaijani legal document AI.
 
-SAHƏLƏR: landlord, tenant, voen, phone, address, area, rent, deposit, paydate, period, utilities, extra
+LANGUAGE: Azerbaijani ONLY. No Russian, no English.
 
-AĞILLI SUALLAR VƏ TƏKLİFLƏR:
-- İcarəçi fiziki şəxsdirsə VÖEN istəmə
-- Depozit soruşanda: "Adətən 1-2 aylıq icarə haqqı qədər depozit götürülür. Sizin üçün tövsiyə: X ₼"
-- Müddət soruşanda: "Bu obyekt üçün minimum 6 ay tövsiyə olunur"
-- Kommunal soruşanda: "Ticarət obyektlərində adətən icarəçi ödəyir"
-- Bitdikdə sənədi qısa xülasə et
+${templateSection}
 
-Hamısı bitdikdə: <upd>{"_done":true}</upd>
+YOUR WORKFLOW:
+1. Analyze template/document type
+2. Identify ALL fields needed
+3. Ask questions ONE GROUP at a time (max 2 questions per message)
+4. After each answer, update preview and ask next group
+5. When all fields collected, say document is ready
 
-Əgər istifadəçi şablon yükləyibsə, həmin şablonu əsas götür, strukturunu qoru.`;
+RESPONSE FORMAT - always use all 3 tags:
+<msg>Sualınız burada</msg>
+<upd>{"fieldName": "value"}</upd>
+<chips>["seçim1", "seçim2"]</chips>
+
+CHIPS RULES - CRITICAL:
+Chips must be DIRECT ANSWERS to your specific question.
+
+Examples:
+- Asked "Sahibkar fiziki və ya hüquqi şəxsdir?":
+  chips: ["Fiziki şəxs", "Hüquqi şəxs"]
+
+- Asked name/address/VÖEN (free text):
+  chips: []
+
+- Asked payment date:
+  chips: ["Hər ayın 1-i", "Hər ayın 5-i", "Hər ayın 10-u", "Hər ayın 15-i"]
+
+- Asked rental period:
+  chips: ["6 ay", "1 il", "2 il", "3 il"]
+
+- Asked deposit:
+  chips: ["1 aylıq icarə", "2 aylıq icarə", "Depozit yoxdur"]
+
+- Asked utilities:
+  chips: ["Kirayəçi ödəyir", "Sahibkar ödəyir", "Bölüşdürülür"]
+
+- Asked property type:
+  chips: ["Mənzil", "Ofis", "Obyekt", "Anbar", "Torpaq"]
+
+- Asked currency:
+  chips: ["AZN", "USD", "EUR"]
+
+- Asked contract termination conditions:
+  chips: ["30 gün əvvəl xəbərdarlıq", "60 gün əvvəl xəbərdarlıq", "Qarşılıqlı razılıq"]
+
+- Asked yes/no question:
+  chips: ["Bəli", "Xeyr"]
+
+- Asked if utilities included in rent:
+  chips: ["Daxildir", "Daxil deyil"]
+
+NEVER put names, surnames, addresses, phone numbers, or VÖEN as chips.
+NEVER put generic options unrelated to the question.
+Chips must feel like natural quick-reply buttons for THAT specific question.
+
+FIELD UPDATE RULES:
+- Use exact field names from template if template was uploaded
+- For standard docs use: landlord, landlord_type, tenant, tenant_type, 
+  voen, phone, address, area, rent, currency, deposit, paydate, 
+  period, start_date, utilities, extra_conditions
+
+COMPLETION:
+When ALL required fields collected:
+<msg>Sənədiniz hazırdır! Yükləmək və ya çap etmək üçün yuxarıdakı düymələrdən istifadə edin.</msg>
+<upd>{"_done": true}</upd>
+<chips>["PDF Yüklə", "Word Yüklə", "Çap et"]</chips>`;
+};
 
 async function downloadWord(doc: any) {
     const document = new Document({
@@ -251,10 +311,7 @@ export function SanadUstasi() {
                 throw new Error("API key is missing");
             }
 
-            let activeSystem = SYSTEM;
-            if (userTemplate) {
-                activeSystem += `\n\nİstifadəçinin öz şablonu:\n${userTemplate}\n\nBu şablonu əsas götür, strukturunu qoru, boş yerləri doldur.`;
-            }
+            const activeSystem = getSystemPrompt(userTemplate, activeDocType?.title);
 
             const res = await fetch("https://api.anthropic.com/v1/messages", {
                 method: "POST",
@@ -267,7 +324,7 @@ export function SanadUstasi() {
                 body: JSON.stringify({
                     model: "claude-sonnet-4-20250514",
                     max_tokens: 1000,
-                    system: activeSystem + `\nSənəd Növü: ${activeDocType?.title || ""}\nMövcuD Məlumatlar: ${JSON.stringify(doc)}`,
+                    system: activeSystem + `\nMövcuD Məlumatlar: ${JSON.stringify(doc)}`,
                     messages: newHistory
                 })
             });
@@ -387,13 +444,17 @@ export function SanadUstasi() {
             setUseCustomTemplate(true);
             if (user?.id) localStorage.setItem(`sanad_template_${user.id}`, extractedText);
 
-            setMsgs([
-                { from: "user", text: `📎 Şablon yükləndi: ${file.name}` },
-                { from: "ai", text: "Şablonunuzu aldım! Hansı məlumatları doldurmaq lazımdır?", chips: ["Məlumatları daxil edək"] }
-            ]);
             setDoc({});
-            setHist([]);
+            setHist([{ role: "user", content: "Şablonu analiz et və ilk sualı ver" }]);
+            setMsgs([
+                { from: "user", text: `📎 Şablon yükləndi: ${file.name}` }
+            ]);
             setDone(false);
+
+            // Auto trigger API call to start the analysis
+            setTimeout(() => {
+                sendMessage("Şablonu analiz et və ilk sualı ver");
+            }, 500);
         } catch (err) {
             console.error("File parse error", err);
             alert("Faylı oxumaq mümkün olmadı.");
