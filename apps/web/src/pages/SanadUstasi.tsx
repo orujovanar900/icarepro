@@ -10,10 +10,20 @@ Azərbaycan dilində mehriban söhbət edərək icarə sənədləri hazırlayır
 Hər cavabında MÜTLƏq bu formatı istifadə et:
 <msg>Mesajın buraya</msg>
 <upd>{"sahə":"dəyər"}</upd>
+<chips>["Chip 1", "Chip 2"]</chips>
 SAHƏLƏR: landlord, tenant, voen, phone, address, area, rent, deposit, paydate, period, utilities, extra
 Bir dəfədə 1 sual ver.
 Sıra: landlord→tenant→address→rent→paydate→period→utilities→extra
-Hamısı bitdikdə: <upd>{"_done":true}</upd>`;
+Hamısı bitdikdə: <upd>{"_done":true}</upd>
+
+Mərhələlərə uyğun <chips> nümunələri:
+- Salamlaşmadan sonra: ["Müqavilə", "Akt", "Borc Bildirişi"]
+- İcarəyə verən (landlord) sualından sonra: ["Fiziki şəxs", "Hüquqi şəxs"]
+- İcarəçi adından (tenant) sonra: ["VÖEN əlavə et", "VÖEN yoxdur"]
+- Ünvan (address) sualından sonra: ["Sahəni əlavə et", "Keçək"]
+- İcarə haqqı (rent) sualından sonra: ["Depozit var", "Depozit yoxdur"]
+- Müddət (period) sualından sonra: ["Əlavə şərt yoxdur", "Əlavə şərt var"]
+- Kommunal (utilities) sualından sonra: ["Kommunal icarəçi ödəyir", "Kommunal sahibkar ödəyir"]`;
 
 const DOCS = [
     { id: "contract", icon: "📋", label: "Müqavilə", title: "İCARƏ MÜQAVİLƏSİ" },
@@ -140,7 +150,7 @@ export function SanadUstasi() {
                     "anthropic-dangerous-direct-browser-access": "true"
                 },
                 body: JSON.stringify({
-                    model: "claude-3-5-sonnet-20240620", // Upgraded to latest sonnet as required by typical API versioning
+                    model: "claude-sonnet-4-20250514",
                     max_tokens: 1000,
                     system: SYSTEM + `\nSənəd Növü: ${activeDocType?.title || ""}\nMövcuD Məlumatlar: ${JSON.stringify(doc)}`,
                     messages: newHistory
@@ -157,8 +167,9 @@ export function SanadUstasi() {
 
             const msgMatch = raw.match(/<msg>([\s\S]*?)<\/msg>/);
             const updMatch = raw.match(/<upd>([\s\S]*?)<\/upd>/);
+            const chipsMatch = raw.match(/<chips>([\s\S]*?)<\/chips>/);
 
-            const aiText = msgMatch ? msgMatch[1].trim() : raw.replace(/<upd>[\s\S]*?<\/upd>/g, '');
+            const aiText = msgMatch ? msgMatch[1].trim() : raw.replace(/<upd>[\s\S]*?<\/upd>/g, '').replace(/<chips>[\s\S]*?<\/chips>/g, '');
             let upd = {};
 
             if (updMatch) {
@@ -175,9 +186,16 @@ export function SanadUstasi() {
                 setDoc((p: any) => ({ ...p, ...upd }));
             }
 
-            const chips = (upd as any).utilities ? ["İcarəçi ödəyir", "Sahibkar ödəyir"] : (upd as any).period ? ["Əlavə şərt yoxdur", "Bəli, əlavə var"] : [];
+            let parsedChips: string[] = [];
+            if (chipsMatch) {
+                try {
+                    parsedChips = JSON.parse(chipsMatch[1]);
+                } catch (e) {
+                    console.error("Failed to parse AI chips json", chipsMatch[1]);
+                }
+            }
 
-            setMsgs(p => [...p, { from: "ai", text: aiText, chips }]);
+            setMsgs(p => [...p, { from: "ai", text: aiText, chips: parsedChips }]);
             setHist(p => [...p, { role: "assistant", content: raw }]);
 
         } catch (e: any) {
