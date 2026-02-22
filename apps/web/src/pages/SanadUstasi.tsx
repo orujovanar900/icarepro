@@ -334,6 +334,17 @@ export function SanadUstasi() {
     async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
         if (!file) return;
+
+        if (file.name.endsWith('.doc') && !file.name.endsWith('.docx')) {
+            alert(
+                'Köhnə Word formatı (.doc) dəstəklənmir.\n' +
+                'Zəhmət olmasa faylı Word-də açıb\n' +
+                '"Farklı Kaydet" → ".docx" formatında saxlayın.'
+            );
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            return;
+        }
+
         setLoading(true);
         let extractedText = "";
 
@@ -422,7 +433,7 @@ export function SanadUstasi() {
                         type="file"
                         ref={fileInputRef}
                         onChange={handleFileUpload}
-                        accept=".txt,.pdf,.docx"
+                        accept=".txt,.pdf,.docx,.doc"
                         className="hidden"
                     />
                     <button
