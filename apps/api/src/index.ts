@@ -2,9 +2,7 @@ import { buildApp } from './app.js'
 
 const app = await buildApp()
 
-app.get('/health', async (req, reply) => {
-    return reply.send({ status: 'ok', timestamp: new Date().toISOString() })
-})
+
 
 try {
     const port = Number(process.env['PORT'] ?? 4000)
