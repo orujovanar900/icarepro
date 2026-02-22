@@ -93,6 +93,15 @@ const DOCS = [
     { id: "receipt", icon: "🧾", label: "Qəbz", title: "ÖDƏNİŞ QƏBZİ" }
 ];
 
+const splitIntoPages = (text: string) => {
+    const charsPerPage = 3000;
+    const pages = [];
+    for (let i = 0; i < text.length; i += charsPerPage) {
+        pages.push(text.slice(i, i + charsPerPage));
+    }
+    return pages;
+};
+
 interface Message {
     from: 'ai' | 'user';
     text: string;
@@ -611,23 +620,23 @@ export function SanadUstasi() {
                         )}
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-12 custom-scrollbar flex justify-center bg-[#070B14]">
-                        <div
-                            ref={printAreaRef}
-                            className="print-content bg-white text-[#1a1a2e] w-full max-w-[700px] min-h-[900px] shadow-[0_8px_40px_rgba(0,0,0,0.5)] rounded-sm p-16 text-[13px] leading-relaxed relative print:shadow-none print:p-0 print:m-0"
-                            style={{ fontFamily: "'Times New Roman', Times, serif" }}
-                        >
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-[30deg] text-[100px] font-black tracking-widest text-[#C9A84C]/5 select-none pointer-events-none whitespace-nowrap z-0">
-                                İCARƏ PRO
-                            </div>
-
-                            <div className="relative z-10">
-                                {useCustomTemplate ? (
-                                    <div className="whitespace-pre-wrap text-[13px] leading-relaxed text-black font-serif text-justify">
-                                        {userTemplate}
+                    <div className="flex-1 overflow-y-auto p-12 custom-scrollbar flex flex-col items-center bg-[#070B14]">
+                        <div ref={printAreaRef} className="w-full flex flex-col items-center">
+                            {useCustomTemplate ? (
+                                splitIntoPages(userTemplate).map((pageContent, index) => (
+                                    <div key={index} className="print-content bg-white shadow-[0_8px_40px_rgba(0,0,0,0.5)] rounded-sm p-16 text-[13px] leading-relaxed relative mb-8 print:shadow-none print:p-0 print:m-0 print:mb-0" style={{ width: '210mm', minHeight: '297mm' }}>
+                                        <pre className="whitespace-pre-wrap font-serif text-sm text-gray-800">
+                                            {pageContent}
+                                        </pre>
                                     </div>
-                                ) : (
-                                    <>
+                                ))
+                            ) : (
+                                <div className="print-content bg-white text-[#1a1a2e] w-full max-w-[700px] min-h-[900px] shadow-[0_8px_40px_rgba(0,0,0,0.5)] rounded-sm p-16 text-[13px] leading-relaxed relative print:shadow-none print:p-0 print:m-0" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
+                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-[30deg] text-[100px] font-black tracking-widest text-[#C9A84C]/5 select-none pointer-events-none whitespace-nowrap z-0">
+                                        İCARƏ PRO
+                                    </div>
+
+                                    <div className="relative z-10">
                                         <h1 className="text-lg font-bold text-center mb-1 text-black uppercase tracking-wider">{activeDocType?.title || "SƏNƏD"}</h1>
                                         <div className="text-center text-xs text-gray-500 mb-10 pb-4 border-b border-gray-200">
                                             Bakı şəhəri &nbsp;&nbsp;•&nbsp;&nbsp; {fallback(doc.date, "__________________")}
@@ -712,9 +721,9 @@ export function SanadUstasi() {
                                                 </div>
                                             </div>
                                         </div>
-                                    </>
-                                )}
-                            </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
