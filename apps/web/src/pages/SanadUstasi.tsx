@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Download, Save, RefreshCw, Upload, FileText, CheckCircle2 } from 'lucide-react';
+import { Loader2, Download, Save, RefreshCw, Upload, FileText, CheckCircle2, Edit2, Printer } from 'lucide-react';
 import { Document, Packer, Paragraph, AlignmentType } from "docx";
 import { saveAs } from "file-saver";
 import * as mammoth from "mammoth";
@@ -139,6 +139,7 @@ export function SanadUstasi() {
     const [done, setDone] = useState(false);
     const [userTemplate, setUserTemplate] = useState<string>("");
     const [useCustomTemplate, setUseCustomTemplate] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
 
     const bottomRef = useRef<HTMLDivElement>(null);
     const printAreaRef = useRef<HTMLDivElement>(null);
@@ -620,22 +621,49 @@ export function SanadUstasi() {
                                 >
                                     <Download className="w-3.5 h-3.5" /> PDF Yüklə
                                 </button>
+                                <button
+                                    onClick={() => setIsEditing(!isEditing)}
+                                    className={`p-2 rounded-lg transition-colors shadow-sm flex items-center justify-center ${isEditing ? 'bg-[#10B981] text-white hover:bg-[#0e9f6e]' : 'bg-[#1A2840] text-[#8899B0] border border-[#192840] hover:text-white hover:bg-[#20324c]'}`}
+                                    title={isEditing ? "Saxla" : "Düzəliş et"}
+                                >
+                                    {isEditing ? <Save className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
+                                </button>
+                                <button
+                                    onClick={() => window.print()}
+                                    className="p-2 rounded-lg bg-[#1A2840] text-[#8899B0] border border-[#192840] hover:text-white hover:bg-[#20324c] transition-colors shadow-sm flex items-center justify-center"
+                                    title="Çap et"
+                                >
+                                    <Printer className="w-4 h-4" />
+                                </button>
                             </div>
                         )}
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-12 custom-scrollbar flex flex-col items-center bg-[#070B14]">
-                        <div ref={printAreaRef} className="w-full flex flex-col items-center">
+                        <div id="document-preview" ref={printAreaRef} className="w-full flex flex-col items-center">
                             {useCustomTemplate ? (
                                 splitIntoPages(userTemplate).map((pageContent, index) => (
-                                    <div key={index} className="print-content bg-white shadow-[0_8px_40px_rgba(0,0,0,0.5)] rounded-sm p-16 text-[13px] leading-relaxed relative mb-8 print:shadow-none print:p-0 print:m-0 print:mb-0" style={{ width: '210mm', minHeight: '297mm' }}>
-                                        <pre className="whitespace-pre-wrap font-serif text-sm text-gray-800">
+                                    <div
+                                        key={index}
+                                        className={`print-content ${isEditing ? 'ring-2 ring-blue-500 rounded-md outline-none' : ''}`}
+                                        contentEditable={isEditing}
+                                        suppressContentEditableWarning={true}
+                                        style={{
+                                            background: 'white',
+                                            width: '210mm',
+                                            minHeight: '297mm',
+                                            margin: '0 auto 24px auto',
+                                            padding: '20mm',
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                                        }}
+                                    >
+                                        <pre className="whitespace-pre-wrap font-serif text-sm text-gray-800" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
                                             {pageContent}
                                         </pre>
                                     </div>
                                 ))
                             ) : (
-                                <div className="print-content bg-white text-[#1a1a2e] w-full max-w-[700px] min-h-[900px] shadow-[0_8px_40px_rgba(0,0,0,0.5)] rounded-sm p-16 text-[13px] leading-relaxed relative print:shadow-none print:p-0 print:m-0" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
+                                <div className={`print-content bg-white text-[#1a1a2e] w-full max-w-[700px] min-h-[900px] shadow-[0_8px_40px_rgba(0,0,0,0.5)] rounded-sm p-16 text-[13px] leading-relaxed relative print:shadow-none print:p-0 print:m-0 ${isEditing ? 'ring-2 ring-blue-500 outline-none' : ''}`} contentEditable={isEditing} suppressContentEditableWarning={true} style={{ fontFamily: "'Times New Roman', Times, serif" }}>
                                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-[30deg] text-[100px] font-black tracking-widest text-[#C9A84C]/5 select-none pointer-events-none whitespace-nowrap z-0">
                                         İCARƏ PRO
                                     </div>
@@ -741,6 +769,9 @@ export function SanadUstasi() {
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #C9A84C; }
                 
                 @media print {
+                    body * { visibility: hidden; }
+                    #document-preview, #document-preview * { visibility: visible; }
+                    #document-preview { position: absolute; left: 0; top: 0; }
                     @page { margin: 0; size: A4 portrait; }
                     body { background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                     .no-print { display: none !important; }
