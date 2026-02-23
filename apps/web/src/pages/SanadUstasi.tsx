@@ -13,17 +13,17 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs
 
 const getSystemPrompt = (userTemplate?: string, docType?: string) => {
     const templateSection = userTemplate ? `
-USER UPLOADED TEMPLATE:
+USER UPLOADED TEMPLATE (HTML FORMAT):
 ---
 ${userTemplate}
 ---
 
 TEMPLATE ANALYSIS RULES:
-- Preserve EXACT layout of uploaded template
-- Keep all headings, numbering, indentation identical
-- Keep table structure if template has tables
-- Keep bold/caps text as-is
-- Only replace blank values, never restructure
+- The template is in HTML format
+- Preserve EXACT HTML structure, including all <table>, <tr>, <td>, <p>, headings, etc.
+- Only replace blank values (e.g. ___, [...], boş yerlər, «...»)
+- Output COMPLETE HTML with same structure, replacing blank values only
+- Never invent fields not present in template
 - Output document must look identical to template but filled
 ` : `
 DOCUMENT TYPE: ${docType || 'İcarə Müqaviləsi'}
@@ -98,7 +98,7 @@ FIELD UPDATE RULES:
 COMPLETION:
 When ALL required fields collected:
 <msg>Sənədiniz hazırdır! Yükləmək və ya çap etmək üçün yuxarıdakı düymələrdən istifadə edin.</msg>
-<upd>{"_done": true}</upd>
+<upd>{"_done": true, "htmlContent": "<your_complete_html_here>"}</upd>
 <chips>["PDF Yüklə", "Word Yüklə", "Çap et"]</chips>`;
 };
 
@@ -366,10 +366,16 @@ export function SanadUstasi() {
                 }
             }
 
+            if ((upd as any).htmlContent) {
+                setUserTemplate((upd as any).htmlContent);
+                setUseCustomTemplate(true);
+            }
             if ((upd as any)._done) {
                 setDone(true);
-            } else if (Object.keys(upd).length > 0) {
-                setDoc((p: any) => ({ ...p, ...upd }));
+            }
+            const { _done, htmlContent, ...restUpd } = upd as any;
+            if (Object.keys(restUpd).length > 0) {
+                setDoc((p: any) => ({ ...p, ...restUpd }));
             }
 
             let parsedChips: string[] = [];
@@ -478,7 +484,7 @@ export function SanadUstasi() {
                 }
             } else if (file.name.endsWith('.docx')) {
                 const arrayBuffer = await file.arrayBuffer();
-                const result = await mammoth.extractRawText({ arrayBuffer });
+                const result = await mammoth.convertToHtml({ arrayBuffer });
                 extractedText = result.value;
             } else {
                 extractedText = await file.text();
@@ -775,31 +781,48 @@ export function SanadUstasi() {
                                 <button onClick={() => document.execCommand('underline')} className="px-3 py-1 underline text-white hover:bg-gray-600 rounded cursor-pointer">U</button>
                             </div>
                         )}
+
+                        <style>{`
+                            #document-preview table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+                            #document-preview td, #document-preview th { border: 1px solid #ccc; padding: 8px 12px; vertical-align: top; }
+                            #document-preview p { margin: 6px 0; text-align: justify; }
+                            #document-preview h1, #document-preview h2, #document-preview h3 { text-align: center; font-weight: bold; }
+                            #document-preview strong { font-weight: bold; }
+                            #document-preview em { font-style: italic; }
+                            @media print {
+                                @page { size: A4; margin: 25mm 20mm; }
+                                body * { visibility: hidden; }
+                                #document-preview, #document-preview * { visibility: visible; }
+                                #document-preview { 
+                                    position: fixed !important; top: 0; left: 0; 
+                                    width: 210mm; 
+                                    box-shadow: none !important;
+                                }
+                            }
+                        `}</style>
+
                         <div id="document-preview" ref={printAreaRef} className="w-full flex flex-col items-center">
                             {useCustomTemplate ? (
-                                splitIntoPages(userTemplate).map((pageContent, index) => (
-                                    <div
-                                        key={index}
-                                        className={`print-content ${isEditing ? 'ring-2 ring-blue-500 outline-none' : ''}`}
-                                        contentEditable={isEditing}
-                                        suppressContentEditableWarning={true}
-                                        style={{
-                                            background: 'white',
-                                            width: '210mm',
-                                            minHeight: '297mm',
-                                            margin: '0 auto 32px auto',
-                                            padding: '25mm 20mm',
-                                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                                            pageBreakAfter: 'always',
-                                            position: 'relative',
-                                            color: 'black'
-                                        }}
-                                    >
-                                        <pre className="whitespace-pre-wrap font-serif text-sm" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
-                                            {pageContent}
-                                        </pre>
-                                    </div>
-                                ))
+                                <div
+                                    className={`print-content ${isEditing ? 'ring-2 ring-blue-500 outline-none' : ''}`}
+                                    contentEditable={isEditing}
+                                    suppressContentEditableWarning={true}
+                                    dangerouslySetInnerHTML={{ __html: userTemplate }}
+                                    style={{
+                                        background: 'white',
+                                        width: '210mm',
+                                        minHeight: '297mm',
+                                        margin: '0 auto 32px auto',
+                                        padding: '25mm 20mm',
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                        fontFamily: "'Times New Roman', Times, serif",
+                                        fontSize: '12pt',
+                                        lineHeight: '1.6',
+                                        wordBreak: 'break-word',
+                                        whiteSpace: 'pre-wrap',
+                                        color: 'black'
+                                    }}
+                                />
                             ) : (
                                 <div className={`print-content bg-white text-[#1a1a2e] w-full max-w-[700px] min-h-[900px] shadow-[0_8px_40px_rgba(0,0,0,0.5)] rounded-sm p-16 text-[13px] leading-relaxed relative print:shadow-none print:p-0 print:m-0 ${isEditing ? 'ring-2 ring-blue-500 outline-none' : ''}`} contentEditable={isEditing} suppressContentEditableWarning={true} style={{ fontFamily: "'Times New Roman', Times, serif" }}>
                                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-[30deg] text-[100px] font-black tracking-widest text-[#C9A84C]/5 select-none pointer-events-none whitespace-nowrap z-0">
