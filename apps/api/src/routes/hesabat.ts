@@ -14,7 +14,7 @@ const fonts = {
         bolditalics: 'Helvetica-BoldOblique'
     }
 };
-const printer = new PdfPrinter(fonts);
+const printer = new (PdfPrinter as any)(fonts);
 
 const hesabatRoutes: FastifyPluginAsync = async (app) => {
 
@@ -107,9 +107,9 @@ const hesabatRoutes: FastifyPluginAsync = async (app) => {
             };
 
             const pdfDoc = printer.createPdfKitDocument(docDefinition);
-            const chunks: any[] = [];
+            const chunks: Buffer[] = [];
 
-            pdfDoc.on('data', (chunk) => chunks.push(chunk));
+            pdfDoc.on('data', (chunk: any) => chunks.push(chunk));
 
             return new Promise((resolve) => {
                 pdfDoc.on('end', () => {
@@ -172,7 +172,7 @@ const hesabatRoutes: FastifyPluginAsync = async (app) => {
 
         const pdfDoc = printer.createPdfKitDocument(docDefinition);
         const chunks: any[] = [];
-        pdfDoc.on('data', chunk => chunks.push(chunk));
+        pdfDoc.on('data', (chunk: any) => chunks.push(chunk));
 
         await new Promise((resolve) => {
             pdfDoc.on('end', resolve);

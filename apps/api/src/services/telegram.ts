@@ -3,7 +3,7 @@ import { Telegraf } from 'telegraf';
 const botToken = process.env['TELEGRAM_BOT_TOKEN'];
 
 // Ensure bot doesn't crash the server if token is missing
-export const bot = botToken ? new Telegraf(botToken) : null;
+export const bot: any = botToken ? new Telegraf(botToken) : null;
 
 export async function sendTelegramAlert(
     chatId: string,
@@ -24,7 +24,7 @@ export async function sendTelegramAlert(
 }
 
 if (bot) {
-    bot.start((ctx) => {
+    bot.start((ctx: any) => {
         ctx.reply(
             `Salam! İcarə Pro botuna xoş gəldiniz! 🏠\n\nChat ID-niz: <code>${ctx.chat.id}</code>\n\nBu ID-ni İcarə Pro parametrlərinə daxil edin.`,
             { parse_mode: 'HTML' }
@@ -32,7 +32,7 @@ if (bot) {
     });
 
     // Launch the bot without blocking the main process
-    bot.launch().catch(err => console.error('Telegram bot launch error:', err));
+    bot.launch().catch((err: any) => console.error('Telegram bot launch error:', err));
 
     // Enable graceful stop
     process.once('SIGINT', () => bot.stop('SIGINT'));
