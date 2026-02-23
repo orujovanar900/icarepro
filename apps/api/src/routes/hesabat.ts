@@ -107,7 +107,7 @@ const hesabatRoutes: FastifyPluginAsync = async (app) => {
             };
 
             const pdfDoc = printer.createPdfKitDocument(docDefinition);
-            const chunks: Buffer[] = [];
+            const chunks: any[] = [];
 
             pdfDoc.on('data', (chunk: any) => chunks.push(chunk));
 
