@@ -414,6 +414,13 @@ export function SanadUstasi() {
             if ((upd as any).htmlContent) {
                 setUserTemplate((upd as any).htmlContent);
                 setUseCustomTemplate(true);
+            } else if (!updMatch && raw.includes("<") && raw.includes(">") && raw.length > 500) {
+                // Fallback: If AI returned raw HTML without <upd> wrapper, guess it's the document content
+                const pureHtml = raw.replace(/<msg>[\s\S]*?<\/msg>/g, '').replace(/<chips>[\s\S]*?<\/chips>/g, '').trim();
+                if (pureHtml.length > 200) {
+                    setUserTemplate(pureHtml);
+                    setUseCustomTemplate(true);
+                }
             }
             if ((upd as any)._done) {
                 setDone(true);
@@ -434,6 +441,10 @@ export function SanadUstasi() {
 
             setMsgs(p => [...p, { from: "ai", text: aiText, chips: parsedChips }]);
             setHist(p => [...p, { role: "assistant", content: raw }]);
+
+            // Whenever AI makes an update, dynamically push progress tracker
+            const filledProps = Object.keys(doc).length + (userTemplate !== "" ? 2 : 0);
+            if (filledProps > 0) setIsEditing(true);
 
         } catch (e: any) {
             console.error("Chat error:", e);
@@ -655,6 +666,10 @@ export function SanadUstasi() {
 
             setUserTemplate(extractedText);
             setUseCustomTemplate(true);
+
+            // Allow immediate editing for PDF and Word Extractions
+            setIsEditing(true);
+
             if (user?.id) localStorage.setItem(`sanad_template_${user.id}`, extractedText);
 
             setDoc({});
@@ -913,8 +928,8 @@ export function SanadUstasi() {
                                 </button>
                                 <button
                                     onClick={() => window.print()}
-                                    disabled={progressPercent < 60}
-                                    className="px-4 py-2 rounded-lg text-xs font-bold bg-[#1C3050] text-[#4A6080] cursor-not-allowed border-none flex items-center gap-2"
+                                    disabled={progressPercent < 60 && !useCustomTemplate}
+                                    className={`px-4 py-2 rounded-lg text-xs font-bold ${progressPercent < 60 && !useCustomTemplate ? 'bg-[#1C3050] text-[#4A6080] cursor-not-allowed border-none' : 'bg-[#1A2840] text-[#8899B0] border border-[#192840] hover:text-white hover:bg-[#20324c]'} flex items-center gap-2 transition-colors`}
                                 >
                                     <Download className="w-3.5 h-3.5" /> PDF Yüklə
                                 </button>
