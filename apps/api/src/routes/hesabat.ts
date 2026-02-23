@@ -16,19 +16,19 @@ const fonts = {
 };
 const printer = new (PdfPrinter as any)(fonts);
 
+const payloadSchema = z.object({
+    startDate: z.string(),
+    endDate: z.string(),
+    contractIds: z.array(z.string()).optional(),
+    format: z.enum(['excel', 'pdf'])
+});
+
 const hesabatRoutes: FastifyPluginAsync = async (app) => {
 
-    app.post('/', {
-        schema: {
-            body: z.object({
-                startDate: z.string(),
-                endDate: z.string(),
-                contractIds: z.array(z.string()).optional(),
-                format: z.enum(['excel', 'pdf'])
-            })
-        }
-    }, async (request, reply) => {
-        const { startDate, endDate, contractIds, format } = request.body as any;
+    app.post('/', async (request, reply) => {
+        const parsed = payloadSchema.safeParse(request.body);
+        if (!parsed.success) return reply.status(400).send({ error: 'Validation error', details: parsed.error });
+        const { startDate, endDate, contractIds, format } = parsed.data;
         const tenantId = (request.user as any)?.id; // In reality verify organization
         const orgId = (request.user as any)?.organizationId;
 
@@ -126,17 +126,17 @@ const hesabatRoutes: FastifyPluginAsync = async (app) => {
         reply.status(400).send({ error: 'Invalid format' });
     });
 
-    app.post('/send-email', {
-        schema: {
-            body: z.object({
-                startDate: z.string(),
-                endDate: z.string(),
-                contractIds: z.array(z.string()).optional(),
-                email: z.string().email()
-            })
-        }
-    }, async (request, reply) => {
-        const { startDate, endDate, contractIds, email } = request.body as any;
+    const emailPayloadSchema = z.object({
+        startDate: z.string(),
+        endDate: z.string(),
+        contractIds: z.array(z.string()).optional(),
+        email: z.string().email()
+    });
+
+    app.post('/send-email', async (request, reply) => {
+        const parsed = emailPayloadSchema.safeParse(request.body);
+        if (!parsed.success) return reply.status(400).send({ error: 'Validation error', details: parsed.error });
+        const { startDate, endDate, contractIds, email } = parsed.data;
         const orgId = (request.user as any)?.organizationId;
 
         // Minimal logic for PDF gen internally to attach
