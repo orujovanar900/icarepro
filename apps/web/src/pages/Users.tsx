@@ -30,6 +30,8 @@ export function Users() {
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [editingUserId, setEditingUserId] = useState<string | null>(null);
 
     // Form State
     const [formName, setFormName] = useState('');
@@ -37,6 +39,26 @@ export function Users() {
     const [formPhone, setFormPhone] = useState('');
     const [formRole, setFormRole] = useState('STAFF');
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const openCreateModal = () => {
+        setIsEditMode(false);
+        setEditingUserId(null);
+        setFormName('');
+        setFormEmail('');
+        setFormPhone('');
+        setFormRole('STAFF');
+        setIsModalOpen(true);
+    };
+
+    const openEditModal = (userToEdit: any) => {
+        setIsEditMode(true);
+        setEditingUserId(userToEdit.id);
+        setFormName(userToEdit.name || '');
+        setFormEmail(userToEdit.email || '');
+        setFormPhone(userToEdit.phone || '');
+        setFormRole(userToEdit.role || 'STAFF');
+        setIsModalOpen(true);
+    };
 
     const addUserMutation = useMutation({
         mutationFn: async (payload: any) => {
@@ -76,15 +98,39 @@ export function Users() {
         }
     });
 
-    const handleAddUser = (e: React.FormEvent) => {
+    const editUserMutation = useMutation({
+        mutationFn: async (payload: any) => {
+            const res = await api.patch(`/users/${editingUserId}`, payload);
+            return res.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+            addToast({ message: 'İstifadəçi məlumatları yeniləndi.', type: 'success' });
+            setIsModalOpen(false);
+        },
+        onError: (err: any) => {
+            addToast({ message: err.response?.data?.error || 'Xəta baş verdi', type: 'error' });
+        },
+        onSettled: () => setIsSubmitting(false)
+    });
+
+    const handleAddOrEditUser = (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
-        addUserMutation.mutate({
-            name: formName,
-            email: formEmail,
-            phone: formPhone,
-            role: formRole
-        });
+        if (isEditMode && editingUserId) {
+            editUserMutation.mutate({
+                name: formName,
+                phone: formPhone,
+                role: formRole
+            });
+        } else {
+            addUserMutation.mutate({
+                name: formName,
+                email: formEmail,
+                phone: formPhone,
+                role: formRole
+            });
+        }
     };
 
     const handleToggleActive = (id: string, currentStatus: boolean) => {
@@ -111,7 +157,7 @@ export function Users() {
                     <Shield className="w-8 h-8 text-gold" />
                     İstifadəçilər
                 </h1>
-                <Button onClick={() => setIsModalOpen(true)}>
+                <Button onClick={openCreateModal}>
                     <Plus className="w-4 h-4 mr-2" />
                     Yeni İstifadəçi
                 </Button>
@@ -170,9 +216,17 @@ export function Users() {
                                                         onClick={() => handleToggleActive(u.id, u.isActive)}
                                                         disabled={toggleActiveMutation.isPending}
                                                     >
-                                                        {u.isActive ? 'Deaktiv Et' : 'Aktivləşdir'}
+                                                        {u.isActive ? 'Deaktiv' : 'Aktivləşdir'}
                                                     </Button>
                                                 )}
+
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => openEditModal(u)}
+                                                >
+                                                    Düzəliş Et
+                                                </Button>
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -183,21 +237,23 @@ export function Users() {
                 </CardContent>
             </Card>
 
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Yeni İstifadəçi Əlavə Et">
-                <form onSubmit={handleAddUser} className="space-y-4">
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={isEditMode ? "İstifadəçiyə Düzəliş Et" : "Yeni İstifadəçi Əlavə Et"}>
+                <form onSubmit={handleAddOrEditUser} className="space-y-4">
                     <Input
                         label="Ad Soyad"
                         required
                         value={formName}
                         onChange={(e) => setFormName(e.target.value)}
                     />
-                    <Input
-                        label="Email"
-                        type="email"
-                        required
-                        value={formEmail}
-                        onChange={(e) => setFormEmail(e.target.value)}
-                    />
+                    {!isEditMode && (
+                        <Input
+                            label="Email"
+                            type="email"
+                            required
+                            value={formEmail}
+                            onChange={(e) => setFormEmail(e.target.value)}
+                        />
+                    )}
                     <Input
                         label="Əlaqə nömrəsi"
                         type="tel"
@@ -216,14 +272,16 @@ export function Users() {
                         ]}
                     />
 
-                    <p className="text-xs text-muted mb-4 border-l-2 pl-2 border-gold/50">
-                        Qeyd: Yeni istifadəçi üçün sistem avtomatik şifrə (IcarePro2024!) təyin edəcək.
-                    </p>
+                    {isEditMode ? null : (
+                        <p className="text-xs text-muted mb-4 border-l-2 pl-2 border-gold/50">
+                            Qeyd: Yeni istifadəçi üçün sistem avtomatik şifrə (IcarePro2024!) təyin edəcək.
+                        </p>
+                    )}
 
                     <div className="flex gap-4 pt-4 mt-6 border-t border-border">
                         <Button type="button" variant="outline" className="flex-1" onClick={() => setIsModalOpen(false)}>Ləğv et</Button>
-                        <Button type="submit" className="flex-1" disabled={isSubmitting || !formName || !formEmail}>
-                            {isSubmitting ? 'Əlavə edilir...' : 'Təsdiqlə'}
+                        <Button type="submit" className="flex-1" disabled={isSubmitting || !formName || (!isEditMode && !formEmail)}>
+                            {isSubmitting ? 'Gözləyin...' : (isEditMode ? 'Yadda Saxla' : 'Təsdiqlə')}
                         </Button>
                     </div>
                 </form>

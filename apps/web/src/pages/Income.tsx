@@ -50,7 +50,7 @@ export function Income() {
             const params = new URLSearchParams({
                 month: String(month),
                 year: String(year),
-                limit: '1000' // Get all for the month
+                limit: '100' // Get all for the month
             });
             if (paymentType) params.append('paymentType', paymentType);
 
@@ -64,7 +64,7 @@ export function Income() {
         queryKey: ['active-contracts-short'],
         queryFn: async () => {
             // Fetch all contracts to be available for income logic (for all user profiles / test accounts)
-            const res = await api.get('/contracts?limit=1000');
+            const res = await api.get('/contracts?limit=100');
             return res.data;
         }
     });

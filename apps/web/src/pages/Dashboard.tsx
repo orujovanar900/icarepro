@@ -154,7 +154,7 @@ function DashboardContent() {
     const { data: contractsForReport } = useQuery({
         queryKey: ['contracts-for-report'],
         queryFn: async () => {
-            const res = await api.get('/contracts?limit=1000');
+            const res = await api.get('/contracts?limit=100');
             return res.data;
         }
     });
