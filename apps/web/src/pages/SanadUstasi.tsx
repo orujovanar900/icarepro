@@ -21,8 +21,9 @@ ${userTemplate}
 TEMPLATE ANALYSIS RULES:
 - The template is in HTML format
 - Preserve EXACT HTML structure, including all <table>, <tr>, <td>, <p>, headings, etc.
+- CRITICAL: Do NOT drop or alter <table> tags. Tables must remain intact.
 - Only replace blank values (e.g. ___, [...], boş yerlər, «...»)
-- Output COMPLETE HTML with same structure, replacing blank values only
+- Output COMPLETE valid HTML with same structure, replacing blank values only
 - Never invent fields not present in template
 - Output document must look identical to template but filled
 ` : `
@@ -155,28 +156,70 @@ const DOCS = [
     { id: "receipt", icon: "🧾", label: "Qəbz", title: "ÖDƏNİŞ QƏBZİ" }
 ];
 
-const splitIntoPages = (text: string): string[] => {
-    if (text.includes("===PAGE_BREAK===")) {
-        return text.split("===PAGE_BREAK===").filter(page => page.trim().length > 0);
+const splitHtmlIntoPages = (htmlStr: string): string[] => {
+    if (!htmlStr) return [];
+    if (htmlStr.includes("===PAGE_BREAK===")) {
+        return htmlStr.split("===PAGE_BREAK===").filter(page => page.trim().length > 0);
     }
-    const PAGE_HEIGHT_CHARS = 2500;
-    const lines = text.split('\n');
-    const pages: string[] = [];
-    let currentPage = '';
-    let charCount = 0;
 
-    for (const line of lines) {
-        if (charCount + line.length > PAGE_HEIGHT_CHARS && currentPage) {
-            pages.push(currentPage);
-            currentPage = line + '\n';
-            charCount = line.length;
+    // Check if it's plain text without tags
+    if (!/<[a-z][\s\S]*>/i.test(htmlStr)) {
+        const PAGE_HEIGHT_CHARS = 2500;
+        const lines = htmlStr.split('\n');
+        const pages: string[] = [];
+        let currentPage = '';
+        let charCount = 0;
+        for (const line of lines) {
+            if (charCount + line.length > PAGE_HEIGHT_CHARS && currentPage) {
+                pages.push(currentPage);
+                currentPage = line + '\n';
+                charCount = line.length;
+            } else {
+                currentPage += line + '\n';
+                charCount += line.length;
+            }
+        }
+        if (currentPage) pages.push(currentPage);
+        return pages.length > 0 ? pages : [htmlStr];
+    }
+
+    // HTML aware splitting to avoid breaking tables/tags
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlStr, 'text/html');
+    const nodes = Array.from(doc.body.childNodes);
+    const pages: string[] = [];
+    let currentPageHtml = '';
+    let currentChars = 0;
+    const PAGE_LIMIT = 2000;
+
+    for (const node of nodes) {
+        let nodeHtml = '';
+        let nodeTextLen = 0;
+
+        if (node.nodeType === Node.ELEMENT_NODE) {
+            nodeHtml = (node as Element).outerHTML;
+            nodeTextLen = node.textContent?.trim().length || 0;
+        } else if (node.nodeType === Node.TEXT_NODE) {
+            nodeHtml = node.textContent || '';
+            nodeTextLen = nodeHtml.trim().length;
+            if (!nodeTextLen && !currentPageHtml) continue;
+        }
+
+        if (currentChars + nodeTextLen > PAGE_LIMIT && currentPageHtml) {
+            pages.push(currentPageHtml);
+            currentPageHtml = nodeHtml;
+            currentChars = nodeTextLen;
         } else {
-            currentPage += line + '\n';
-            charCount += line.length;
+            currentPageHtml += nodeHtml;
+            currentChars += nodeTextLen;
         }
     }
-    if (currentPage) pages.push(currentPage);
-    return pages;
+
+    if (currentPageHtml) {
+        pages.push(currentPageHtml);
+    }
+
+    return pages.length > 0 ? pages : [htmlStr];
 };
 
 interface Message {
@@ -459,10 +502,11 @@ export function SanadUstasi() {
                 const formData = new FormData();
                 formData.append('file', file);
                 try {
-                    const response = await api.post('/documents/extract-pdf', formData, {
-                        headers: { 'Content-Type': 'multipart/form-data' }
-                    });
+                    // Axios explicitly generates boundary dynamically, passing manual headers ruins it
+                    const response = await api.post('/documents/extract-pdf', formData);
                     extractedText = response.data.text || "";
+                    // Wrap in paragraphs for safe DOM fragmentation
+                    extractedText = extractedText.split('\n').filter((l: string) => l.trim()).map((l: string) => `<p>${l}</p>`).join('');
                 } catch (pdfErr) {
                     // Fallback generic question if extraction fails
                     console.error("PDF Extraction failed:", pdfErr);
@@ -803,26 +847,31 @@ export function SanadUstasi() {
 
                         <div id="document-preview" ref={printAreaRef} className="w-full flex flex-col items-center">
                             {useCustomTemplate ? (
-                                <div
-                                    className={`print-content ${isEditing ? 'ring-2 ring-blue-500 outline-none' : ''}`}
-                                    contentEditable={isEditing}
-                                    suppressContentEditableWarning={true}
-                                    dangerouslySetInnerHTML={{ __html: userTemplate }}
-                                    style={{
-                                        background: 'white',
-                                        width: '210mm',
-                                        minHeight: '297mm',
-                                        margin: '0 auto 32px auto',
-                                        padding: '25mm 20mm',
-                                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                                        fontFamily: "'Times New Roman', Times, serif",
-                                        fontSize: '12pt',
-                                        lineHeight: '1.6',
-                                        wordBreak: 'break-word',
-                                        whiteSpace: 'pre-wrap',
-                                        color: 'black'
-                                    }}
-                                />
+                                splitHtmlIntoPages(userTemplate).map((pageContent, index) => (
+                                    <div
+                                        key={index}
+                                        className={`print-content ${isEditing ? 'ring-2 ring-blue-500 outline-none' : ''}`}
+                                        contentEditable={isEditing}
+                                        suppressContentEditableWarning={true}
+                                        dangerouslySetInnerHTML={{ __html: pageContent }}
+                                        style={{
+                                            background: 'white',
+                                            width: '210mm',
+                                            minHeight: '297mm',
+                                            margin: '0 auto 32px auto',
+                                            padding: '25mm 20mm',
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                            pageBreakAfter: 'always',
+                                            position: 'relative',
+                                            fontFamily: "'Times New Roman', Times, serif",
+                                            fontSize: '12pt',
+                                            lineHeight: '1.6',
+                                            wordBreak: 'break-word',
+                                            whiteSpace: 'normal',
+                                            color: 'black'
+                                        }}
+                                    />
+                                ))
                             ) : (
                                 <div className={`print-content bg-white text-[#1a1a2e] w-full max-w-[700px] min-h-[900px] shadow-[0_8px_40px_rgba(0,0,0,0.5)] rounded-sm p-16 text-[13px] leading-relaxed relative print:shadow-none print:p-0 print:m-0 ${isEditing ? 'ring-2 ring-blue-500 outline-none' : ''}`} contentEditable={isEditing} suppressContentEditableWarning={true} style={{ fontFamily: "'Times New Roman', Times, serif" }}>
                                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-[30deg] text-[100px] font-black tracking-widest text-[#C9A84C]/5 select-none pointer-events-none whitespace-nowrap z-0">
