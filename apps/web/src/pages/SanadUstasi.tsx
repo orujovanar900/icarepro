@@ -502,11 +502,33 @@ export function SanadUstasi() {
                 const formData = new FormData();
                 formData.append('file', file);
                 try {
-                    // Axios explicitly generates boundary dynamically, passing manual headers ruins it
-                    const response = await api.post('/documents/extract-pdf', formData);
-                    extractedText = response.data.text || "";
+                    // When using fetch instead of axios for FormData, the browser sets the boundary correctly automatically.
+                    const response = await fetch(`${import.meta.env['VITE_API_URL'] || '/api'}/documents/extract-pdf`, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'Authorization': `Bearer ${useAuthStore.getState().token}`
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`PDF extraction failed with status ${response.status}`);
+                    }
+
+                    const responseData = await response.json();
+                    extractedText = responseData.text || "";
+
+                    if (!extractedText.trim()) {
+                        throw new Error("No text was extracted from PDF");
+                    }
+
                     // Wrap in paragraphs for safe DOM fragmentation
-                    extractedText = extractedText.split('\n').filter((l: string) => l.trim()).map((l: string) => `<p>${l}</p>`).join('');
+                    extractedText = extractedText.split('\n')
+                        .map((l: string) => l.trim())
+                        .filter((l: string) => l.length > 0)
+                        .map((l: string) => `<p style="margin: 0; padding: 4px 0; font-family: 'Times New Roman', Times, serif; font-size: 12pt;">${l}</p>`)
+                        .join('');
+
                 } catch (pdfErr) {
                     // Fallback generic question if extraction fails
                     console.error("PDF Extraction failed:", pdfErr);
@@ -827,12 +849,14 @@ export function SanadUstasi() {
                         )}
 
                         <style>{`
-                            #document-preview table { width: 100%; border-collapse: collapse; margin: 12px 0; }
-                            #document-preview td, #document-preview th { border: 1px solid #ccc; padding: 8px 12px; vertical-align: top; }
-                            #document-preview p { margin: 6px 0; text-align: justify; }
-                            #document-preview h1, #document-preview h2, #document-preview h3 { text-align: center; font-weight: bold; }
-                            #document-preview strong { font-weight: bold; }
-                            #document-preview em { font-style: italic; }
+                            #document-preview table { width: 100% !important; border-collapse: collapse !important; margin: 12px 0 !important; table-layout: fixed !important; }
+                            #document-preview td, #document-preview th { border: 1px solid #000 !important; padding: 8px 12px !important; vertical-align: top !important; word-wrap: break-word !important; }
+                            #document-preview p { margin: 6px 0 !important; text-align: justify !important; }
+                            #document-preview h1, #document-preview h2, #document-preview h3 { text-align: center !important; font-weight: bold !important; margin: 12px 0 !important; }
+                            #document-preview strong, #document-preview b { font-weight: bold !important; }
+                            #document-preview ul, #document-preview ol { padding-left: 20px !important; margin: 6px 0 !important; }
+                            #document-preview li { margin-bottom: 4px !important; }
+                            #document-preview em, #document-preview i { font-style: italic !important; }
                             @media print {
                                 @page { size: A4; margin: 25mm 20mm; }
                                 body * { visibility: hidden; }
