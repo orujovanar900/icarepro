@@ -6,11 +6,15 @@ import {
 } from 'recharts';
 import { Wallet, TrendingUp, AlertCircle, Calendar, ArrowRight, Users } from 'lucide-react';
 import { api } from '@/lib/api';
+import { TopBar } from '@/components/ui/TopBar';
+import { Sidebar } from '@/components/ui/Sidebar';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
+import { Input } from '@/components/ui/Input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSkeleton } from '@/components/ui/Table';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { useAuthStore } from '@/store/auth';
 import * as XLSX from 'xlsx';
 
 // Helper to format currency
@@ -94,6 +98,7 @@ function DashboardContent() {
     const month = parseInt(searchParams.get('month') || String(currentMonth), 10);
     const year = parseInt(searchParams.get('year') || String(currentYear), 10);
 
+    const { user } = useAuthStore();
     const { data: dashboard, isLoading: isDashboardLoading } = useQuery({
         queryKey: ['dashboard', month, year],
         queryFn: () => fetchDashboardData(month, year),
@@ -140,62 +145,39 @@ function DashboardContent() {
     const incomeChange = previousMonthIncome === 0 ? 100 : Math.round(((dashboard?.monthlyIncome || 0) - previousMonthIncome) / previousMonthIncome * 100);
 
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-    const [reportMonth, setReportMonth] = useState(String(month));
-    const [reportYear, setReportYear] = useState(String(year));
+    const [reportStartDate, setReportStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
+    const [reportEndDate, setReportEndDate] = useState(new Date().toISOString().split('T')[0]);
+    const [reportContracts, setReportContracts] = useState<string[]>([]);
     const [isExporting, setIsExporting] = useState(false);
+
+    // Fetch contracts for multiselect
+    const { data: contractsForReport } = useQuery({
+        queryKey: ['contracts-for-report'],
+        queryFn: async () => {
+            const res = await api.get('/contracts?limit=1000');
+            return res.data;
+        }
+    });
+
+    const activeContractsList = Array.isArray(contractsForReport?.data) ? contractsForReport.data : [];
+
+    const getReportPayload = () => ({
+        startDate: reportStartDate,
+        endDate: reportEndDate,
+        contractIds: reportContracts.length > 0 ? reportContracts : undefined,
+    });
 
     const handleExportExcel = async () => {
         setIsExporting(true);
         try {
-            // Fetch comprehensive data for the selected month/year
-            const [dashRes, contractsRes, paymentsRes] = await Promise.all([
-                api.get(`/dashboard?month=${reportMonth}&year=${reportYear}`),
-                api.get(`/contracts?limit=1000`),
-                api.get(`/payments?limit=1000`)
-            ]);
-
-            const dData = dashRes.data.data;
-            const cData = contractsRes.data.data;
-            const pData = paymentsRes.data.data;
-
-            const wb = XLSX.utils.book_new();
-
-            // Sheet 1: Xülasə
-            const summaryWs = XLSX.utils.json_to_sheet([
-                { 'Göstərici': 'Cari Ay Balans', 'Məbləğ': dData.balance },
-                { 'Göstərici': 'Cari Ay Mədaxil', 'Məbləğ': dData.monthlyIncome },
-                { 'Göstərici': 'Cəmi Borc', 'Məbləğ': dData.totalDebt },
-                { 'Göstərici': 'Bu Ay Üzrə Borc', 'Məbləğ': dData.currentMonthDebt }
-            ]);
-            XLSX.utils.book_append_sheet(wb, summaryWs, "Xülasə");
-
-            // Sheet 2: Müqavilələr
-            const formattedContracts = cData.map((c: any) => ({
-                'Nömrə': c.number,
-                'İcarəçi': c.tenant?.fullName,
-                'Obyekt': c.property?.name,
-                'Növ': c.rentalType,
-                'Aylıq İcarə': c.monthlyRent,
-                'Status': c.status,
-                'Borc': c.debt
-            }));
-            const contractsWs = XLSX.utils.json_to_sheet(formattedContracts);
-            XLSX.utils.book_append_sheet(wb, contractsWs, "Müqavilələr");
-
-            // Sheet 3: Ödənişlər
-            // Filter payments for that month
-            const monthPayments = pData.filter((p: any) => p.periodMonth === Number(reportMonth) && p.periodYear === Number(reportYear));
-            const formattedPayments = monthPayments.map((p: any) => ({
-                'Tarix': new Date(p.paymentDate).toLocaleDateString('az-AZ'),
-                'İcarəçi': p.contract?.tenant?.fullName,
-                'Obyekt': p.contract?.property?.name,
-                'Məbləğ': p.amount,
-                'Növ': p.paymentType
-            }));
-            const paymentsWs = XLSX.utils.json_to_sheet(formattedPayments.length > 0 ? formattedPayments : [{ 'Tarix': 'Məlumat yoxdur' }]);
-            XLSX.utils.book_append_sheet(wb, paymentsWs, "Ödənişlər");
-
-            XLSX.writeFile(wb, `IcarePro_Hesabat_${reportMonth}_${reportYear}.xlsx`);
+            const res = await api.post('/hesabat', { ...getReportPayload(), format: 'excel' }, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'hesabat.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
         } catch (error) {
             console.error("Export failed", error);
             alert("Hesabat generasiyası xətası.");
@@ -205,10 +187,42 @@ function DashboardContent() {
         }
     };
 
-    const handlePrintPDF = () => {
-        // Just trigger standard window print which will use our @media print CSS to isolate the dashboard
-        window.print();
-        setIsReportModalOpen(false);
+    const handlePrintPDF = async () => {
+        setIsExporting(true);
+        try {
+            const res = await api.post('/hesabat', { ...getReportPayload(), format: 'pdf' }, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'hesabat.pdf');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+        } catch (error) {
+            console.error("PDF generation failed", error);
+            alert("PDF generasiyası xətası.");
+        } finally {
+            setIsExporting(false);
+            setIsReportModalOpen(false);
+        }
+    };
+
+    const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+    const [emailAddress, setEmailAddress] = useState(user?.email || '');
+
+    const handleSendEmail = async () => {
+        setIsExporting(true);
+        try {
+            await api.post('/hesabat/send-email', { ...getReportPayload(), email: emailAddress });
+            alert("Hesabat e-poçta göndərildi!");
+            setIsEmailModalOpen(false);
+            setIsReportModalOpen(false);
+        } catch (error) {
+            console.error("Email send failed", error);
+            alert("Göndərmə xətası.");
+        } finally {
+            setIsExporting(false);
+        }
     };
 
     return (
@@ -469,36 +483,87 @@ function DashboardContent() {
 
             <Modal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} title="Maliyyə Hesabatı Yarat">
                 <div className="space-y-4">
-                    <p className="text-sm text-muted">Aylıq maliyyə hesabatını generə etmək üçün ayı və ili seçin.</p>
-                    <div className="flex gap-4">
-                        <Select
-                            label="Ay"
-                            options={monthOptions}
-                            value={reportMonth}
-                            onChange={(e) => setReportMonth(e.target.value)}
+                    <p className="text-sm text-muted">Maliyyə hesabatını generə etmək üçün tarix aralığı və müqavilələri seçin.</p>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input
+                            label="Başlanğıc tarixi"
+                            type="date"
+                            value={reportStartDate}
+                            onChange={(e) => setReportStartDate(e.target.value)}
                         />
-                        <Select
-                            label="İl"
-                            options={yearOptions}
-                            value={reportYear}
-                            onChange={(e) => setReportYear(e.target.value)}
+                        <Input
+                            label="Bitmə tarixi"
+                            type="date"
+                            value={reportEndDate}
+                            onChange={(e) => setReportEndDate(e.target.value)}
                         />
                     </div>
-                    <div className="flex gap-4 pt-4 border-t border-border mt-6">
+
+                    <div className="mt-4 border border-border rounded-lg p-2 max-h-48 overflow-y-auto">
+                        <div className="flex justify-between items-center mb-2 px-2">
+                            <h4 className="text-sm font-medium">Müqavilələr</h4>
+                            <div className="space-x-2 text-xs">
+                                <button type="button" className="text-gold" onClick={() => setReportContracts(activeContractsList.map((c: any) => c.id))}>Hamısını seç</button>
+                                <button type="button" className="text-muted" onClick={() => setReportContracts([])}>Terminal</button>
+                            </div>
+                        </div>
+                        {activeContractsList.map((c: any) => (
+                            <label key={c.id} className="flex items-center gap-2 px-2 py-1 hover:bg-surface rounded text-sm cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={reportContracts.includes(c.id)}
+                                    onChange={(e: any) => {
+                                        if (e.target.checked) setReportContracts([...reportContracts, c.id]);
+                                        else setReportContracts(reportContracts.filter(id => id !== c.id));
+                                    }}
+                                />
+                                {c.tenant.fullName} ({c.number})
+                            </label>
+                        ))}
+                    </div>
+
+                    <div className="flex flex-col gap-2 pt-4 border-t border-border mt-6">
+                        <div className="flex gap-4">
+                            <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={handleExportExcel}
+                                disabled={isExporting}
+                            >
+                                {isExporting ? 'Yüklənir...' : 'Excel Yüklə'}
+                            </Button>
+                            <Button
+                                className="flex-1 bg-gold hover:bg-gold2 text-black"
+                                onClick={handlePrintPDF}
+                                disabled={isExporting}
+                            >
+                                {isExporting ? 'Hazırlanır...' : 'PDF Yüklə'}
+                            </Button>
+                        </div>
                         <Button
-                            variant="outline"
-                            className="flex-1"
-                            onClick={handleExportExcel}
+                            className="w-full bg-blue border-blue/50 text-white"
+                            onClick={() => setIsEmailModalOpen(true)}
                             disabled={isExporting}
                         >
-                            {isExporting ? 'Yüklənir...' : 'Excel Yüklə'}
+                            MAIL-a göndər
                         </Button>
-                        <Button
-                            className="flex-1 bg-gold hover:bg-gold2 text-black"
-                            onClick={handlePrintPDF}
-                            disabled={isExporting}
-                        >
-                            {isExporting ? 'Hazırlanır...' : 'PDF Yüklə'}
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal isOpen={isEmailModalOpen} onClose={() => setIsEmailModalOpen(false)} title="Hesabatı E-poçta Göndər">
+                <div className="space-y-4">
+                    <Input
+                        label="E-poçt ünvanı"
+                        type="email"
+                        value={emailAddress}
+                        onChange={(e) => setEmailAddress(e.target.value)}
+                    />
+                    <div className="flex gap-4">
+                        <Button variant="outline" className="flex-1" onClick={() => setIsEmailModalOpen(false)}>Ləğv et</Button>
+                        <Button className="flex-1" onClick={handleSendEmail} disabled={isExporting || !emailAddress}>
+                            Göndər
                         </Button>
                     </div>
                 </div>

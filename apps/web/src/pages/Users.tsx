@@ -34,6 +34,7 @@ export function Users() {
     // Form State
     const [formName, setFormName] = useState('');
     const [formEmail, setFormEmail] = useState('');
+    const [formPhone, setFormPhone] = useState('');
     const [formRole, setFormRole] = useState('STAFF');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -52,6 +53,7 @@ export function Users() {
             setIsModalOpen(false);
             setFormName('');
             setFormEmail('');
+            setFormPhone('');
             setFormRole('STAFF');
         },
         onError: (err: any) => {
@@ -80,6 +82,7 @@ export function Users() {
         addUserMutation.mutate({
             name: formName,
             email: formEmail,
+            phone: formPhone,
             role: formRole
         });
     };
@@ -194,6 +197,12 @@ export function Users() {
                         required
                         value={formEmail}
                         onChange={(e) => setFormEmail(e.target.value)}
+                    />
+                    <Input
+                        label="Əlaqə nömrəsi"
+                        type="tel"
+                        value={formPhone}
+                        onChange={(e) => setFormPhone(e.target.value)}
                     />
                     <Select
                         label="Rol"

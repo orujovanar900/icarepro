@@ -8,12 +8,21 @@ export function TopBar() {
     const { user, logout } = useAuthStore();
     const location = useLocation();
 
-    // Simple title generator based on path
-    const pageTitle = React.useMemo(() => {
-        const path = location.pathname.split('/')[1];
-        if (!path) return 'Dashboard';
-        return path.charAt(0).toUpperCase() + path.slice(1);
-    }, [location.pathname]);
+    // Mapping English route bases to Azerbaijani titles
+    const routeTitles: Record<string, string> = {
+        'dashboard': 'İdarə Paneli',
+        'contracts': 'Müqavilələr',
+        'properties': 'Obyektlər',
+        'income': 'Mədaxil',
+        'expenses': 'Məxaric',
+        'documents': 'Sənədlər',
+        'sanad-ustasi': 'Sənəd Ustası',
+        'users': 'İstifadəçilər',
+        'settings': 'Parametrlər',
+    };
+
+    const pathBase = location.pathname.split('/')[1] || 'dashboard';
+    const pageTitle = routeTitles[pathBase] || 'Səhifə';
 
     return (
         <header className="flex h-16 items-center justify-between border-b border-border bg-surface px-4 md:px-6 shrink-0">

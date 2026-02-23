@@ -35,11 +35,11 @@ enum ContractStatus {
 
 // Тип аренды
 enum RentalType {
-  RESIDENTIAL_LONG   // Тип 1: долгосрочная жилая (фикс. аренда/мес)
-  COMMERCIAL         // Тип 2: коммерческая (базовая + % от выручки)
-  RESIDENTIAL_SHORT  // Тип 3: краткосрочная (посуточно)
-  PARKING            // Тип 4: парковочное место (дневная ставка)
-  SUBLEASE           // Тип 5: субаренда (дочерний контракт)
+  RESIDENTIAL_LONG // Тип 1: долгосрочная жилая (фикс. аренда/мес)
+  COMMERCIAL // Тип 2: коммерческая (базовая + % от выручки)
+  RESIDENTIAL_SHORT // Тип 3: краткосрочная (посуточно)
+  PARKING // Тип 4: парковочное место (дневная ставка)
+  SUBLEASE // Тип 5: субаренда (дочерний контракт)
 }
 
 enum PaymentType {
@@ -103,6 +103,7 @@ model User {
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
   telegramChatId String?
+  phone          String?
 
   organization Organization @relation(fields: [organizationId], references: [id])
   payments     Payment[]
@@ -115,14 +116,16 @@ model User {
 }
 
 model Property {
-  id             String  @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
   number         String
   name           String
   building       String
   address        String
-  area           Decimal @db.Decimal(10, 2)
-  isActive       Boolean @default(true)
+  area           Decimal  @db.Decimal(10, 2)
+  isActive       Boolean  @default(true)
+  lat            Decimal? @db.Decimal(10, 8)
+  lng            Decimal? @db.Decimal(11, 8)
 
   organization  Organization    @relation(fields: [organizationId], references: [id])
   contracts     Contract[]
@@ -152,24 +155,24 @@ model Tenant {
 }
 
 model Contract {
-  id               String         @id @default(cuid())
-  organizationId   String
-  number           String
-  propertyId       String
-  tenantId         String
-  rentalType       RentalType     @default(RESIDENTIAL_LONG)
-  monthlyRent      Decimal        @db.Decimal(12, 2)
-  startDate        DateTime       @db.Date
-  endDate          DateTime       @db.Date
-  status           ContractStatus @default(DRAFT)
+  id             String         @id @default(cuid())
+  organizationId String
+  number         String
+  propertyId     String
+  tenantId       String
+  rentalType     RentalType     @default(RESIDENTIAL_LONG)
+  monthlyRent    Decimal        @db.Decimal(12, 2)
+  startDate      DateTime       @db.Date
+  endDate        DateTime       @db.Date
+  status         ContractStatus @default(DRAFT)
 
   // Дополнительные поля по типу аренды
-  taxRate          Decimal?       @db.Decimal(5, 2)   // % НДС (информационно)
-  depositAmount    Decimal?       @db.Decimal(12, 2)  // залог
-  baseRent         Decimal?       @db.Decimal(12, 2)  // Тип 2: базовая аренда
-  revenuePercent   Decimal?       @db.Decimal(5, 2)   // Тип 2: % от выручки
-  dailyRate        Decimal?       @db.Decimal(12, 2)  // Тип 3/4: суточная ставка
-  parentContractId String?                             // Тип 5: ссылка на родительский контракт
+  taxRate          Decimal? @db.Decimal(5, 2) // % НДС (информационно)
+  depositAmount    Decimal? @db.Decimal(12, 2) // залог
+  baseRent         Decimal? @db.Decimal(12, 2) // Тип 2: базовая аренда
+  revenuePercent   Decimal? @db.Decimal(5, 2) // Тип 2: % от выручки
+  dailyRate        Decimal? @db.Decimal(12, 2) // Тип 3/4: суточная ставка
+  parentContractId String? // Тип 5: ссылка на родительский контракт
   notes            String?
 
   organization   Organization @relation(fields: [organizationId], references: [id])
@@ -190,10 +193,10 @@ model Payment {
   contractId     String
   amount         Decimal     @db.Decimal(12, 2)
   paymentDate    DateTime    @db.Date
-  periodMonth    Int?        // 1-12 — за какой месяц (null для посуточных)
+  periodMonth    Int? // 1-12 — за какой месяц (null для посуточных)
   periodYear     Int?
-  periodStart    DateTime?   @db.Date  // для посуточных: заезд
-  periodEnd      DateTime?   @db.Date  // для посуточных: выезд
+  periodStart    DateTime?   @db.Date // для посуточных: заезд
+  periodEnd      DateTime?   @db.Date // для посуточных: выезд
   paymentType    PaymentType
   isPenalty      Boolean     @default(false)
   penaltyNote    String?
@@ -272,12 +275,12 @@ model MeterReading {
 }
 
 model PropertyPhoto {
-  id          String   @id @default(cuid())
-  propertyId  String
-  url         String
-  caption     String?
-  sortOrder   Int      @default(0)
-  uploadedAt  DateTime @default(now())
+  id         String   @id @default(cuid())
+  propertyId String
+  url        String
+  caption    String?
+  sortOrder  Int      @default(0)
+  uploadedAt DateTime @default(now())
 
   property Property @relation(fields: [propertyId], references: [id])
 

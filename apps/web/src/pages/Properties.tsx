@@ -8,6 +8,18 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
+import { Modal } from '@/components/ui/Modal';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix Leaflet icons
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('az-AZ', {
@@ -22,6 +34,7 @@ export function Properties() {
     const { user } = useAuthStore();
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     React.useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearch(search), 500);
@@ -66,11 +79,49 @@ export function Properties() {
                     Obyektlər
                 </h1>
                 {canAddProperty && (
-                    <Button onClick={() => navigate('/properties/new')}>
+                    <Button onClick={() => setIsModalOpen(true)}>
                         <Plus className="w-4 h-4 mr-2" />
                         Yeni Obyekt
                     </Button>
                 )}
+            </div>
+
+            {/* Modal placeholder */}
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Yeni Obyekt">
+                <div className="p-4 text-center text-muted">Tezliklə əlavə ediləcək...</div>
+            </Modal>
+
+            {/* Map Section */}
+            <div className="w-full h-[300px] mb-6 rounded-xl overflow-hidden border border-border shadow-sm z-0 relative">
+                <MapContainer center={[40.4093, 49.8671]} zoom={12} scrollWheelZoom={false} style={{ height: '100%', width: '100%', zIndex: 0 }}>
+                    <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    {properties.map((property: any) => {
+                        const lat = property.lat ? Number(property.lat) : 40.4093 + (Math.random() - 0.5) * 0.05; // Fallback jitter
+                        const lng = property.lng ? Number(property.lng) : 49.8671 + (Math.random() - 0.5) * 0.05;
+                        const contract = activeContracts.find((c: any) => c.propertyId === property.id);
+
+                        return (
+                            <Marker key={`map-${property.id}`} position={[lat, lng]}>
+                                <Popup>
+                                    <div className="font-sans">
+                                        <h3 className="font-bold text-sm mb-1">{property.name}</h3>
+                                        <p className="text-xs text-muted-foreground">{property.address || '-'}</p>
+                                        <div className="mt-2 pt-2 border-t border-border/50">
+                                            <p className="text-xs"><span className="font-medium">İcarəçi:</span> {contract ? contract.tenant.fullName : 'Yoxdur'}</p>
+                                            <p className="text-xs"><span className="font-medium">Məbləğ:</span> {contract ? formatMoney(contract.monthlyRent) : '-'}</p>
+                                            <Button size="sm" variant="outline" className="w-full mt-2 h-7 text-xs" onClick={() => navigate(`/properties/${property.id}`)}>
+                                                Ətraflı
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </Popup>
+                            </Marker>
+                        );
+                    })}
+                </MapContainer>
             </div>
 
             {/* Filters */}

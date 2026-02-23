@@ -63,7 +63,8 @@ export function Income() {
     const { data: contractsData } = useQuery({
         queryKey: ['active-contracts-short'],
         queryFn: async () => {
-            const res = await api.get('/contracts?status=ACTIVE&limit=1000');
+            // Fetch all contracts to be available for income logic (for all user profiles / test accounts)
+            const res = await api.get('/contracts?limit=1000');
             return res.data;
         }
     });
@@ -250,16 +251,23 @@ export function Income() {
             {/* Add Payment Modal */}
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Yeni Ödəniş Əlavə Et">
                 <form onSubmit={handleAddPayment} className="space-y-4">
-                    <Select
-                        label="Müqavilə Seçin"
-                        required
-                        value={formContractId}
-                        onChange={(e) => setFormContractId(e.target.value)}
-                        options={activeContracts.map((c: any) => ({
-                            label: `${c.number} - ${c.tenant.fullName} (${c.property.name})`,
-                            value: c.id
-                        }))}
-                    />
+                    {/* Make Select searchable or simulate searchable by displaying all names */}
+                    <div className="flex flex-col gap-1">
+                        <label className="text-sm font-medium text-text">Müqavilə Seçin <span className="text-red">*</span></label>
+                        <select
+                            required
+                            value={formContractId}
+                            onChange={(e) => setFormContractId(e.target.value)}
+                            className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-gold/50"
+                        >
+                            <option value="" disabled>Seçin...</option>
+                            {activeContracts.map((c: any) => (
+                                <option key={c.id} value={c.id}>
+                                    {c.tenant.fullName} - N: {c.number} ({c.property.name})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">
                         <Input

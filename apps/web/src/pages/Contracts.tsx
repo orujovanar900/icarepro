@@ -87,7 +87,7 @@ export function Contracts() {
                     Müqavilələr
                 </h1>
                 {canAddContract && (
-                    <Button onClick={() => navigate('/contracts/new')}>
+                    <Button onClick={() => navigate('/sanad-ustasi')}>
                         <Plus className="w-4 h-4 mr-2" />
                         Yeni Müqavilə
                     </Button>

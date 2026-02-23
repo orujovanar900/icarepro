@@ -9,11 +9,14 @@ import { withOrg } from '../utils/withOrg.js'
 const BCRYPT_ROUNDS = 12
 const TEMP_PASSWORD = 'IcarePro2024!'    // временный пароль при создании
 
-const createSchema = z.object({
-    email: z.email(),
-    name: z.string().min(1),
-    role: z.enum(['OWNER', 'STAFF', 'TENANT']),
-})
+const schema = {
+    body: z.object({
+        email: z.string().email(),
+        name: z.string().min(2),
+        role: z.enum(['OWNER', 'STAFF', 'TENANT']).optional(),
+        phone: z.string().optional()
+    }),
+}
 
 const updateSchema = z.object({
     name: z.string().min(1).optional(),
@@ -49,13 +52,23 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
 
     // POST /users — создаёт Staff аккаунт с временным паролем
     fastify.post('/', { preHandler: ownerOnly }, async (req, reply) => {
-        const body = createSchema.safeParse(req.body)
+        const body = schema.body.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
 
         const passwordHash = await bcrypt.hash(TEMP_PASSWORD, BCRYPT_ROUNDS)
         try {
+            const { email, name, role, phone } = body.data
+            // Cast phone to string | undefined
+            const userPhone = typeof phone === 'string' ? phone : undefined;
             const user = await fastify.prisma.user.create({
-                data: { ...body.data, ...withOrg(req), passwordHash },
+                data: {
+                    email,
+                    name,
+                    role: role || 'STAFF',
+                    phone: userPhone,
+                    passwordHash,
+                    ...withOrg(req),
+                },
                 select: { id: true, email: true, name: true, role: true, isActive: true, createdAt: true, telegramChatId: true },
             })
             return reply.code(201).send({

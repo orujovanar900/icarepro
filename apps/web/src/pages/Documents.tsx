@@ -101,14 +101,6 @@ export function Documents() {
                             Müqavilə Sənədləri
                         </h1>
                     </div>
-
-                    <Button
-                        onClick={() => navigate(`/sanad-ustasi?contractId=${selectedContractId}`)}
-                        className="bg-gold/10 text-gold border border-gold/30 hover:bg-gold/20 shadow-sm"
-                    >
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        ✦ Sənəd Ustası ilə Yarat
-                    </Button>
                 </div>
 
                 {contractInfo && (
@@ -151,56 +143,67 @@ export function Documents() {
                         </CardContent>
                     </Card>
                 ) : (
-                    <div className="grid gap-4">
-                        {documents.map((doc: any) => (
-                            <Card key={doc.id} className="hover:border-border transition-colors group">
-                                <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-lg bg-surface flex items-center justify-center shrink-0">
-                                            <FileText className="w-5 h-5 text-muted" />
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-surface text-muted uppercase tracking-wide">
-                                                    {doc.type}
-                                                </span>
-                                                <h3 className="font-medium text-text">{doc.title || `${doc.type} Sənədi`}</h3>
+                    <div className="space-y-4">
+                        <div className="flex justify-end">
+                            <Button
+                                onClick={() => navigate(`/sanad-ustasi?contractId=${selectedContractId}`)}
+                                className="bg-gold/10 text-gold border border-gold/30 hover:bg-gold/20 shadow-sm"
+                            >
+                                <Sparkles className="w-4 h-4 mr-2" />
+                                ✦ Əlavə sənədi yarat
+                            </Button>
+                        </div>
+                        <div className="grid gap-4">
+                            {documents.map((doc: any) => (
+                                <Card key={doc.id} className="hover:border-border transition-colors group">
+                                    <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-lg bg-surface flex items-center justify-center shrink-0">
+                                                <FileText className="w-5 h-5 text-muted" />
                                             </div>
-                                            <p className="text-xs text-muted">
-                                                Yaradılıb: {new Date(doc.generatedAt || doc.createdAt).toLocaleString('az-AZ')}
-                                            </p>
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-surface text-muted uppercase tracking-wide">
+                                                        {doc.type}
+                                                    </span>
+                                                    <h3 className="font-medium text-text">{doc.title || `${doc.type} Sənədi`}</h3>
+                                                </div>
+                                                <p className="text-xs text-muted">
+                                                    Yaradılıb: {new Date(doc.generatedAt || doc.createdAt).toLocaleString('az-AZ')}
+                                                </p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                                        <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => {
-                                            if (doc.filePath) window.open(doc.filePath, '_blank');
-                                            else if (doc.content) {
-                                                const win = window.open('', '_blank');
-                                                win?.document.write(doc.content);
-                                                win?.document.close();
-                                                setTimeout(() => win?.print(), 500);
-                                            } else {
-                                                addToast({ message: 'Sənəd faylı tapılmadı', type: 'error' });
-                                            }
-                                        }}>
-                                            <Download className="w-4 h-4 mr-2" /> PDF Bax
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="text-red hover:text-red hover:bg-red/10 h-9 w-9 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            onClick={() => {
-                                                if (confirm('Sənədi silmək istədiyinizə əminsiniz?')) {
-                                                    deleteDocMutation.mutate(doc.id);
+                                        <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                                            <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={() => {
+                                                if (doc.filePath) window.open(doc.filePath, '_blank');
+                                                else if (doc.content) {
+                                                    const win = window.open('', '_blank');
+                                                    win?.document.write(doc.content);
+                                                    win?.document.close();
+                                                    setTimeout(() => win?.print(), 500);
+                                                } else {
+                                                    addToast({ message: 'Sənəd faylı tapılmadı', type: 'error' });
                                                 }
-                                            }}
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
+                                            }}>
+                                                <Download className="w-4 h-4 mr-2" /> PDF Bax
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="text-red hover:text-red hover:bg-red/10 h-9 w-9 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={() => {
+                                                    if (confirm('Sənədi silmək istədiyinizə əminsiniz?')) {
+                                                        deleteDocMutation.mutate(doc.id);
+                                                    }
+                                                }}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
                     </div>
                 )}
             </div>
@@ -215,16 +218,22 @@ export function Documents() {
                     <FileText className="w-8 h-8 text-gold" />
                     Sənədlər
                 </h1>
-                <Select
-                    value={statusFilter}
-                    onChange={(e: any) => setStatusFilter(e.target.value)}
-                    options={[
-                        { label: 'Aktiv Müqavilələr', value: 'ACTIVE' },
-                        { label: 'Arxivlənmiş', value: 'ARCHIVED' },
-                        { label: 'Qaralamalar', value: 'DRAFT' },
-                    ]}
-                    className="w-48 bg-surface border-border disabled:opacity-100 text-sm"
-                />
+                <div className="flex gap-4 items-center">
+                    <Select
+                        value={statusFilter}
+                        onChange={(e: any) => setStatusFilter(e.target.value)}
+                        options={[
+                            { label: 'Aktiv Müqavilələr', value: 'ACTIVE' },
+                            { label: 'Arxivlənmiş', value: 'ARCHIVED' },
+                            { label: 'Qaralamalar', value: 'DRAFT' },
+                        ]}
+                        className="w-48 bg-surface border-border disabled:opacity-100 text-sm"
+                    />
+                    <Button onClick={() => navigate('/sanad-ustasi')} className="bg-gold/10 text-gold border border-gold/30 hover:bg-gold/20 shadow-sm whitespace-nowrap">
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        ✦ Sənəd ustası ilə yarat
+                    </Button>
+                </div>
             </div>
 
             <Card className="bg-surface border-border p-2">
