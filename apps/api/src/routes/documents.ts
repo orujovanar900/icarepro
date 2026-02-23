@@ -1,5 +1,7 @@
 import { FastifyInstance, FastifyPluginAsync } from 'fastify'
 import { Prisma } from '@prisma/client'
+import * as pdfParseModule from 'pdf-parse'
+const pdfParse = (pdfParseModule as any).default || pdfParseModule;
 
 // Use explicit Type string matching the prisma DocumentType Enum
 type DocumentTypeRaw = 'CONTRACT' | 'ACT' | 'DEBT_NOTICE' | 'INVOICE' | 'RECEIPT' | 'ADDENDUM' | 'TERMINATION' | 'PHOTO_REPORT';
@@ -145,7 +147,25 @@ export default async function documentsRoutes(app: FastifyInstance) {
         }
     })
 
-    // ── 3. DELETE /documents/:id ────────────────────────────────
+    // ── 3. POST /documents/extract-pdf ──────────────────────────
+    app.post('/extract-pdf', async (request, reply) => {
+        try {
+            const data = await request.file()
+            if (!data) {
+                return reply.code(400).send({ success: false, error: 'No file uploaded' })
+            }
+
+            const buffer = await data.toBuffer()
+            const result = await pdfParse(buffer)
+
+            return reply.send({ success: true, text: result.text })
+        } catch (error: any) {
+            app.log.error(error)
+            return reply.code(500).send({ success: false, error: error.message || 'Failed to parse PDF' })
+        }
+    })
+
+    // ── 4. DELETE /documents/:id ────────────────────────────────
     app.delete<{ Params: { id: string } }>('/:id', async (request, reply) => {
         const user = request.user as unknown as { id: string; organizationId: string; role: string }
         const { id } = request.params

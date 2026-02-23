@@ -19,10 +19,12 @@ ${userTemplate}
 ---
 
 TEMPLATE ANALYSIS RULES:
-- If template has blanks (___, [...], boş yerlər, «...»): fill those exact blanks
-- If template is fully filled: use it as style reference, ask what to change
-- Generate final document matching EXACT structure and style of template
-- Never invent fields not present in template
+- Preserve EXACT layout of uploaded template
+- Keep all headings, numbering, indentation identical
+- Keep table structure if template has tables
+- Keep bold/caps text as-is
+- Only replace blank values, never restructure
+- Output document must look identical to template but filled
 ` : `
 DOCUMENT TYPE: ${docType || 'İcarə Müqaviləsi'}
 Use standard Azerbaijani legal document structure for this type. Use same font for typing in answers but in bold. make possible on edit to make selected areas bold;italic:underline or leave simple. 
@@ -153,15 +155,27 @@ const DOCS = [
     { id: "receipt", icon: "🧾", label: "Qəbz", title: "ÖDƏNİŞ QƏBZİ" }
 ];
 
-const splitIntoPages = (text: string) => {
+const splitIntoPages = (text: string): string[] => {
     if (text.includes("===PAGE_BREAK===")) {
         return text.split("===PAGE_BREAK===").filter(page => page.trim().length > 0);
     }
-    const charsPerPage = 3000;
-    const pages = [];
-    for (let i = 0; i < text.length; i += charsPerPage) {
-        pages.push(text.slice(i, i + charsPerPage));
+    const PAGE_HEIGHT_CHARS = 2500;
+    const lines = text.split('\n');
+    const pages: string[] = [];
+    let currentPage = '';
+    let charCount = 0;
+
+    for (const line of lines) {
+        if (charCount + line.length > PAGE_HEIGHT_CHARS && currentPage) {
+            pages.push(currentPage);
+            currentPage = line + '\n';
+            charCount = line.length;
+        } else {
+            currentPage += line + '\n';
+            charCount += line.length;
+        }
     }
+    if (currentPage) pages.push(currentPage);
     return pages;
 };
 
@@ -389,14 +403,26 @@ export function SanadUstasi() {
             // Get raw HTML content without react wrappers for saving
             const content = printAreaRef.current?.innerHTML || "";
 
+            // Owner role implicitly creates 'APPROVED' records when we eventually implement status.
+            // Currently API sets status if it existed, otherwise it defaults. 
+            // We use API directly, handling the logic on the backend or implicitly here via toast.
+            const docStatus = user?.role === 'OWNER' ? 'approved' : 'pending_approval';
+
             await api.post('/documents/save', {
                 contractId: doc.contractId,
                 title: `${activeDocType?.label || 'Sənəd'} - ${doc.tenant || 'Sənəd'}`,
                 type: docType.toUpperCase(),
-                content: content
+                content: content,
+                status: docStatus // Send status if backend accepts it eventually, for now we show toast
             });
-            alert("Sənəd uğurla yadda saxlanıldı!");
-            navigate(`/documents?contractId=${doc.contractId}`);
+
+            if (user?.role === 'OWNER') {
+                alert("Sənəd saxlanıldı");
+            } else {
+                alert("Sənəd təsdiq üçün göndərildi");
+            }
+            // Removing navigate here so it doesn't interrupt flow if they want to edit.
+            // navigate(`/documents?contractId=${doc.contractId}`);
         } catch (error) {
             console.error("Failed to save doc", error);
             alert("Sənədi yadda saxlamaq mümkün olmadı.");
@@ -424,13 +450,31 @@ export function SanadUstasi() {
 
         try {
             if (file.type === "application/pdf") {
-                const arrayBuffer = await file.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const content = await page.getTextContent();
-                    const pageText = content.items.map((item: any) => item.str).join(" ");
-                    extractedText += pageText + "\n===PAGE_BREAK===\n";
+                const formData = new FormData();
+                formData.append('file', file);
+                try {
+                    const response = await api.post('/documents/extract-pdf', formData, {
+                        headers: { 'Content-Type': 'multipart/form-data' }
+                    });
+                    extractedText = response.data.text || "";
+                } catch (pdfErr) {
+                    // Fallback generic question if extraction fails
+                    console.error("PDF Extraction failed:", pdfErr);
+                    extractedText = "PDF Şablon yükləndi. İçərisindəki mətn tam oxuna bilmədi.";
+                    setUserTemplate(file.name);
+                    setUseCustomTemplate(true);
+                    setDoc({});
+                    setHist([{ role: "user", content: "PDF şablon qəbul edildi. Sənədin strukturunu təsvir edin və ya əsas sahələri yazın." }]);
+                    setMsgs([
+                        { from: "user", text: `📎 Şablon yükləndi: ${file.name}` }
+                    ]);
+                    setDone(false);
+                    setTimeout(() => {
+                        sendMessage("PDF şablon qəbul edildi. Sənədin strukturunu təsvir edin və ya əsas sahələri yazın.");
+                    }, 500);
+                    setLoading(false);
+                    if (fileInputRef.current) fileInputRef.current.value = "";
+                    return;
                 }
             } else if (file.name.endsWith('.docx')) {
                 const arrayBuffer = await file.arrayBuffer();
@@ -574,7 +618,30 @@ export function SanadUstasi() {
                                         {m.chips.map((c, ci) => (
                                             <button
                                                 key={ci}
-                                                onClick={() => sendMessage(c)}
+                                                onClick={async () => {
+                                                    // Contract Sequence logic when picking dynamic ID
+                                                    if (c === "Müqavilə nömrəsi gətir") {
+                                                        try {
+                                                            const res = await api.get('/contracts?limit=1');
+                                                            const contracts = res.data.data;
+                                                            const currentYear = new Date().getFullYear();
+                                                            let nextSeq = 1;
+                                                            if (contracts && contracts.length > 0) {
+                                                                const lastNum = contracts[0].number;
+                                                                const parts = lastNum.split('-');
+                                                                if (parts.length === 2 && parts[0] === String(currentYear)) {
+                                                                    nextSeq = parseInt(parts[1], 10) + 1;
+                                                                }
+                                                            }
+                                                            const suggestedNumber = `${currentYear}-${String(nextSeq).padStart(3, '0')}`;
+                                                            sendMessage(suggestedNumber);
+                                                        } catch (err) {
+                                                            sendMessage("Manuel daxil et");
+                                                        }
+                                                    } else {
+                                                        sendMessage(c);
+                                                    }
+                                                }}
                                                 className="px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer border border-[#C9A84C]/30 bg-[#C9A84C]/10 text-[#C9A84C] hover:bg-[#C9A84C]/20 transition-colors"
                                             >
                                                 {c}
@@ -685,7 +752,7 @@ export function SanadUstasi() {
                                 <button
                                     onClick={() => setIsEditing(!isEditing)}
                                     className={`p-2 rounded-lg transition-colors shadow-sm flex items-center justify-center ${isEditing ? 'bg-[#10B981] text-white hover:bg-[#0e9f6e]' : 'bg-[#1A2840] text-[#8899B0] border border-[#192840] hover:text-white hover:bg-[#20324c]'}`}
-                                    title={isEditing ? "Saxla" : "Düzəliş et"}
+                                    title={isEditing ? "Düzəlişi Saxla" : "Mətni Redaktə Et"}
                                 >
                                     {isEditing ? <Save className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
                                 </button>
@@ -701,24 +768,34 @@ export function SanadUstasi() {
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-12 custom-scrollbar flex flex-col items-center bg-[#070B14]">
+                        {isEditing && (
+                            <div className="flex gap-2 p-2 bg-gray-800 rounded-lg mb-4 shadow-md sticky top-0 z-50">
+                                <button onClick={() => document.execCommand('bold')} className="px-3 py-1 font-bold text-white hover:bg-gray-600 rounded cursor-pointer">B</button>
+                                <button onClick={() => document.execCommand('italic')} className="px-3 py-1 italic text-white hover:bg-gray-600 rounded cursor-pointer">I</button>
+                                <button onClick={() => document.execCommand('underline')} className="px-3 py-1 underline text-white hover:bg-gray-600 rounded cursor-pointer">U</button>
+                            </div>
+                        )}
                         <div id="document-preview" ref={printAreaRef} className="w-full flex flex-col items-center">
                             {useCustomTemplate ? (
                                 splitIntoPages(userTemplate).map((pageContent, index) => (
                                     <div
                                         key={index}
-                                        className={`print-content ${isEditing ? 'ring-2 ring-blue-500 rounded-md outline-none' : ''}`}
+                                        className={`print-content ${isEditing ? 'ring-2 ring-blue-500 outline-none' : ''}`}
                                         contentEditable={isEditing}
                                         suppressContentEditableWarning={true}
                                         style={{
                                             background: 'white',
                                             width: '210mm',
                                             minHeight: '297mm',
-                                            margin: '0 auto 24px auto',
-                                            padding: '20mm',
-                                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                                            margin: '0 auto 32px auto',
+                                            padding: '25mm 20mm',
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                            pageBreakAfter: 'always',
+                                            position: 'relative',
+                                            color: 'black'
                                         }}
                                     >
-                                        <pre className="whitespace-pre-wrap font-serif text-sm text-gray-800" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
+                                        <pre className="whitespace-pre-wrap font-serif text-sm" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
                                             {pageContent}
                                         </pre>
                                     </div>
