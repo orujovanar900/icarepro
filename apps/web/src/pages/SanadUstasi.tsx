@@ -257,6 +257,8 @@ export function SanadUstasi() {
     const [userTemplate, setUserTemplate] = useState<string>("");
     const [useCustomTemplate, setUseCustomTemplate] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [pageMargins, setPageMargins] = useState({ top: 25, right: 20, bottom: 25, left: 20 });
+    const [selectedCell, setSelectedCell] = useState<{ element: HTMLElement, rowIdx: number, colIdx: number, table: HTMLTableElement } | null>(null);
 
     const bottomRef = useRef<HTMLDivElement>(null);
     const printAreaRef = useRef<HTMLDivElement>(null);
@@ -480,6 +482,101 @@ export function SanadUstasi() {
         }
     }
 
+    // --- Table & HTML Editor Functions ---
+    useEffect(() => {
+        const handleClick = (e: MouseEvent) => {
+            if (!isEditing) {
+                if (selectedCell) setSelectedCell(null);
+                return;
+            }
+
+            const target = e.target as HTMLElement;
+            const td = target.closest('td') || target.closest('th');
+            if (td) {
+                const tr = td.closest('tr');
+                const table = td.closest('table');
+                if (tr && table) {
+                    const rowIdx = Array.from(table.rows).indexOf(tr as HTMLTableRowElement);
+                    const colIdx = Array.from(tr.children).indexOf(td as HTMLElement);
+                    setSelectedCell({
+                        element: td as HTMLElement,
+                        rowIdx,
+                        colIdx,
+                        table: table as HTMLTableElement
+                    });
+                    return;
+                }
+            }
+            // Clicked outside table
+            if (selectedCell && !target.closest('.table-editor-menu')) {
+                setSelectedCell(null);
+            }
+        };
+
+        const printArea = printAreaRef.current;
+        if (printArea) {
+            printArea.addEventListener('click', handleClick);
+        }
+        return () => {
+            if (printArea) printArea.removeEventListener('click', handleClick);
+        };
+    }, [isEditing, selectedCell]);
+
+    const syncTableChanges = () => {
+        if (printAreaRef.current) {
+            setUserTemplate(printAreaRef.current.innerHTML);
+            setSelectedCell(null);
+        }
+    };
+
+    const handleAddRow = (direction: 'above' | 'below') => {
+        if (!selectedCell) return;
+        const { table, rowIdx } = selectedCell;
+        const targetRow = table.rows[rowIdx];
+        if (!targetRow) return;
+
+        const newRow = table.insertRow(direction === 'above' ? rowIdx : rowIdx + 1);
+        const colCount = targetRow.cells.length;
+        for (let i = 0; i < colCount; i++) {
+            const newCell = newRow.insertCell();
+            newCell.innerHTML = "&nbsp;";
+        }
+        syncTableChanges();
+    };
+
+    const handleDeleteRow = () => {
+        if (!selectedCell) return;
+        const { table, rowIdx } = selectedCell;
+        if (table.rows.length <= 1) return; // Prevent deleting last row
+        table.deleteRow(rowIdx);
+        syncTableChanges();
+    };
+
+    const handleAddCol = (direction: 'left' | 'right') => {
+        if (!selectedCell) return;
+        const { table, colIdx } = selectedCell;
+        const targetColIdx = direction === 'left' ? colIdx : colIdx + 1;
+
+        Array.from(table.rows).forEach(row => {
+            const newCell = row.insertCell(targetColIdx);
+            newCell.innerHTML = "&nbsp;";
+        });
+        syncTableChanges();
+    };
+
+    const handleDeleteCol = () => {
+        if (!selectedCell) return;
+        const { table, colIdx } = selectedCell;
+        const targetRow = table.rows[0];
+        if (!targetRow || targetRow.cells.length <= 1) return; // Prevent deleting last column
+
+        Array.from(table.rows).forEach(row => {
+            if (row.cells[colIdx]) row.deleteCell(colIdx);
+        });
+        syncTableChanges();
+    };
+
+    // --- File Upload ---
     async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -839,18 +936,64 @@ export function SanadUstasi() {
                         )}
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-12 custom-scrollbar flex flex-col items-center bg-[#070B14]">
+                    <div className="flex-1 overflow-y-auto p-12 custom-scrollbar flex flex-col items-center bg-[#070B14] relative">
                         {isEditing && (
-                            <div className="flex gap-2 p-2 bg-gray-800 rounded-lg mb-4 shadow-md sticky top-0 z-50">
-                                <button onClick={() => document.execCommand('bold')} className="px-3 py-1 font-bold text-white hover:bg-gray-600 rounded cursor-pointer">B</button>
-                                <button onClick={() => document.execCommand('italic')} className="px-3 py-1 italic text-white hover:bg-gray-600 rounded cursor-pointer">I</button>
-                                <button onClick={() => document.execCommand('underline')} className="px-3 py-1 underline text-white hover:bg-gray-600 rounded cursor-pointer">U</button>
+                            <div className="flex flex-col gap-2 w-full max-w-[210mm] mb-4 sticky top-0 z-50">
+                                <div className="flex gap-2 p-2 bg-gray-800 rounded-lg shadow-md justify-between items-center">
+                                    <div className="flex gap-2 items-center">
+                                        <button onClick={() => document.execCommand('bold')} className="px-3 py-1.5 font-bold text-white bg-gray-700 hover:bg-gray-600 rounded transition-colors" title="Qalın">B</button>
+                                        <button onClick={() => document.execCommand('italic')} className="px-3 py-1.5 italic text-white bg-gray-700 hover:bg-gray-600 rounded transition-colors" title="Maili">I</button>
+                                        <button onClick={() => document.execCommand('underline')} className="px-3 py-1.5 underline text-white bg-gray-700 hover:bg-gray-600 rounded transition-colors" title="Alt xətt">U</button>
+                                        <div className="w-px h-6 bg-gray-600 mx-2"></div>
+                                        <button onClick={() => document.execCommand('justifyLeft')} className="p-1.5 text-white bg-gray-700 hover:bg-gray-600 rounded transition-colors" title="Sola hizala"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="17" y1="10" x2="3" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="17" y1="18" x2="3" y2="18"></line></svg></button>
+                                        <button onClick={() => document.execCommand('justifyCenter')} className="p-1.5 text-white bg-gray-700 hover:bg-gray-600 rounded transition-colors" title="Ortaya hizala"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="10" x2="6" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="18" y1="18" x2="6" y2="18"></line></svg></button>
+                                        <button onClick={() => document.execCommand('justifyRight')} className="p-1.5 text-white bg-gray-700 hover:bg-gray-600 rounded transition-colors" title="Sağa hizala"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="21" y1="10" x2="7" y2="10"></line><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="14" x2="3" y2="14"></line><line x1="21" y1="18" x2="7" y2="18"></line></svg></button>
+                                    </div>
+                                    <div className="flex gap-2 items-center border border-gray-600 bg-gray-900 rounded px-3 py-1">
+                                        <span className="text-xs text-gray-400 font-medium">Səhifə Boşluqları (mm):</span>
+                                        <div className="flex gap-2 items-center">
+                                            <div className="flex flex-col"><span className="text-[9px] text-gray-500 uppercase">Üst</span><input type="number" value={pageMargins.top} onChange={e => setPageMargins(p => ({ ...p, top: Number(e.target.value) }))} className="w-10 bg-transparent text-white border-b border-gray-600 text-xs text-center focus:outline-none focus:border-[#C9A84C]" /></div>
+                                            <div className="flex flex-col"><span className="text-[9px] text-gray-500 uppercase">Aşağı</span><input type="number" value={pageMargins.bottom} onChange={e => setPageMargins(p => ({ ...p, bottom: Number(e.target.value) }))} className="w-10 bg-transparent text-white border-b border-gray-600 text-xs text-center focus:outline-none focus:border-[#C9A84C]" /></div>
+                                            <div className="flex flex-col"><span className="text-[9px] text-gray-500 uppercase">Sol</span><input type="number" value={pageMargins.left} onChange={e => setPageMargins(p => ({ ...p, left: Number(e.target.value) }))} className="w-10 bg-transparent text-white border-b border-gray-600 text-xs text-center focus:outline-none focus:border-[#C9A84C]" /></div>
+                                            <div className="flex flex-col"><span className="text-[9px] text-gray-500 uppercase">Sağ</span><input type="number" value={pageMargins.right} onChange={e => setPageMargins(p => ({ ...p, right: Number(e.target.value) }))} className="w-10 bg-transparent text-white border-b border-gray-600 text-xs text-center focus:outline-none focus:border-[#C9A84C]" /></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedCell && isEditing && (
+                            <div className="sticky top-20 z-[60] mb-2 bg-[#1A2840] border border-[#C9A84C]/30 shadow-[0_8px_30px_rgba(0,0,0,0.4)] rounded-xl py-2 px-3 flex gap-2 items-center table-editor-menu animate-in fade-in slide-in-from-top-4 duration-200">
+                                <span className="text-[10px] font-bold text-[#C9A84C] uppercase tracking-wider px-2">Cədvəl</span>
+                                <div className="w-px h-4 bg-gray-600/50"></div>
+
+                                <button onClick={() => handleAddCol('left')} className="p-1.5 text-white hover:bg-[#C9A84C] hover:text-black rounded transition-colors group relative" title="Sola sütun artır">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><path d="M17 9l-4 3 4 3"></path></svg>
+                                </button>
+                                <button onClick={() => handleAddCol('right')} className="p-1.5 text-white hover:bg-[#C9A84C] hover:text-black rounded transition-colors group relative" title="Sağa sütun artır">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="15" y1="3" x2="15" y2="21"></line><path d="M7 9l4 3-4 3"></path></svg>
+                                </button>
+                                <button onClick={handleDeleteCol} className="p-1.5 text-white hover:bg-red-500 rounded transition-colors" title="Sütunu sil">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="3" x2="12" y2="21"></line><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></svg>
+                                </button>
+
+                                <div className="w-px h-4 bg-gray-600/50 mx-1"></div>
+
+                                <button onClick={() => handleAddRow('above')} className="p-1.5 text-white hover:bg-[#C9A84C] hover:text-black rounded transition-colors group relative" title="Üstə sətir artır">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><path d="M9 17l3-4 3 4"></path></svg>
+                                </button>
+                                <button onClick={() => handleAddRow('below')} className="p-1.5 text-white hover:bg-[#C9A84C] hover:text-black rounded transition-colors group relative" title="Aşağıya sətir artır">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="15" x2="21" y2="15"></line><path d="M9 7l3 4 3-4"></path></svg>
+                                </button>
+                                <button onClick={handleDeleteRow} className="p-1.5 text-white hover:bg-red-500 rounded transition-colors" title="Sətiri sil">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="12" x2="21" y2="12"></line><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></svg>
+                                </button>
                             </div>
                         )}
 
                         <style>{`
-                            #document-preview table { width: 100% !important; border-collapse: collapse !important; margin: 12px 0 !important; table-layout: fixed !important; }
-                            #document-preview td, #document-preview th { border: 1px solid #000 !important; padding: 8px 12px !important; vertical-align: top !important; word-wrap: break-word !important; }
+                            #document-preview table { width: auto; max-width: 100%; border-collapse: collapse !important; margin: 12px 0 !important; table-layout: auto !important; }
+                            #document-preview td, #document-preview th { border: 1px solid #000 !important; padding: 6px 10px !important; vertical-align: top !important; word-wrap: break-word !important; }
                             #document-preview p { margin: 6px 0 !important; text-align: justify !important; }
                             #document-preview h1, #document-preview h2, #document-preview h3 { text-align: center !important; font-weight: bold !important; margin: 12px 0 !important; }
                             #document-preview strong, #document-preview b { font-weight: bold !important; }
@@ -858,7 +1001,7 @@ export function SanadUstasi() {
                             #document-preview li { margin-bottom: 4px !important; }
                             #document-preview em, #document-preview i { font-style: italic !important; }
                             @media print {
-                                @page { size: A4; margin: 25mm 20mm; }
+                                @page { size: A4; margin: ${pageMargins.top}mm ${pageMargins.right}mm ${pageMargins.bottom}mm ${pageMargins.left}mm !important; }
                                 body * { visibility: hidden; }
                                 #document-preview, #document-preview * { visibility: visible; }
                                 #document-preview { 
@@ -883,7 +1026,7 @@ export function SanadUstasi() {
                                             width: '210mm',
                                             minHeight: '297mm',
                                             margin: '0 auto 32px auto',
-                                            padding: '25mm 20mm',
+                                            padding: `${pageMargins.top}mm ${pageMargins.right}mm ${pageMargins.bottom}mm ${pageMargins.left}mm`,
                                             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                                             pageBreakAfter: 'always',
                                             position: 'relative',
@@ -1011,7 +1154,7 @@ export function SanadUstasi() {
                     .no-print { display: none !important; }
                     .print-content { 
                         box-shadow: none !important; 
-                        padding: 30mm 20mm !important; 
+                        padding: ${pageMargins.top}mm ${pageMargins.right}mm ${pageMargins.bottom}mm ${pageMargins.left}mm !important; 
                         margin: 0 !important; 
                         width: 100% !important;
                         max-width: none !important;
