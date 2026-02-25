@@ -69,7 +69,7 @@ export function Properties() {
     const properties = Array.isArray(propertiesData) ? propertiesData : (propertiesData?.data || []);
     const activeContracts = Array.isArray(contractsData) ? contractsData : (contractsData?.data || []);
 
-    const canAddProperty = user?.role === 'OWNER' || user?.role === 'STAFF';
+    const canAddProperty = ['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'].includes(user?.role || '');
 
     const getReportPayload = () => ({
         startDate: new Date(reportStartDate || '').toISOString(),

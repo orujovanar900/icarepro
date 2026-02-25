@@ -76,7 +76,7 @@ export function Contracts() {
         }
     };
 
-    const canAddContract = user?.role === 'OWNER' || user?.role === 'STAFF';
+    const canAddContract = ['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'].includes(user?.role || '');
 
     return (
         <div className="flex-1 space-y-6 p-6 max-w-7xl mx-auto">

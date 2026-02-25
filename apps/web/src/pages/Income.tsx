@@ -211,7 +211,7 @@ export function Income() {
         'İyul', 'Avqust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'
     ];
 
-    const canAddPayment = user?.role === 'OWNER' || user?.role === 'STAFF';
+    const canAddPayment = ['OWNER', 'MANAGER', 'CASHIER'].includes(user?.role || '');
 
     return (
         <div className="flex-1 space-y-6 p-6 max-w-7xl mx-auto pb-24">
