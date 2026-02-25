@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -16,9 +16,7 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { useAuthStore } from '@/store/auth';
 import { useToastStore } from '@/store/toast';
-
-// Lazy-load map so Leaflet never runs during initial page parse (fixes prod TypeError)
-const DashboardMap = lazy(() => import('@/components/DashboardMap'));
+import SimpleMap from '@/components/SimpleMap';
 
 const rentalTypeLabel: Record<string, string> = {
     RESIDENTIAL_LONG: 'Yaşayış (uzunmüddətli)',
@@ -382,21 +380,34 @@ function DashboardContent() {
                 </Card>
             </div>
 
-            {/* Mini Map Widget — lazy loaded */}
+            {/* Map Widget */}
             <Card variant="elevated" className="overflow-hidden">
                 <CardHeader className="pb-2">
                     <CardTitle className="flex items-center gap-2">
                         📍 Obyektlər xəritədə
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="p-0" style={{ position: 'relative', zIndex: 0 }}>
-                    <Suspense fallback={
-                        <div className="h-[220px] bg-surface animate-pulse flex items-center justify-center text-muted text-sm">
-                            Xəritə yüklənir...
-                        </div>
-                    }>
-                        <DashboardMap properties={mapProperties} contracts={mapContracts} />
-                    </Suspense>
+                <CardContent className="p-0">
+                    <SimpleMap
+                        compact
+                        properties={mapProperties.map((p: any) => {
+                            const contract = mapContracts.find((c: any) => c.propertyId === p.id);
+                            let status: 'active' | 'expiring' | 'expired' = 'expired';
+                            if (contract) {
+                                const days = Math.floor((new Date(contract.endDate).getTime() - Date.now()) / 86_400_000);
+                                status = days < 0 ? 'expired' : days <= 30 ? 'expiring' : 'active';
+                            }
+                            return {
+                                id: p.id,
+                                name: p.name,
+                                address: p.address,
+                                tenantName: contract?.tenant?.fullName,
+                                rent: contract ? Number(contract.monthlyRent) : undefined,
+                                status,
+                            };
+                        })}
+                        onPropertyClick={(id) => navigate(`/properties/${id}`)}
+                    />
                 </CardContent>
             </Card>
 

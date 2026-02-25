@@ -1,4 +1,4 @@
-import React, { useState, Suspense, lazy } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Search, Building, Plus, MapPin, Maximize } from 'lucide-react';
@@ -9,8 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
-
-const PropertyMap = lazy(() => import('@/components/PropertyMap'));
+import SimpleMap from '@/components/SimpleMap';
 
 const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('az-AZ', {
@@ -82,15 +81,27 @@ export function Properties() {
                 <div className="p-4 text-center text-muted">Tezliklə əlavə ediləcək...</div>
             </Modal>
 
-            {/* Map Section - lazy loaded so Leaflet doesn't break React on init */}
-            <div className="w-full h-[380px] mb-6 rounded-xl overflow-hidden border border-border shadow-sm" style={{ zIndex: 0, position: 'relative' }}>
-                <Suspense fallback={
-                    <div className="w-full h-full bg-surface flex items-center justify-center text-muted text-sm animate-pulse rounded-xl">
-                        Xəritə yüklənir...
-                    </div>
-                }>
-                    <PropertyMap properties={properties} contracts={activeContracts} height={380} />
-                </Suspense>
+            {/* Map Section */}
+            <div className="w-full mb-6 rounded-xl overflow-hidden border border-border shadow-sm">
+                <SimpleMap
+                    properties={properties.map((p: any) => {
+                        const contract = activeContracts.find((c: any) => c.propertyId === p.id);
+                        let status: 'active' | 'expiring' | 'expired' = 'expired';
+                        if (contract) {
+                            const days = Math.floor((new Date(contract.endDate).getTime() - Date.now()) / 86_400_000);
+                            status = days < 0 ? 'expired' : days <= 30 ? 'expiring' : 'active';
+                        }
+                        return {
+                            id: p.id,
+                            name: p.name,
+                            address: p.address,
+                            tenantName: contract?.tenant?.fullName,
+                            rent: contract ? Number(contract.monthlyRent) : undefined,
+                            status,
+                        };
+                    })}
+                    onPropertyClick={(id) => navigate(`/properties/${id}`)}
+                />
             </div>
 
             {/* Filters */}
