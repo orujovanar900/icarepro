@@ -6,7 +6,8 @@ import {
 } from 'recharts';
 import {
     Wallet, TrendingUp, AlertCircle, Calendar, ArrowRight, Users, Search,
-    ArrowUpRight, ArrowDownRight, MapPin, Clock
+    ArrowUpRight, ArrowDownRight, MapPin, Clock,
+    AlertTriangle, CalendarX, Building2, LineChart
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { TopBar } from '@/components/ui/TopBar';
@@ -350,38 +351,42 @@ function DashboardContent() {
             </div>
 
             {/* KPIs */}
-            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                {/* Cari Ay Balans (gold) */}
-                <Card variant="elevated" className="border-gold/20 relative overflow-hidden">
-                    <div className="absolute -top-4 -right-4 p-4 opacity-5">
-                        <Wallet className="w-32 h-32 text-gold" />
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                {/* Cari Ay Balans */}
+                <Card variant="elevated" className="relative overflow-hidden" style={{ border: '1px solid rgba(255, 255, 255, 0.12)', height: '140px' }}>
+                    <div style={{ position: 'absolute', bottom: '-10px', right: '-10px', opacity: 0.07 }}>
+                        <Wallet style={{ width: '80px', height: '80px', color: '#a78bfa' }} />
                     </div>
-                    <CardHeader className="pb-2 relative z-10">
+                    <CardHeader className="pb-2 relative z-10 flex flex-row items-center justify-between">
                         <CardTitle className="text-sm font-medium text-muted">Cari Ay Balans</CardTitle>
+                        <Wallet className="w-5 h-5" style={{ color: '#a78bfa' }} />
                     </CardHeader>
                     <CardContent className="relative z-10">
                         {isDashboardLoading ? (
                             <div className="h-8 w-24 bg-surface animate-pulse rounded" />
                         ) : (
-                            <div className="text-3xl font-bold text-gold">
+                            <div className="text-3xl font-bold" style={{ color: '#a78bfa' }}>
                                 <CountUpNumber value={dashboard?.balance || 0} />
                             </div>
                         )}
                     </CardContent>
                 </Card>
 
-                {/* Cari Ay Mədaxil (teal/green) */}
-                <Card variant="elevated">
-                    <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                {/* Cari Ay Mədaxil */}
+                <Card variant="elevated" className="relative overflow-hidden" style={{ border: '1px solid rgba(255, 255, 255, 0.12)', height: '140px' }}>
+                    <div style={{ position: 'absolute', bottom: '-10px', right: '-10px', opacity: 0.07 }}>
+                        <TrendingUp style={{ width: '80px', height: '80px', color: '#34d399' }} />
+                    </div>
+                    <CardHeader className="pb-2 relative z-10 flex flex-row items-center justify-between">
                         <CardTitle className="text-sm font-medium text-muted">Cari Ay Mədaxil</CardTitle>
-                        <TrendingUp className="w-5 h-5 text-green" />
+                        <TrendingUp className="w-5 h-5" style={{ color: '#34d399' }} />
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="relative z-10">
                         {isDashboardLoading ? (
                             <div className="h-8 w-24 bg-surface animate-pulse rounded" />
                         ) : (
                             <div className="flex flex-col">
-                                <span className="text-3xl font-bold text-green">{formatMoney(dashboard?.monthlyIncome || 0)}</span>
+                                <span className="text-3xl font-bold" style={{ color: '#34d399' }}>{formatMoney(dashboard?.monthlyIncome || 0)}</span>
                                 <div className="flex items-center gap-1 mt-1">
                                     {incomeChange >= 0 ? (
                                         <span className="text-xs font-semibold text-green/80 flex items-center">
@@ -399,103 +404,77 @@ function DashboardContent() {
                     </CardContent>
                 </Card>
 
-                {/* Cəmi Borc (red) */}
+                {/* Cəmi Borc */}
                 <Card
                     variant="elevated"
-                    className="border-red/20 cursor-pointer hover:border-red/50 transition-colors"
+                    className="relative overflow-hidden cursor-pointer"
+                    style={{ border: '1px solid rgba(255, 255, 255, 0.12)', height: '140px' }}
                     onClick={() => {
                         document.getElementById('debtors-list')?.scrollIntoView({ behavior: 'smooth' });
                     }}
                 >
-                    <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                    <div style={{ position: 'absolute', bottom: '-10px', right: '-10px', opacity: 0.07 }}>
+                        <AlertTriangle style={{ width: '80px', height: '80px', color: '#f87171' }} />
+                    </div>
+                    <CardHeader className="pb-2 relative z-10 flex flex-row items-center justify-between">
                         <CardTitle className="text-sm font-medium text-muted">Cəmi Borc</CardTitle>
-                        <AlertCircle className="w-5 h-5 text-red" />
+                        <AlertTriangle className="w-5 h-5" style={{ color: '#f87171' }} />
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="relative z-10">
                         {isDashboardLoading ? (
                             <div className="h-8 w-24 bg-surface animate-pulse rounded" />
                         ) : (
-                            <div className="text-3xl font-bold text-red">{formatMoney(dashboard?.totalDebt || 0)}</div>
+                            <div className="text-3xl font-bold" style={{ color: '#f87171' }}>{formatMoney(dashboard?.totalDebt || 0)}</div>
                         )}
                     </CardContent>
                 </Card>
 
-                {/* Bu Ay Üzrə Borc (orange) */}
-                <Card variant="elevated" className="border-orange/20">
-                    <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                {/* Bu Ay Üzrə Borc */}
+                <Card variant="elevated" className="relative overflow-hidden" style={{ border: '1px solid rgba(255, 255, 255, 0.12)', height: '140px' }}>
+                    <div style={{ position: 'absolute', bottom: '-10px', right: '-10px', opacity: 0.07 }}>
+                        <CalendarX style={{ width: '80px', height: '80px', color: '#fb923c' }} />
+                    </div>
+                    <CardHeader className="pb-2 relative z-10 flex flex-row items-center justify-between">
                         <CardTitle className="text-sm font-medium text-muted">Bu Ay Üzrə Borc</CardTitle>
-                        <Calendar className="w-5 h-5 text-orange" />
+                        <CalendarX className="w-5 h-5" style={{ color: '#fb923c' }} />
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="relative z-10">
                         {isDashboardLoading ? (
                             <div className="h-8 w-24 bg-surface animate-pulse rounded" />
                         ) : (
-                            <div className="text-3xl font-bold text-orange">{formatMoney(dashboard?.currentMonthDebt || 0)}</div>
+                            <div className="text-3xl font-bold" style={{ color: '#fb923c' }}>{formatMoney(dashboard?.currentMonthDebt || 0)}</div>
                         )}
                     </CardContent>
                 </Card>
             </div>
 
             {/* Stage 3 Metrics: Forecasting & Occupancy */}
-            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2">
-                <Card variant="elevated">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 mt-4">
+                <Card variant="elevated" style={{ height: '120px', border: '1px solid rgba(255, 255, 255, 0.12)' }} className="flex flex-col justify-center">
                     <CardHeader className="pb-2 flex flex-row items-center justify-between">
                         <CardTitle className="text-sm font-medium text-muted">Doluluq Dərəcəsi</CardTitle>
-                        <div className="h-8 w-8 rounded bg-white/10 flex items-center justify-center">
-                            <MapPin className="h-4 w-4 text-white" />
+                        <div className="h-8 w-8 rounded flex items-center justify-center" style={{ backgroundColor: 'rgba(96, 165, 250, 0.1)' }}>
+                            <Building2 className="h-5 w-5" style={{ color: '#60a5fa' }} />
                         </div>
                     </CardHeader>
                     <CardContent>
                         <div className="flex flex-col">
-                            <span className="text-3xl font-bold text-white">{dashboard?.occupancyRate || 0}%</span>
+                            <span className="text-3xl font-bold" style={{ color: '#60a5fa' }}>{dashboard?.occupancyRate || 0}%</span>
                             <span className="text-xs text-muted mt-1">Aktiv icarəyə verilmiş obyektlər</span>
                         </div>
                     </CardContent>
                 </Card>
 
-                <Card variant="elevated">
+                <Card variant="elevated" style={{ height: '120px', border: '1px solid rgba(255, 255, 255, 0.12)' }} className="flex flex-col justify-center">
                     <CardHeader className="pb-2 flex flex-row items-center justify-between">
                         <CardTitle className="text-sm font-medium text-muted">Aylıq Gəlir Proqnozu</CardTitle>
-                        <div className="h-8 w-8 rounded bg-gold/10 flex items-center justify-center">
-                            <TrendingUp className="h-4 w-4 text-gold" />
+                        <div className="h-8 w-8 rounded flex items-center justify-center" style={{ backgroundColor: 'rgba(167, 139, 250, 0.1)' }}>
+                            <LineChart className="h-5 w-5" style={{ color: '#a78bfa' }} />
                         </div>
                     </CardHeader>
                     <CardContent>
                         <div className="flex flex-col">
-                            <span className="text-3xl font-bold text-gold">{formatMoney(dashboard?.incomeForecast || 0)}</span>
-                            <span className="text-xs text-muted mt-1">Aktiv müqavilələr əsasında mədaxil potensialı</span>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Stage 3 Metrics: Forecasting & Occupancy */}
-            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2">
-                <Card variant="elevated">
-                    <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-muted">Doluluq Dərəcəsi</CardTitle>
-                        <div className="h-8 w-8 rounded bg-white/10 flex items-center justify-center">
-                            <MapPin className="h-4 w-4 text-white" />
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-col">
-                            <span className="text-3xl font-bold text-white">{dashboard?.occupancyRate || 0}%</span>
-                            <span className="text-xs text-muted mt-1">Aktiv icarəyə verilmiş obyektlər</span>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card variant="elevated">
-                    <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                        <CardTitle className="text-sm font-medium text-muted">Aylıq Gəlir Proqnozu</CardTitle>
-                        <div className="h-8 w-8 rounded bg-gold/10 flex items-center justify-center">
-                            <TrendingUp className="h-4 w-4 text-gold" />
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-col">
-                            <span className="text-3xl font-bold text-gold">{formatMoney(dashboard?.incomeForecast || 0)}</span>
+                            <span className="text-3xl font-bold" style={{ color: '#a78bfa' }}>{formatMoney(dashboard?.incomeForecast || 0)}</span>
                             <span className="text-xs text-muted mt-1">Aktiv müqavilələr əsasında mədaxil potensialı</span>
                         </div>
                     </CardContent>
@@ -503,41 +482,70 @@ function DashboardContent() {
             </div>
 
             {/* Map Widget */}
-            <Card variant="elevated" className="overflow-hidden">
+            <Card variant="elevated" className="overflow-hidden mt-6">
                 <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
                         📍 Obyektlər xəritədə
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <SimpleMap
-                        compact
-                        properties={mapProperties.map((p: any) => {
-                            const contract = mapContracts.find((c: any) => c.propertyId === p.id);
-                            let status: 'active' | 'expiring' | 'expired' = 'expired';
-                            if (contract) {
-                                const days = Math.floor((new Date(contract.endDate).getTime() - Date.now()) / 86_400_000);
-                                status = days < 0 ? 'expired' : days <= 30 ? 'expiring' : 'active';
-                            }
-                            return {
-                                id: p.id,
-                                name: p.name,
-                                address: p.address,
-                                tenantName: contract?.tenant?.fullName,
-                                rent: contract ? Number(contract.monthlyRent) : undefined,
-                                status,
-                            };
-                        })}
-                        onPropertyClick={(id) => navigate(`/properties/${id}`)}
-                    />
+                    <div style={{ display: 'flex', flexDirection: 'row', gap: '16px', alignItems: 'flex-start', padding: '16px' }}>
+                        <div style={{ width: '320px', height: '320px', borderRadius: '12px', flexShrink: 0, overflow: 'hidden' }}>
+                            <SimpleMap
+                                compact
+                                properties={mapProperties.map((p: any) => {
+                                    const contract = mapContracts.find((c: any) => c.propertyId === p.id);
+                                    let status: 'active' | 'expiring' | 'expired' = 'expired';
+                                    if (contract) {
+                                        const days = Math.floor((new Date(contract.endDate).getTime() - Date.now()) / 86_400_000);
+                                        status = days < 0 ? 'expired' : days <= 30 ? 'expiring' : 'active';
+                                    }
+                                    return {
+                                        id: p.id,
+                                        name: p.name,
+                                        address: p.address,
+                                        tenantName: contract?.tenant?.fullName,
+                                        rent: contract ? Number(contract.monthlyRent) : undefined,
+                                        status,
+                                    };
+                                })}
+                                onPropertyClick={(id) => navigate(`/properties/${id}`)}
+                            />
+                        </div>
+                        <div style={{ flex: 1, height: '320px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }} className="custom-scrollbar pr-2">
+                            {mapProperties.map((p: any) => {
+                                const contract = mapContracts.find((c: any) => c.propertyId === p.id);
+                                let status: 'active' | 'expiring' | 'expired' = 'expired';
+                                if (contract) {
+                                    const days = Math.floor((new Date(contract.endDate).getTime() - Date.now()) / 86_400_000);
+                                    status = days < 0 ? 'expired' : days <= 30 ? 'expiring' : 'active';
+                                }
+                                return (
+                                    <div key={p.id} onClick={() => navigate(`/properties/${p.id}`)} className="p-3 bg-surface rounded-lg cursor-pointer hover:bg-surface/80 transition-colors border border-border/50 flex flex-col gap-1">
+                                        <div className="flex justify-between items-start">
+                                            <p className="font-semibold text-text">{p.name}</p>
+                                            <span className={`w-2.5 h-2.5 rounded-full ${status === 'active' ? 'bg-green' : status === 'expiring' ? 'bg-orange' : 'bg-red'}`} />
+                                        </div>
+                                        <p className="text-xs text-muted truncate">{p.address || 'Ünvan yoxdur'}</p>
+                                        {contract && (
+                                            <div className="flex justify-between items-center mt-1">
+                                                <p className="text-xs text-text/80">{contract.tenant?.fullName}</p>
+                                                <p className="text-xs font-bold text-gold">{formatMoney(Number(contract.monthlyRent))}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
 
-            <div className="grid gap-6 lg:grid-cols-3">
+            <div className="grid gap-6 lg:grid-cols-3 mt-6">
                 {/* Bar Chart Header */}
                 <Card variant="elevated" className="lg:col-span-2">
                     <CardHeader>
-                        <CardTitle>Mədaxil və Məxaric (İllik)</CardTitle>
+                        <CardTitle style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>Mədaxil və Məxaric (İllik)</CardTitle>
                     </CardHeader>
                     <CardContent>
                         {isDashboardLoading ? (
@@ -562,8 +570,8 @@ function DashboardContent() {
                                             labelFormatter={(label: any) => months[label - 1] || ''}
                                         />
                                         <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                                        <Bar dataKey="income" name="Mədaxil" fill="#34D399" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                                        <Bar dataKey="expenses" name="Məxaric" fill="#F87171" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                                        <Bar dataKey="income" name="Mədaxil" fill="#34D399" radius={[4, 4, 0, 0]} maxBarSize={40} minPointSize={2} stroke="#334155" strokeWidth={1} />
+                                        <Bar dataKey="expenses" name="Məxaric" fill="#F87171" radius={[4, 4, 0, 0]} maxBarSize={40} minPointSize={2} stroke="#334155" strokeWidth={1} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
@@ -574,7 +582,7 @@ function DashboardContent() {
                 {/* Debtors List */}
                 <Card variant="default" id="debtors-list" className="flex flex-col h-[400px] bg-card/50">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
+                        <CardTitle className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
                             <AlertCircle className="w-5 h-5 text-red" />
                             Borclular
                         </CardTitle>
@@ -638,9 +646,9 @@ function DashboardContent() {
             </div>
 
             {/* Recent Payments */}
-            <Card variant="elevated">
+            <Card variant="elevated" className="mt-6">
                 <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Son Ödənişlər</CardTitle>
+                    <CardTitle style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>Son Ödənişlər</CardTitle>
                     <Button variant="ghost" size="sm" onClick={() => navigate('/income')} className="text-gold hover:text-gold2 group">
                         Hamısına bax <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
                     </Button>
