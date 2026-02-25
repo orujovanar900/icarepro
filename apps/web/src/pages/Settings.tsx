@@ -218,38 +218,40 @@ export function Settings() {
                 </Card>
 
                 {/* ── Change Email ── */}
-                <Card variant="default">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Mail className="w-5 h-5 text-gold" /> Email Dəyiş
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleUpdateEmail} className="space-y-4">
-                            <Input
-                                label="Yeni Email"
-                                type="email"
-                                value={newEmail}
-                                onChange={(e) => setNewEmail(e.target.value)}
-                                required
-                            />
-                            <Input
-                                label="Mövcud Şifrə (Təsdiq üçün)"
-                                type="password"
-                                value={emailPassword}
-                                onChange={(e) => setEmailPassword(e.target.value)}
-                                required
-                            />
-                            <Button
-                                type="submit"
-                                variant="outline"
-                                disabled={isUpdatingEmail || !newEmail || !emailPassword}
-                            >
-                                {isUpdatingEmail ? 'Yenilənir...' : 'Emaili Dəyiş'}
-                            </Button>
-                        </form>
-                    </CardContent>
-                </Card>
+                {user?.role === 'OWNER' && (
+                    <Card variant="default">
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Mail className="w-5 h-5 text-gold" /> Email Dəyiş
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <form onSubmit={handleUpdateEmail} className="space-y-4">
+                                <Input
+                                    label="Yeni Email"
+                                    type="email"
+                                    value={newEmail}
+                                    onChange={(e) => setNewEmail(e.target.value)}
+                                    required
+                                />
+                                <Input
+                                    label="Mövcud Şifrə (Təsdiq üçün)"
+                                    type="password"
+                                    value={emailPassword}
+                                    onChange={(e) => setEmailPassword(e.target.value)}
+                                    required
+                                />
+                                <Button
+                                    type="submit"
+                                    variant="outline"
+                                    disabled={isUpdatingEmail || !newEmail || !emailPassword}
+                                >
+                                    {isUpdatingEmail ? 'Yenilənir...' : 'Emaili Dəyiş'}
+                                </Button>
+                            </form>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* ── Telegram ── */}
                 <Card variant="default" className="md:col-span-2">

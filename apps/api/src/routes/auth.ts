@@ -3,6 +3,7 @@ import { z } from 'zod'
 import bcrypt from 'bcrypt'
 import crypto from 'crypto'
 import { authenticate } from '../middleware/authenticate.js'
+import { requireRole } from '../middleware/requireRole.js'
 import { sendZodError } from '../utils/zodError.js'
 import { sendPasswordReset } from '../services/email.js'
 
@@ -186,7 +187,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     // ─────────────────────────────────────────
     // POST /auth/change-email
     // ─────────────────────────────────────────
-    fastify.post('/change-email', { preHandler: [authenticate] }, async (req, reply) => {
+    fastify.post('/change-email', { preHandler: [authenticate, requireRole(['OWNER'])] }, async (req, reply) => {
         const body = changeEmailSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
 

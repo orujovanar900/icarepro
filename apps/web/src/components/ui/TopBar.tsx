@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { useAuthStore } from '@/store/auth';
-import { LogOut, User as UserIcon } from 'lucide-react';
+import { LogOut, User as UserIcon, Menu } from 'lucide-react';
 import { Button } from './Button';
 import { useLocation } from 'react-router-dom';
 
-export function TopBar() {
+export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
     const { user, logout } = useAuthStore();
     const location = useLocation();
 
@@ -26,8 +26,11 @@ export function TopBar() {
 
     return (
         <header className="flex h-16 items-center justify-between border-b border-border bg-surface px-4 md:px-6 shrink-0">
-            {/* Mobile Logo */}
-            <div className="md:hidden flex h-16 items-center">
+            {/* Mobile Logo & Menu Toggle */}
+            <div className="md:hidden flex h-16 items-center gap-3">
+                <button onClick={onMenuClick} className="p-2 text-muted hover:text-text">
+                    <Menu className="h-6 w-6" />
+                </button>
                 <h1 className="text-xl font-extrabold font-heading text-gold">
                     İcarə <span className="text-white font-light">Pro</span>
                 </h1>

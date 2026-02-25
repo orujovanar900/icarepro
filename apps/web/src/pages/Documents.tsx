@@ -9,6 +9,8 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { TableSkeleton } from '@/components/ui/Table';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+
 
 // Formatting helpers
 const formatCurrency = (val: any) => val ? `₼ ${Number(val).toLocaleString('az-AZ')}` : '—';
@@ -26,8 +28,11 @@ export function Documents() {
     // Level 1 State
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('ACTIVE');
+    const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Fetch Contracts (Level 1)
+
     const { data: contractsData, isLoading: isContractsLoading } = useQuery({
         queryKey: ['contracts-with-docs', statusFilter],
         queryFn: async () => {
@@ -55,11 +60,20 @@ export function Documents() {
             queryClient.invalidateQueries({ queryKey: ['contract-documents', selectedContractId] });
             queryClient.invalidateQueries({ queryKey: ['contracts-with-docs'] });
             addToast({ message: 'Sənəd silindi', type: 'success' });
+            setDeleteId(null);
         },
         onError: () => {
             addToast({ message: 'Silinmə zamanı xəta baş verdi', type: 'error' });
-        }
+        },
+        onSettled: () => setIsDeleting(false)
     });
+
+    const handleDelete = () => {
+        if (deleteId) {
+            setIsDeleting(true);
+            deleteDocMutation.mutate(deleteId);
+        }
+    };
 
     const contracts = Array.isArray(contractsData?.data) ? contractsData.data : (contractsData?.data?.data || []);
     const documents = Array.isArray(contractDocsData?.data) ? contractDocsData.data : [];
@@ -191,11 +205,7 @@ export function Documents() {
                                                 variant="ghost"
                                                 size="sm"
                                                 className="text-red hover:text-red hover:bg-red/10 h-9 w-9 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                onClick={() => {
-                                                    if (confirm('Sənədi silmək istədiyinizə əminsiniz?')) {
-                                                        deleteDocMutation.mutate(doc.id);
-                                                    }
-                                                }}
+                                                onClick={() => setDeleteId(doc.id)}
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </Button>
@@ -206,6 +216,16 @@ export function Documents() {
                         </div>
                     </div>
                 )}
+
+                <ConfirmDialog
+                    isOpen={!!deleteId}
+                    title="Sənədi Sil"
+                    message="Bu sənədi silmək istədiyinizə əminsiniz? Bu əməliyyat geri alına bilməz."
+                    confirmLabel="Bəli, Sil"
+                    onConfirm={handleDelete}
+                    onCancel={() => setDeleteId(null)}
+                    isLoading={isDeleting}
+                />
             </div>
         );
     }
