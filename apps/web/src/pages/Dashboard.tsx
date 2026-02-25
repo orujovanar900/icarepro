@@ -249,6 +249,51 @@ function DashboardContent() {
         }
     };
 
+    const getExpenseReportPayload = () => ({
+        startDate: reportStartDate,
+        endDate: new Date(new Date(reportEndDate || '').setHours(23, 59, 59)).toISOString(),
+    });
+
+    const handleExportExpensesExcel = async () => {
+        setIsExporting(true);
+        try {
+            const res = await api.post('/hesabat/expenses', { ...getExpenseReportPayload(), format: 'excel' }, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'xercler_hesabati.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+        } catch (error) {
+            console.error("Export failed", error);
+            alert("Hesabat generasiyası xətası.");
+        } finally {
+            setIsExporting(false);
+            setIsReportModalOpen(false);
+        }
+    };
+
+    const handlePrintExpensesPDF = async () => {
+        setIsExporting(true);
+        try {
+            const res = await api.post('/hesabat/expenses', { ...getExpenseReportPayload(), format: 'pdf' }, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'xercler_hesabati.pdf');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+        } catch (error) {
+            console.error("PDF generation failed", error);
+            alert("PDF generasiyası xətası.");
+        } finally {
+            setIsExporting(false);
+            setIsReportModalOpen(false);
+        }
+    };
+
     const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
     const [emailAddress, setEmailAddress] = useState(user?.email || '');
 
@@ -634,14 +679,31 @@ function DashboardContent() {
                                 onClick={handleExportExcel}
                                 disabled={isExporting}
                             >
-                                {isExporting ? 'Yüklənir...' : 'Excel Yüklə'}
+                                {isExporting ? 'Yüklənir...' : 'Mədaxil/Borc (Excel)'}
                             </Button>
                             <Button
                                 className="flex-1 bg-gold hover:bg-gold2 text-black"
                                 onClick={handlePrintPDF}
                                 disabled={isExporting}
                             >
-                                {isExporting ? 'Hazırlanır...' : 'PDF Yüklə'}
+                                {isExporting ? 'Hazırlanır...' : 'Mədaxil/Borc (PDF)'}
+                            </Button>
+                        </div>
+                        <div className="flex gap-4">
+                            <Button
+                                variant="outline"
+                                className="flex-1 border-red text-red hover:bg-red/10"
+                                onClick={handleExportExpensesExcel}
+                                disabled={isExporting}
+                            >
+                                {isExporting ? 'Yüklənir...' : 'Xərclər (Excel)'}
+                            </Button>
+                            <Button
+                                className="flex-1 bg-red hover:bg-red/90 text-white"
+                                onClick={handlePrintExpensesPDF}
+                                disabled={isExporting}
+                            >
+                                {isExporting ? 'Hazırlanır...' : 'Xərclər (PDF)'}
                             </Button>
                         </div>
                         <Button
