@@ -10,6 +10,7 @@ const Dashboard = React.lazy(() => import('./pages/Dashboard').then(m => ({ defa
 const Contracts = React.lazy(() => import('./pages/Contracts').then(m => ({ default: m.Contracts })));
 const ContractDetail = React.lazy(() => import('./pages/ContractDetail').then(m => ({ default: m.ContractDetail })));
 const Properties = React.lazy(() => import('./pages/Properties').then(m => ({ default: m.Properties })));
+const PropertyDetail = React.lazy(() => import('./pages/PropertyDetail').then(m => ({ default: m.PropertyDetail })));
 const Income = React.lazy(() => import('./pages/Income').then(m => ({ default: m.Income })));
 const Expenses = React.lazy(() => import('./pages/Expenses').then(m => ({ default: m.Expenses })));
 const Tenants = React.lazy(() => import('./pages/Tenants').then(m => ({ default: m.Tenants })));
@@ -38,6 +39,7 @@ export default function App() {
                             <Route path="/contracts" element={<Contracts />} />
                             <Route path="/contracts/:id" element={<ContractDetail />} />
                             <Route path="/properties" element={<Properties />} />
+                            <Route path="/properties/:id" element={<PropertyDetail />} />
                             <Route path="/income" element={<Income />} />
                             <Route path="/tenants" element={<Tenants />} />
                             <Route path="/tenants/:id" element={<TenantDetail />} />

@@ -24,6 +24,7 @@ const updateSchema = z.object({
     isActive: z.boolean().optional(),
     password: z.string().min(8).optional(),
     telegramChatId: z.string().optional(),
+    phone: z.string().optional(),
 })
 
 const usersRoutes: FastifyPluginAsync = async (fastify) => {
@@ -33,7 +34,7 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
     fastify.get('/', { preHandler: ownerOnly }, async (_req, reply) => {
         const users = await fastify.prisma.user.findMany({
             where: withOrg(_req),
-            select: { id: true, email: true, name: true, role: true, isActive: true, createdAt: true, telegramChatId: true },
+            select: { id: true, email: true, name: true, role: true, isActive: true, createdAt: true, telegramChatId: true, phone: true },
             orderBy: { createdAt: 'asc' },
         })
         return reply.send({ success: true, data: users, meta: { total: users.length } })
@@ -44,7 +45,7 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
         const { id } = req.params as { id: string }
         const user = await fastify.prisma.user.findFirst({
             where: { id, ...withOrg(req) },
-            select: { id: true, email: true, name: true, role: true, isActive: true, createdAt: true, telegramChatId: true },
+            select: { id: true, email: true, name: true, role: true, isActive: true, createdAt: true, telegramChatId: true, phone: true },
         })
         if (!user) return reply.code(404).send({ success: false, error: 'User not found' })
         return reply.send({ success: true, data: user })
@@ -69,7 +70,7 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
                     passwordHash,
                     ...withOrg(req),
                 },
-                select: { id: true, email: true, name: true, role: true, isActive: true, createdAt: true, telegramChatId: true },
+                select: { id: true, email: true, name: true, role: true, isActive: true, createdAt: true, telegramChatId: true, phone: true },
             })
             return reply.code(201).send({
                 success: true,
@@ -97,7 +98,7 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
                 ...rest,
                 ...(password ? { passwordHash: await bcrypt.hash(password, BCRYPT_ROUNDS) } : {}),
             },
-            select: { id: true, email: true, name: true, role: true, isActive: true, createdAt: true, telegramChatId: true },
+            select: { id: true, email: true, name: true, role: true, isActive: true, createdAt: true, telegramChatId: true, phone: true },
         })
         return reply.send({ success: true, data: user })
     })
