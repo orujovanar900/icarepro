@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowUpRight, Plus, Filter } from 'lucide-react';
+import { ArrowUpRight, Plus, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { useToastStore } from '@/store/toast';
@@ -35,6 +35,8 @@ export function Expenses() {
     const month = parseInt(searchParams.get('month') || String(currentMonth), 10);
     const year = parseInt(searchParams.get('year') || String(currentYear), 10);
     const categoryFilter = searchParams.get('category') || '';
+    const [page, setPage] = useState(1);
+    const limit = 20;
 
     const handleFilterChange = (key: string, value: string) => {
         const newParams = new URLSearchParams(searchParams);
@@ -48,7 +50,7 @@ export function Expenses() {
 
     // Main fetch
     const { data: expensesData, isLoading, isError, refetch } = useQuery({
-        queryKey: ['expenses', month, year, categoryFilter],
+        queryKey: ['expenses', month, year, categoryFilter, page],
         queryFn: async () => {
             const dateFrom = new Date(year, month - 1, 1).toISOString();
             const dateTo = new Date(year, month, 0, 23, 59, 59).toISOString();
@@ -56,7 +58,8 @@ export function Expenses() {
             const params = new URLSearchParams({
                 dateFrom,
                 dateTo,
-                limit: '1000'
+                limit: String(limit),
+                offset: String((page - 1) * limit)
             });
             if (categoryFilter) params.append('category', categoryFilter);
 
@@ -67,6 +70,8 @@ export function Expenses() {
 
     const expenses = Array.isArray(expensesData?.data) ? expensesData.data : (expensesData?.data?.data || []);
     const totalAmount = expensesData?.meta?.totalAmount || expensesData?.data?.meta?.totalAmount || 0;
+    const totalCount = expensesData?.meta?.total || expensesData?.data?.meta?.total || 0;
+    const totalPages = Math.ceil(totalCount / limit);
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -313,6 +318,19 @@ export function Expenses() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-4 mt-4">
+                    <Button variant="ghost" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+                        <ChevronLeft className="w-4 h-4 mr-1" /> Əvvəlki
+                    </Button>
+                    <span className="text-sm text-muted">Səhifə {page} / {totalPages}</span>
+                    <Button variant="ghost" size="sm" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
+                        Sonrakı <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                </div>
+            )}
 
             {/* Add Expense Modal */}
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Yeni Xərc Əlavə Et">

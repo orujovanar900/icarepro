@@ -352,7 +352,7 @@ function DashboardContent() {
             {/* KPIs */}
             <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 {/* Cari Ay Balans (gold) */}
-                <Card variant="elevated" className="border-gold/20 relative overflow-hidden p-4 sm:p-0 rounded-2xl sm:rounded-lg">
+                <Card variant="elevated" className="border-gold/20 relative overflow-hidden">
                     <div className="absolute -top-4 -right-4 p-4 opacity-5">
                         <Wallet className="w-32 h-32 text-gold" />
                     </div>
@@ -371,7 +371,7 @@ function DashboardContent() {
                 </Card>
 
                 {/* Cari Ay Mədaxil (teal/green) */}
-                <Card variant="elevated" className="p-4 sm:p-0 rounded-2xl sm:rounded-lg">
+                <Card variant="elevated">
                     <CardHeader className="pb-2 flex flex-row items-center justify-between">
                         <CardTitle className="text-sm font-medium text-muted">Cari Ay Mədaxil</CardTitle>
                         <TrendingUp className="w-5 h-5 text-green" />
@@ -393,7 +393,7 @@ function DashboardContent() {
                 {/* Cəmi Borc (red) */}
                 <Card
                     variant="elevated"
-                    className="border-red/20 cursor-pointer hover:border-red/50 transition-colors p-4 sm:p-0 rounded-2xl sm:rounded-lg"
+                    className="border-red/20 cursor-pointer hover:border-red/50 transition-colors"
                     onClick={() => {
                         document.getElementById('debtors-list')?.scrollIntoView({ behavior: 'smooth' });
                     }}
@@ -412,7 +412,7 @@ function DashboardContent() {
                 </Card>
 
                 {/* Bu Ay Üzrə Borc (orange) */}
-                <Card variant="elevated" className="border-orange/20 p-4 sm:p-0 rounded-2xl sm:rounded-lg">
+                <Card variant="elevated" className="border-orange/20">
                     <CardHeader className="pb-2 flex flex-row items-center justify-between">
                         <CardTitle className="text-sm font-medium text-muted">Bu Ay Üzrə Borc</CardTitle>
                         <Calendar className="w-5 h-5 text-orange" />

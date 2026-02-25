@@ -24,27 +24,38 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
 
     // GET /properties
     fastify.get('/', { preHandler: [authenticate] }, async (req, reply) => {
-        const search = (req.query as Record<string, string>)['search']
-        const properties = await fastify.prisma.property.findMany({
-            where: {
-                ...withOrg(req),
-                isActive: true,
-                ...(search ? {
-                    OR: [
-                        { name: { contains: search, mode: 'insensitive' } },
-                        { number: { contains: search } },
-                        { address: { contains: search, mode: 'insensitive' } },
-                    ]
-                } : {}),
-            },
-            include: {
-                photos: { orderBy: { sortOrder: 'asc' } },
-                meterReadings: { take: 1, orderBy: { readingDate: 'desc' } },
-                _count: { select: { contracts: { where: { status: 'ACTIVE' } } } },
-            },
-            orderBy: { number: 'asc' },
-        })
-        return reply.send({ success: true, data: properties, meta: { total: properties.length } })
+        const q = req.query as Record<string, string>
+        const search = q['search']
+        const limit = Number(q['limit'] ?? 50)
+        const offset = Number(q['offset'] ?? 0)
+
+        const where = {
+            ...withOrg(req),
+            isActive: true,
+            ...(search ? {
+                OR: [
+                    { name: { contains: search, mode: 'insensitive' } },
+                    { number: { contains: search } },
+                    { address: { contains: search, mode: 'insensitive' } },
+                ]
+            } : {}),
+        }
+
+        const [properties, total] = await Promise.all([
+            fastify.prisma.property.findMany({
+                where: where as any,
+                include: {
+                    photos: { orderBy: { sortOrder: 'asc' } },
+                    meterReadings: { take: 1, orderBy: { readingDate: 'desc' } },
+                    _count: { select: { contracts: { where: { status: 'ACTIVE' } } } },
+                },
+                orderBy: { number: 'asc' },
+                take: limit,
+                skip: offset,
+            }),
+            fastify.prisma.property.count({ where: where as any })
+        ])
+        return reply.send({ success: true, data: properties, meta: { total } })
     })
 
     // GET /properties/:id

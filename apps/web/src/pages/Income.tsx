@@ -120,6 +120,8 @@ export function Income() {
     const month = parseInt(searchParams.get('month') || String(currentMonth), 10);
     const year = parseInt(searchParams.get('year') || String(currentYear), 10);
     const paymentType = searchParams.get('paymentType') || '';
+    const [page, setPage] = useState(1);
+    const limit = 20;
 
     const handleFilterChange = (key: string, value: string) => {
         const newParams = new URLSearchParams(searchParams);

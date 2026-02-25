@@ -32,12 +32,21 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
 
     // GET /users
     fastify.get('/', { preHandler: ownerOnly }, async (_req, reply) => {
-        const users = await fastify.prisma.user.findMany({
-            where: withOrg(_req),
-            select: { id: true, email: true, name: true, role: true, isActive: true, createdAt: true, telegramChatId: true, phone: true },
-            orderBy: { createdAt: 'asc' },
-        })
-        return reply.send({ success: true, data: users, meta: { total: users.length } })
+        const q = _req.query as Record<string, string>
+        const limit = Number(q['limit'] ?? 50)
+        const offset = Number(q['offset'] ?? 0)
+
+        const [users, total] = await Promise.all([
+            fastify.prisma.user.findMany({
+                where: withOrg(_req),
+                select: { id: true, email: true, name: true, role: true, isActive: true, createdAt: true, telegramChatId: true, phone: true },
+                orderBy: { createdAt: 'asc' },
+                take: limit,
+                skip: offset,
+            }),
+            fastify.prisma.user.count({ where: withOrg(_req) })
+        ])
+        return reply.send({ success: true, data: users, meta: { total } })
     })
 
     // GET /users/:id

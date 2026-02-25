@@ -4,7 +4,6 @@ import { Sidebar } from '@/components/ui/Sidebar';
 import { TopBar } from '@/components/ui/TopBar';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { ToastContainer } from '@/components/ui/Toast';
-import { ToastContainer } from '@/components/ui/Toast';
 
 export function AppLayout() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);

@@ -11,6 +11,7 @@ import {
     Users,
     Settings,
     Sparkles,
+    X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -26,7 +27,7 @@ const allNavItems = [
     { name: 'Parametrlər', path: '/settings', icon: Settings },
 ];
 
-export function Sidebar() {
+export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: boolean; onClose?: () => void }) {
     const { user } = useAuthStore();
 
     const navItems = React.useMemo(() => {
@@ -46,44 +47,62 @@ export function Sidebar() {
     }, [user?.role]);
 
     return (
-        <aside className="flex h-screen w-60 flex-col border-r border-border bg-surface shrink-0 hidden md:flex">
-            <div className="flex h-16 items-center px-6">
-                <h1 className="text-2xl font-extrabold font-heading text-gold">
-                    İcarə <span className="text-white font-light">Pro</span>
-                </h1>
-            </div>
-            <nav className="flex-1 space-y-1 p-4">
-                {navItems.map((item) => (
-                    <NavLink
-                        key={item.path}
-                        to={item.path}
-                        className={({ isActive }) =>
-                            cn(
-                                'group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                                item.isSpecial
-                                    ? 'bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/20 shadow-sm mt-2 mb-2'
-                                    : isActive
-                                        ? 'bg-gold/10 text-gold'
-                                        : 'text-muted hover:bg-surface/50 hover:text-text'
-                            )
-                        }
-                    >
-                        {({ isActive }) => (
-                            <>
-                                <item.icon
-                                    className={cn(
-                                        'mr-3 h-5 w-5 flex-shrink-0 transition-colors',
-                                        item.isSpecial
-                                            ? 'text-[#C9A84C]'
-                                            : isActive ? 'text-gold' : 'text-muted group-hover:text-text'
-                                    )}
-                                />
-                                {item.name}
-                            </>
-                        )}
-                    </NavLink>
-                ))}
-            </nav>
-        </aside>
+        <>
+            {/* Mobile Overlay */}
+            {isMobileOpen && (
+                <div
+                    className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm md:hidden"
+                    onClick={onClose}
+                />
+            )}
+
+            {/* Sidebar */}
+            <aside className={cn(
+                "fixed inset-y-0 left-0 z-50 flex h-screen w-64 flex-col border-r border-border bg-surface shadow-2xl transition-transform duration-300 ease-in-out md:static md:translate-x-0 md:w-60 md:shadow-none",
+                isMobileOpen ? "translate-x-0" : "-translate-x-full"
+            )}>
+                <div className="flex h-16 items-center justify-between px-6">
+                    <h1 className="text-2xl font-extrabold font-heading text-gold">
+                        İcarə <span className="text-white font-light">Pro</span>
+                    </h1>
+                    {/* Close button for mobile */}
+                    <button onClick={onClose} className="md:hidden p-2 text-muted hover:text-text -mr-2">
+                        <X className="h-5 w-5" />
+                    </button>
+                </div>
+                <nav className="flex-1 space-y-1 p-4">
+                    {navItems.map((item) => (
+                        <NavLink
+                            key={item.path}
+                            to={item.path}
+                            className={({ isActive }) =>
+                                cn(
+                                    'group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                                    item.isSpecial
+                                        ? 'bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/20 shadow-sm mt-2 mb-2'
+                                        : isActive
+                                            ? 'bg-gold/10 text-gold'
+                                            : 'text-muted hover:bg-surface/50 hover:text-text'
+                                )
+                            }
+                        >
+                            {({ isActive }) => (
+                                <>
+                                    <item.icon
+                                        className={cn(
+                                            'mr-3 h-5 w-5 flex-shrink-0 transition-colors',
+                                            item.isSpecial
+                                                ? 'text-[#C9A84C]'
+                                                : isActive ? 'text-gold' : 'text-muted group-hover:text-text'
+                                        )}
+                                    />
+                                    {item.name}
+                                </>
+                            )}
+                        </NavLink>
+                    ))}
+                </nav>
+            </aside>
+        </>
     );
 }
