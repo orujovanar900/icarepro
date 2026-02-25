@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Search, Building, Plus, MapPin, Maximize } from 'lucide-react';
+import { Search, Building, Plus, MapPin, Maximize, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -27,6 +27,8 @@ export function Properties() {
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [page, setPage] = useState(1);
+    const limit = 20;
 
     // Report Modal State
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -43,13 +45,16 @@ export function Properties() {
     }, [search]);
 
     const { data: propertiesData, isLoading: propsLoading, isError: propsError, refetch } = useQuery({
-        queryKey: ['properties', debouncedSearch],
+        queryKey: ['properties', debouncedSearch, page],
         queryFn: async () => {
-            const params = new URLSearchParams();
+            const params = new URLSearchParams({
+                limit: String(limit),
+                offset: String((page - 1) * limit)
+            });
             if (debouncedSearch) params.append('search', debouncedSearch);
             const res = await api.get(`/properties?${params.toString()}`);
             console.log('Properties API response:', res.data);
-            return res.data.data || res.data;
+            return res.data;
         },
     });
 
@@ -66,7 +71,10 @@ export function Properties() {
     const isLoading = propsLoading || contractsLoading;
     const isError = propsError;
 
-    const properties = Array.isArray(propertiesData) ? propertiesData : (propertiesData?.data || []);
+    const properties = Array.isArray(propertiesData?.data) ? propertiesData.data : (propertiesData?.data?.data || []);
+    const totalCount = propertiesData?.meta?.total || propertiesData?.data?.meta?.total || 0;
+    const totalPages = Math.ceil(totalCount / limit);
+
     const activeContracts = Array.isArray(contractsData) ? contractsData : (contractsData?.data || []);
 
     const canAddProperty = ['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'].includes(user?.role || '');
@@ -260,6 +268,20 @@ export function Properties() {
                     })}
                 </div>
             )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-4 mt-4">
+                    <Button variant="ghost" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+                        <ChevronLeft className="w-4 h-4 mr-1" /> Əvvəlki
+                    </Button>
+                    <span className="text-sm text-muted">Səhifə {page} / {totalPages}</span>
+                    <Button variant="ghost" size="sm" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
+                        Sonrakı <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                </div>
+            )}
+
             {/* Report Modal */}
             <Modal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} title="Obyektlər üzrə Hesabat Yarat">
                 <div className="space-y-4">

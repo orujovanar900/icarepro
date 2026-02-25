@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Shield, Plus } from 'lucide-react';
+import { Shield, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { useToastStore } from '@/store/toast';
@@ -18,15 +18,20 @@ export function Users() {
     const addToast = useToastStore((state) => state.addToast);
 
     // Main fetch
+    const [page, setPage] = useState(1);
+    const limit = 20;
+
     const { data: usersData, isLoading, isError, refetch } = useQuery({
-        queryKey: ['users'],
+        queryKey: ['users', page],
         queryFn: async () => {
-            const res = await api.get('/users');
+            const res = await api.get(`/users?limit=${limit}&offset=${(page - 1) * limit}`);
             return res.data;
         }
     });
 
     const users = usersData?.data || [];
+    const totalCount = usersData?.meta?.total || 0;
+    const totalPages = Math.ceil(totalCount / limit);
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -236,6 +241,19 @@ export function Users() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-4 mt-4">
+                    <Button variant="ghost" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+                        <ChevronLeft className="w-4 h-4 mr-1" /> Əvvəlki
+                    </Button>
+                    <span className="text-sm text-muted">Səhifə {page} / {totalPages}</span>
+                    <Button variant="ghost" size="sm" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
+                        Sonrakı <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                </div>
+            )}
 
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={isEditMode ? "İstifadəçiyə Düzəliş Et" : "Yeni İstifadəçi Əlavə Et"}>
                 <form onSubmit={handleAddOrEditUser} className="space-y-4">
