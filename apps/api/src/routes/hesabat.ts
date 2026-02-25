@@ -471,6 +471,101 @@ const hesabatRoutes: FastifyPluginAsync = async (app) => {
         }
         reply.status(400).send({ error: 'Invalid format' });
     });
+    const emailExpensePayloadSchema = z.object({
+        startDate: z.string(),
+        endDate: z.string(),
+        category: z.string().optional(),
+        email: z.string().email()
+    });
+
+    app.post('/expenses/send-email', async (request, reply) => {
+        const parsed = emailExpensePayloadSchema.safeParse(request.body);
+        if (!parsed.success) return reply.status(400).send({ error: 'Validation error', details: parsed.error });
+        const { startDate, endDate, category, email } = parsed.data;
+        const orgId = (request.user as any)?.organizationId;
+
+        const expenses = await app.prisma.expense.findMany({
+            where: {
+                organizationId: orgId,
+                date: { gte: new Date(startDate), lte: new Date(endDate) },
+                category: category || undefined
+            },
+            include: { createdByUser: true },
+            orderBy: { date: 'asc' }
+        });
+
+        const totalAmount = expenses.reduce((s: number, e: any) => s + Number(e.amount), 0);
+
+        const tableBody = [
+            [
+                { text: '№', bold: true, fillColor: '#ef4444', color: 'white' },
+                { text: 'Tarix', bold: true, fillColor: '#ef4444', color: 'white' },
+                { text: 'Kateqoriya', bold: true, fillColor: '#ef4444', color: 'white' },
+                { text: 'Açıqlama', bold: true, fillColor: '#ef4444', color: 'white' },
+                { text: 'Məbləğ (₼)', bold: true, fillColor: '#ef4444', color: 'white' },
+            ],
+            ...expenses.map((e: any, i: number) => [
+                String(i + 1),
+                new Date(e.date).toLocaleDateString('az-AZ'),
+                e.category,
+                e.description || '-',
+                { text: Number(e.amount).toFixed(2), alignment: 'right' }
+            ]),
+        ];
+
+        const docDefinition = {
+            pageSize: 'A4' as any,
+            content: [
+                { text: `İcarə Pro - Xərclər Hesabatı`, fontSize: 16, bold: true, color: '#ef4444', margin: [0, 0, 0, 8] },
+                { text: `Dövr: ${startDate} — ${endDate}`, fontSize: 10, color: '#6b7280', margin: [0, 0, 0, 16] },
+                { table: { headerRows: 1, widths: [20, 60, 80, '*', 70], body: tableBody } },
+                {
+                    margin: [0, 16, 0, 0],
+                    table: {
+                        widths: ['*', 100], body: [[
+                            { text: 'Yekun Xərc:', bold: true, alignment: 'right', border: [false, false, false, false] },
+                            { text: `${totalAmount.toFixed(2)} ₼`, bold: true, color: '#ef4444', alignment: 'right', border: [false, false, false, false] }
+                        ]]
+                    },
+                    layout: 'noBorders'
+                }
+            ],
+            defaultStyle: { font: 'Roboto', fontSize: 10 }
+        };
+
+        const pdfDoc = printer.createPdfKitDocument(docDefinition);
+        const chunks: Buffer[] = [];
+        pdfDoc.on('data', (c: Buffer) => chunks.push(c));
+        await new Promise((resolve) => {
+            pdfDoc.on('end', resolve);
+            pdfDoc.end();
+        });
+        const pdfBuffer = Buffer.concat(chunks);
+
+        const resend = new Resend(process.env['RESEND_API_KEY']);
+        await resend.emails.send({
+            from: 'icare@icarepro.az',
+            to: email,
+            subject: `İcarə Pro — Xərclər Hesabatı (${startDate} — ${endDate})`,
+            html: `
+                <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+                    <h2 style="color:#ef4444;margin-bottom:4px">İcarə Pro</h2>
+                    <p style="color:#6b7280;font-size:13px;margin-top:0">Xərclər Hesabatı</p>
+                    <hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0"/>
+                    <p>Salam!</p>
+                    <p><b>${startDate} — ${endDate}</b> dövrü üçün xərclər hesabatınız əlavə sənəd kimi təqdim edilib.</p>
+                    <p>Cəmi xərc sayı: <b>${expenses.length}</b></p>
+                    <p>Yekun xərc: <b style="color:#ef4444">${totalAmount.toFixed(2)} ₼</b></p>
+                    <hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0"/>
+                    <p style="color:#9ca3af;font-size:12px">İcarə Pro | icarepro.pages.dev</p>
+                </div>
+            `,
+            attachments: [{ filename: `xercler-${startDate}-${endDate}.pdf`, content: pdfBuffer }]
+        });
+
+        return { success: true, message: 'Hesabat email-ə göndərildi' };
+    });
+
 
     const propertyPayloadSchema = z.object({
         startDate: z.string(),
@@ -664,6 +759,139 @@ const hesabatRoutes: FastifyPluginAsync = async (app) => {
         reply.status(400).send({ error: 'Invalid format' });
     });
 
+
+    const emailPropertyPayloadSchema = z.object({
+        startDate: z.string(),
+        endDate: z.string(),
+        direction: z.enum(['all', 'income', 'debt']).optional().default('all'),
+        email: z.string().email()
+    });
+
+    app.post('/properties/send-email', async (request, reply) => {
+        const parsed = emailPropertyPayloadSchema.safeParse(request.body);
+        if (!parsed.success) return reply.status(400).send({ error: 'Validation error', details: parsed.error });
+        const { startDate, endDate, direction, email } = parsed.data;
+        const orgId = (request.user as any)?.organizationId;
+
+        const allProperties = await app.prisma.property.findMany({
+            where: { organizationId: orgId, isActive: true },
+            orderBy: { name: 'asc' }
+        });
+
+        const allContracts = await app.prisma.contract.findMany({
+            where: { organizationId: orgId, status: 'ACTIVE' },
+            include: { tenant: true, payments: true }
+        });
+
+        const targetDate = new Date(endDate);
+        const startTargetDate = new Date(startDate);
+        let reportData: any[] = [];
+        let grandTotalIncome = 0;
+        let grandTotalDebt = 0;
+
+        for (const prop of allProperties) {
+            const contract = allContracts.find((c: any) => c.propertyId === prop.id);
+            let income = 0;
+            let debt = 0;
+
+            if (contract) {
+                income = contract.payments
+                    .filter((p: any) => p.paymentType !== 'Borc')
+                    .filter((p: any) => new Date(p.paymentDate) >= startTargetDate && new Date(p.paymentDate) <= targetDate)
+                    .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+
+                const start = new Date(contract.startDate);
+                const end = contract.endDate < targetDate ? new Date(contract.endDate) : targetDate;
+                const monthsElapsed = Math.max(0, (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1);
+                const totalExpected = Number(contract.monthlyRent) * monthsElapsed;
+                const totalPaid = contract.payments
+                    .filter((p: any) => new Date(p.paymentDate) <= targetDate)
+                    .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+
+                debt = Math.max(0, totalExpected - totalPaid);
+            }
+
+            if (direction === 'income' && income <= 0) continue;
+            if (direction === 'debt' && debt <= 0) continue;
+
+            grandTotalIncome += income;
+            grandTotalDebt += debt;
+
+            reportData.push({ property: prop, contract, income, debt });
+        }
+
+        const tableBody = [
+            [
+                { text: '№', bold: true, fillColor: '#1a56db', color: 'white' },
+                { text: 'Obyekt', bold: true, fillColor: '#1a56db', color: 'white' },
+                { text: 'Nömrə/Ünvan', bold: true, fillColor: '#1a56db', color: 'white' },
+                { text: 'İcarəçi', bold: true, fillColor: '#1a56db', color: 'white' },
+                { text: 'Məbləğ (₼)', bold: true, fillColor: '#1a56db', color: 'white', alignment: 'right' },
+                { text: 'Mədaxil (₼)', bold: true, fillColor: '#1a56db', color: 'white', alignment: 'right' },
+                { text: 'Borc (₼)', bold: true, fillColor: '#1a56db', color: 'white', alignment: 'right' },
+            ],
+            ...reportData.map((r: any, i: number) => {
+                const isBg = i % 2 === 0 ? '#f8f9fa' : '#ffffff';
+                return [
+                    { text: String(i + 1), fillColor: isBg },
+                    { text: r.property.name, fillColor: isBg },
+                    { text: r.property.number || r.property.address || '-', fillColor: isBg },
+                    { text: r.contract?.tenant?.fullName || '-', fillColor: isBg },
+                    { text: r.contract ? Number(r.contract.monthlyRent).toFixed(2) : '0.00', alignment: 'right', fillColor: isBg },
+                    { text: r.income.toFixed(2), color: '#16a34a', bold: true, alignment: 'right', fillColor: isBg },
+                    { text: r.debt.toFixed(2), color: '#ef4444', bold: true, alignment: 'right', fillColor: isBg }
+                ];
+            }),
+            [
+                { text: 'Yekun:', colSpan: 5, bold: true, alignment: 'right' }, {}, {}, {}, {},
+                { text: grandTotalIncome.toFixed(2) + ' ₼', color: '#16a34a', bold: true, alignment: 'right' },
+                { text: grandTotalDebt.toFixed(2) + ' ₼', color: '#ef4444', bold: true, alignment: 'right' }
+            ]
+        ];
+
+        const docDefinition = {
+            pageSize: 'A4' as any,
+            pageOrientation: 'landscape' as any,
+            content: [
+                { text: `İcarə Pro - Obyektlər üzrə Hesabat`, fontSize: 16, bold: true, color: '#1a56db', margin: [0, 0, 0, 8] },
+                { text: `Dövr: ${startDate} — ${endDate}`, fontSize: 10, color: '#6b7280', margin: [0, 0, 0, 16] },
+                { table: { headerRows: 1, widths: [20, 100, '*', 120, 60, 60, 60], body: tableBody } }
+            ],
+            defaultStyle: { font: 'Roboto', fontSize: 9 }
+        };
+
+        const pdfDoc = printer.createPdfKitDocument(docDefinition);
+        const chunks: Buffer[] = [];
+        pdfDoc.on('data', (c: Buffer) => chunks.push(c));
+        await new Promise((resolve) => {
+            pdfDoc.on('end', resolve);
+            pdfDoc.end();
+        });
+        const pdfBuffer = Buffer.concat(chunks);
+
+        const resend = new Resend(process.env['RESEND_API_KEY']);
+        await resend.emails.send({
+            from: 'icare@icarepro.az',
+            to: email,
+            subject: `İcarə Pro — Obyektlər üzrə Hesabat (${startDate} — ${endDate})`,
+            html: `
+                <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+                    <h2 style="color:#1a56db;margin-bottom:4px">İcarə Pro</h2>
+                    <p style="color:#6b7280;font-size:13px;margin-top:0">Obyektlər üzrə Hesabat</p>
+                    <hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0"/>
+                    <p>Salam!</p>
+                    <p><b>${startDate} — ${endDate}</b> dövrü üçün obyektlər hesabatınız əlavə sənəd kimi təqdim edilib.</p>
+                    <p>Yekun mədaxil: <b style="color:#16a34a">${grandTotalIncome.toFixed(2)} ₼</b></p>
+                    <p>Yekun borc: <b style="color:#ef4444">${grandTotalDebt.toFixed(2)} ₼</b></p>
+                    <hr style="border:none;border-top:1px solid #e5e7eb;margin:16px 0"/>
+                    <p style="color:#9ca3af;font-size:12px">İcarə Pro | icarepro.pages.dev</p>
+                </div>
+            `,
+            attachments: [{ filename: `obyektler-${startDate}-${endDate}.pdf`, content: pdfBuffer }]
+        });
+
+        return { success: true, message: 'Hesabat email-ə göndərildi' };
+    });
 
     app.post('/send-email', async (request, reply) => {
         const parsed = emailPayloadSchema.safeParse(request.body);

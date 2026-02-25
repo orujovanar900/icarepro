@@ -93,6 +93,8 @@ export function Expenses() {
 
     // Export state
     const [isExporting, setIsExporting] = useState(false);
+    const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+    const [emailAddress, setEmailAddress] = useState(user?.email || '');
 
     const categories = ['Kommunal', 'Təmir', 'Əmək haqqı', 'Vergi', 'Təmizlik', 'Digər'];
 
@@ -163,6 +165,22 @@ export function Expenses() {
         } catch (error) {
             console.error("Export failed", error);
             addToast({ message: "Hesabat generasiyası xətası.", type: 'error' });
+        } finally {
+            setIsExporting(false);
+            setIsReportModalOpen(false);
+        }
+    };
+
+    const handleSendEmail = async () => {
+        setIsExporting(true);
+        try {
+            await api.post('/hesabat/expenses/send-email', { ...getReportPayload(), email: emailAddress });
+            addToast({ message: 'Hesabat email-ə göndərildi ✓', type: 'success' });
+            setIsEmailModalOpen(false);
+            setIsReportModalOpen(false);
+        } catch (error) {
+            console.error('Email send failed', error);
+            addToast({ message: 'Email göndərilmədi. Yenidən cəhd edin.', type: 'error' });
         } finally {
             setIsExporting(false);
         }
@@ -405,21 +423,38 @@ export function Expenses() {
                             onChange={(e) => setReportEndDate(e.target.value)}
                         />
                     </div>
-                    <div className="flex gap-4 pt-4 border-t border-border mt-6">
+                    <div className="flex flex-col gap-2 pt-4 border-t border-border mt-6">
+                        <div className="flex gap-4">
+                            <Button variant="outline" className="flex-1" onClick={handleExportExcel} disabled={isExporting}>
+                                {isExporting ? 'Yüklənir...' : 'Excel Yüklə'}
+                            </Button>
+                            <Button className="flex-1 bg-gold hover:bg-gold2 text-black" onClick={handlePrintPDF} disabled={isExporting}>
+                                {isExporting ? 'Hazırlanır...' : 'PDF Yüklə'}
+                            </Button>
+                        </div>
                         <Button
-                            variant="outline"
-                            className="flex-1"
-                            onClick={handleExportExcel}
+                            className="w-full bg-blue border-blue/50 text-white"
+                            onClick={() => setIsEmailModalOpen(true)}
                             disabled={isExporting}
                         >
-                            {isExporting ? 'Yüklənir...' : 'Excel Yüklə'}
+                            MAIL-a göndər
                         </Button>
-                        <Button
-                            className="flex-1 bg-gold hover:bg-gold2 text-black"
-                            onClick={handlePrintPDF}
-                            disabled={isExporting}
-                        >
-                            {isExporting ? 'Hazırlanır...' : 'PDF Yüklə'}
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal isOpen={isEmailModalOpen} onClose={() => setIsEmailModalOpen(false)} title="Hesabatı E-poçta Göndər">
+                <div className="space-y-4">
+                    <Input
+                        label="E-poçt ünvanı"
+                        type="email"
+                        value={emailAddress}
+                        onChange={(e) => setEmailAddress(e.target.value)}
+                    />
+                    <div className="flex gap-4">
+                        <Button variant="outline" className="flex-1" onClick={() => setIsEmailModalOpen(false)}>Ləğv et</Button>
+                        <Button className="flex-1" onClick={handleSendEmail} disabled={isExporting || !emailAddress}>
+                            Göndər
                         </Button>
                     </div>
                 </div>

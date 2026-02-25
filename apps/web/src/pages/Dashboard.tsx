@@ -294,7 +294,11 @@ function DashboardContent() {
     const handleSendEmail = async () => {
         setIsExporting(true);
         try {
-            await api.post('/hesabat/send-email', { ...getReportPayload(), email: emailAddress });
+            if (reportSubject === 'contracts') {
+                await api.post('/hesabat/send-email', { ...getReportPayload(), email: emailAddress });
+            } else {
+                await api.post('/hesabat/expenses/send-email', { ...getExpenseReportPayload(), email: emailAddress });
+            }
             addToast({ message: 'Hesabat email-ə göndərildi ✓', type: 'success' });
             setIsEmailModalOpen(false);
             setIsReportModalOpen(false);
@@ -783,15 +787,13 @@ function DashboardContent() {
                                 {isExporting ? 'Hazırlanır...' : 'PDF Yüklə'}
                             </Button>
                         </div>
-                        {reportSubject === 'contracts' && (
-                            <Button
-                                className="w-full bg-blue border-blue/50 text-white"
-                                onClick={() => setIsEmailModalOpen(true)}
-                                disabled={isExporting}
-                            >
-                                MAIL-a göndər
-                            </Button>
-                        )}
+                        <Button
+                            className="w-full bg-blue border-blue/50 text-white"
+                            onClick={() => setIsEmailModalOpen(true)}
+                            disabled={isExporting}
+                        >
+                            MAIL-a göndər
+                        </Button>
                     </div>
                 </div>
             </Modal>
