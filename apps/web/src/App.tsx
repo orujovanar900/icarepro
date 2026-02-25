@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AppLayout } from './layouts/AppLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { PageSkeleton } from './components/ui/PageSkeleton';
+import { SupportChat } from './components/SupportChat';
 
 const Login = React.lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
 const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
@@ -25,6 +26,7 @@ const NotFound = React.lazy(() => import('./pages/NotFound').then(m => ({ defaul
 export default function App() {
     return (
         <Router>
+            <SupportChat />
             <Suspense fallback={<PageSkeleton />}>
                 <Routes>
                     {/* Public Routes */}
