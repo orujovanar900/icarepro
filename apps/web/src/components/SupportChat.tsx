@@ -144,7 +144,23 @@ DİL:
 
     if (!isOpen) {
         return (
-            <div className="fixed bottom-6 right-6 z-50 flex items-center justify-center" style={{ width: '60px', height: '60px' }}>
+            <div
+                className="fixed bottom-6 right-6 z-50 flex items-center justify-center cursor-pointer"
+                style={{
+                    width: '60px',
+                    height: '60px',
+                    animation: 'float 3s ease-in-out infinite'
+                }}
+            >
+                <style>
+                    {`
+                    @keyframes float {
+                        0% { transform: translateY(0px); }
+                        50% { transform: translateY(-12px); }
+                        100% { transform: translateY(0px); }
+                    }
+                    `}
+                </style>
                 <div className="absolute inset-0 bg-purple-500 rounded-full animate-ping opacity-75 duration-1000"></div>
                 <button
                     onClick={() => setIsOpen(true)}
