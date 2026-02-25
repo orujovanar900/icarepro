@@ -12,16 +12,15 @@ import { Modal } from '@/components/ui/Modal';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 
-// Custom Leaflet icon to prevent Strict Mode prototype errors
-const customIcon = new L.Icon({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41]
+// Fix Leaflet default icon in Vite/React
+L.Icon.Default.mergeOptions({
+    iconUrl: markerIcon,
+    iconRetinaUrl: markerIcon2x,
+    shadowUrl: markerShadow,
 });
 
 const formatMoney = (amount: number) => {
@@ -107,7 +106,7 @@ export function Properties() {
                         const contract = activeContracts.find((c: any) => c.propertyId === property.id);
 
                         return (
-                            <Marker key={`map-${property.id}`} position={[lat, lng]} icon={customIcon}>
+                            <Marker key={`map-${property.id}`} position={[lat, lng]}>
                                 <Popup>
                                     <div className="font-sans">
                                         <h3 className="font-bold text-sm mb-1">{property.name}</h3>

@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
-import { Wallet, TrendingUp, AlertCircle, Calendar, ArrowRight, Users } from 'lucide-react';
+import { Wallet, TrendingUp, AlertCircle, Calendar, ArrowRight, Users, Search } from 'lucide-react';
 import { api } from '@/lib/api';
 import { TopBar } from '@/components/ui/TopBar';
 import { Sidebar } from '@/components/ui/Sidebar';
@@ -15,7 +15,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSke
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { useAuthStore } from '@/store/auth';
-import * as XLSX from 'xlsx';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import { useToastStore } from '@/store/toast';
+
+L.Icon.Default.mergeOptions({ iconUrl: markerIcon, iconRetinaUrl: markerIcon2x, shadowUrl: markerShadow });
+
+const rentalTypeLabel: Record<string, string> = {
+    RESIDENTIAL_LONG: 'Yaşayış (uzunmüddətli)',
+    COMMERCIAL: 'Kommersiya',
+    RESIDENTIAL_SHORT: 'Yaşayış (qısamüddətli)',
+    PARKING: 'Dayanacaq',
+    SUBLEASE: 'Alt-icarə'
+};
 
 // Helper to format currency
 const formatMoney = (amount: number) => {
@@ -99,6 +115,7 @@ function DashboardContent() {
     const year = parseInt(searchParams.get('year') || String(currentYear), 10);
 
     const { user } = useAuthStore();
+    const addToast = useToastStore((state) => state.addToast);
     const { data: dashboard, isLoading: isDashboardLoading } = useQuery({
         queryKey: ['dashboard', month, year],
         queryFn: () => fetchDashboardData(month, year),
@@ -161,6 +178,37 @@ function DashboardContent() {
 
     const activeContractsList = Array.isArray(contractsForReport?.data) ? contractsForReport.data : [];
 
+    // Report contract combobox search
+    const [contractSearch, setContractSearch] = useState('');
+    const [reportDirection, setReportDirection] = useState<'all' | 'income' | 'debt'>('all');
+    const filteredContractsForReport = activeContractsList.filter((c: any) => {
+        const q = contractSearch.toLowerCase();
+        return (
+            c.tenant?.fullName?.toLowerCase().includes(q) ||
+            c.property?.name?.toLowerCase().includes(q) ||
+            c.property?.address?.toLowerCase().includes(q) ||
+            c.number?.toLowerCase().includes(q)
+        );
+    });
+
+    // Properties query for map
+    const { data: propertiesForMap } = useQuery({
+        queryKey: ['properties-map'],
+        queryFn: async () => {
+            const res = await api.get('/properties?limit=100');
+            return res.data.data || res.data;
+        }
+    });
+    const { data: contractsForMap } = useQuery({
+        queryKey: ['contracts-map'],
+        queryFn: async () => {
+            const res = await api.get('/contracts?status=ACTIVE&limit=100');
+            return res.data.data || [];
+        }
+    });
+    const mapProperties = Array.isArray(propertiesForMap) ? propertiesForMap : (propertiesForMap?.data || []);
+    const mapContracts = Array.isArray(contractsForMap) ? contractsForMap : [];
+
     const getReportPayload = () => ({
         startDate: reportStartDate,
         endDate: reportEndDate,
@@ -214,12 +262,12 @@ function DashboardContent() {
         setIsExporting(true);
         try {
             await api.post('/hesabat/send-email', { ...getReportPayload(), email: emailAddress });
-            alert("Hesabat e-poçta göndərildi!");
+            addToast({ message: 'Hesabat email-ə göndərildi ✓', type: 'success' });
             setIsEmailModalOpen(false);
             setIsReportModalOpen(false);
         } catch (error) {
-            console.error("Email send failed", error);
-            alert("Göndərmə xətası.");
+            console.error('Email send failed', error);
+            addToast({ message: 'Email göndərilmədi. Yenidən cəhd edin.', type: 'error' });
         } finally {
             setIsExporting(false);
         }
@@ -338,6 +386,51 @@ function DashboardContent() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Mini Map Widget */}
+            <Card variant="elevated" className="overflow-hidden">
+                <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2">
+                        📍 Obyektlər Xəritəsi
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <div style={{ height: 280, position: 'relative', zIndex: 0 }}>
+                        <MapContainer center={[40.4093, 49.8671]} zoom={12} scrollWheelZoom={false} style={{ height: '100%', width: '100%', zIndex: 0 }}>
+                            <TileLayer
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            />
+                            {mapProperties.map((property: any) => {
+                                const lat = property.lat ? Number(property.lat) : 40.4093 + (Math.random() - 0.5) * 0.05;
+                                const lng = property.lng ? Number(property.lng) : 49.8671 + (Math.random() - 0.5) * 0.05;
+                                const contract = mapContracts.find((c: any) => c.propertyId === property.id);
+                                return (
+                                    <Marker key={`dash-map-${property.id}`} position={[lat, lng]}>
+                                        <Popup>
+                                            <div style={{ fontFamily: 'sans-serif', minWidth: 140 }}>
+                                                <p style={{ fontWeight: 'bold', marginBottom: 2 }}>{property.name}</p>
+                                                <p style={{ fontSize: 12, color: '#6b7280' }}>{property.address || ''}</p>
+                                                {contract && (
+                                                    <p style={{ fontSize: 12, marginTop: 4 }}>
+                                                        <span style={{ fontWeight: 600 }}>İcarəçi:</span> {contract.tenant?.fullName}
+                                                    </p>
+                                                )}
+                                                <button
+                                                    style={{ marginTop: 6, fontSize: 12, color: '#1a56db', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                                                    onClick={() => navigate(`/properties/${property.id}`)}
+                                                >
+                                                    Ətraflı →
+                                                </button>
+                                            </div>
+                                        </Popup>
+                                    </Marker>
+                                );
+                            })}
+                        </MapContainer>
+                    </div>
+                </CardContent>
+            </Card>
 
             <div className="grid gap-6 lg:grid-cols-3">
                 {/* Bar Chart Header */}
@@ -500,25 +593,44 @@ function DashboardContent() {
                         />
                     </div>
 
-                    <div className="mt-4 border border-border rounded-lg p-2 max-h-48 overflow-y-auto">
-                        <div className="flex justify-between items-center mb-2 px-2">
+                    <div className="mt-4 border border-border rounded-lg p-2 max-h-52 overflow-y-auto">
+                        <div className="flex justify-between items-center mb-2 px-2 py-1 sticky top-0 bg-surface z-10">
                             <h4 className="text-sm font-medium">Müqavilələr</h4>
                             <div className="space-x-2 text-xs">
                                 <button type="button" className="text-gold" onClick={() => setReportContracts(activeContractsList.map((c: any) => c.id))}>Hamısını seç</button>
-                                <button type="button" className="text-muted" onClick={() => setReportContracts([])}>Terminal</button>
+                                <button type="button" className="text-muted" onClick={() => setReportContracts([])}>Sıfırla</button>
                             </div>
                         </div>
-                        {activeContractsList.map((c: any) => (
-                            <label key={c.id} className="flex items-center gap-2 px-2 py-1 hover:bg-surface rounded text-sm cursor-pointer">
+                        {/* Search inside contracts */}
+                        <div className="relative mb-2">
+                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
+                            <input
+                                className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border border-border rounded-lg focus:outline-none focus:border-gold/50 text-text"
+                                placeholder="Adı, ünvan, nömrə..."
+                                value={contractSearch}
+                                onChange={e => setContractSearch(e.target.value)}
+                            />
+                        </div>
+                        {filteredContractsForReport.length === 0 ? (
+                            <p className="text-center text-xs text-muted py-4">Müqavilə tapılmadı</p>
+                        ) : filteredContractsForReport.map((c: any) => (
+                            <label key={c.id} className="flex items-start gap-2 px-2 py-1.5 hover:bg-surface rounded cursor-pointer">
                                 <input
                                     type="checkbox"
+                                    className="mt-0.5 shrink-0"
                                     checked={reportContracts.includes(c.id)}
                                     onChange={(e: any) => {
                                         if (e.target.checked) setReportContracts([...reportContracts, c.id]);
-                                        else setReportContracts(reportContracts.filter(id => id !== c.id));
+                                        else setReportContracts(reportContracts.filter((id: string) => id !== c.id));
                                     }}
                                 />
-                                {c.tenant.fullName} ({c.number})
+                                <span className="text-xs">
+                                    <span className="font-medium text-text">{c.tenant?.fullName}</span>
+                                    <span className="text-muted"> — №{c.number}</span>
+                                    <br />
+                                    <span className="text-muted">{c.property?.name} · </span>
+                                    <span className="text-gold/80">{rentalTypeLabel[c.rentalType] || c.rentalType}</span>
+                                </span>
                             </label>
                         ))}
                     </div>
@@ -568,7 +680,7 @@ function DashboardContent() {
                     </div>
                 </div>
             </Modal>
-        </div>
+        </div >
     );
 }
 

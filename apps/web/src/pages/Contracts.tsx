@@ -89,7 +89,7 @@ export function Contracts() {
                 {canAddContract && (
                     <Button onClick={() => navigate('/sanad-ustasi')}>
                         <Plus className="w-4 h-4 mr-2" />
-                        Yeni Müqavilə
+                        Sənəd Ustası ilə yarat
                     </Button>
                 )}
             </div>

@@ -21,7 +21,7 @@ const allNavItems = [
     { name: 'Mədaxil', path: '/income', icon: TrendingUp },
     { name: 'Məxaric', path: '/expenses', icon: Receipt },
     { name: 'Sənədlər', path: '/documents', icon: FolderOpen },
-    { name: '✦ Sənəd Ustası', path: '/sanad-ustasi', icon: Sparkles, isSpecial: true },
+    { name: '✦ Sənəd Ustası AI', path: '/sanad-ustasi', icon: Sparkles, isSpecial: true },
     { name: 'İstifadəçilər', path: '/users', icon: Users },
     { name: 'Parametrlər', path: '/settings', icon: Settings },
 ];

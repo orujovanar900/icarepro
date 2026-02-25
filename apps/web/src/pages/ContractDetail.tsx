@@ -116,8 +116,8 @@ export function ContractDetail() {
     const monthsElapsed = Math.max(0,
         (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1
     );
-    const totalExpected = contract.monthlyRent * monthsElapsed;
-    const totalPaid = contract.payments.reduce((acc: number, p: any) => acc + p.amount, 0);
+    const totalExpected = Number(contract.monthlyRent) * monthsElapsed;
+    const totalPaid = contract.payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0);
     const totalDebt = Math.max(0, totalExpected - totalPaid);
 
     const handleAddPayment = async (e: React.FormEvent) => {

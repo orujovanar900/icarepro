@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowDownLeft, Plus, Calendar as CalendarIcon, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowDownLeft, Plus, Filter, Search } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { useToastStore } from '@/store/toast';
@@ -12,6 +12,14 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 
+const rentalTypeLabel: Record<string, string> = {
+    RESIDENTIAL_LONG: 'Yaşayış (uzunmüddətli)',
+    COMMERCIAL: 'Kommersiya',
+    RESIDENTIAL_SHORT: 'Yaşayış (qısamüddətli)',
+    PARKING: 'Dayanacaq',
+    SUBLEASE: 'Alt-icarə'
+};
+
 const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('az-AZ', {
         style: 'currency',
@@ -19,6 +27,86 @@ const formatMoney = (amount: number) => {
         maximumFractionDigits: 0,
     }).format(amount);
 };
+
+// ------ Searchable Contract Combobox ------
+function ContractCombobox({ contracts, value, onChange }: {
+    contracts: any[];
+    value: string;
+    onChange: (val: string) => void;
+}) {
+    const [search, setSearch] = useState('');
+    const [open, setOpen] = useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    const selected = contracts.find(c => c.id === value);
+
+    const filtered = contracts.filter(c => {
+        const q = search.toLowerCase();
+        return (
+            c.tenant?.fullName?.toLowerCase().includes(q) ||
+            c.property?.address?.toLowerCase().includes(q) ||
+            c.property?.name?.toLowerCase().includes(q) ||
+            c.number?.toLowerCase().includes(q)
+        );
+    });
+
+    return (
+        <div className="flex flex-col gap-1" ref={ref}>
+            <label className="text-sm font-medium text-text">
+                Müqavilə Seçin <span className="text-red">*</span>
+            </label>
+            <div
+                className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text focus-within:border-gold/50 cursor-pointer min-h-[38px]"
+                onClick={() => setOpen(true)}
+            >
+                {selected
+                    ? `${selected.tenant.fullName} — №${selected.number} (${selected.property.name})`
+                    : <span className="text-muted">Seçin...</span>
+                }
+            </div>
+            {open && (
+                <div className="absolute z-50 mt-[70px] w-full max-w-lg bg-surface border border-border rounded-xl shadow-xl overflow-hidden">
+                    {/* Search input */}
+                    <div className="p-2 border-b border-border relative">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                        <input
+                            autoFocus
+                            className="w-full pl-8 pr-3 py-1.5 text-sm bg-background border border-border rounded-lg focus:outline-none focus:border-gold/50 text-text"
+                            placeholder="İcarəçi adı, ünvan, müqavilə nömrəsi..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                        />
+                    </div>
+                    <div className="max-h-56 overflow-y-auto">
+                        {filtered.length === 0 ? (
+                            <div className="px-4 py-6 text-center text-sm text-muted">Müqavilə tapılmadı</div>
+                        ) : filtered.map((c: any) => (
+                            <div
+                                key={c.id}
+                                className={`px-4 py-2.5 cursor-pointer hover:bg-gold/10 transition-colors border-b border-border/50 last:border-0 ${value === c.id ? 'bg-gold/10' : ''}`}
+                                onClick={() => { onChange(c.id); setOpen(false); setSearch(''); }}
+                            >
+                                <p className="text-sm font-medium text-text">{c.tenant?.fullName} — <span className="text-muted">№{c.number}</span></p>
+                                <p className="text-xs text-muted mt-0.5">{c.property?.name} · {c.property?.address || ''}</p>
+                                <span className="text-xs font-medium text-gold/80 mt-0.5 inline-block">
+                                    {rentalTypeLabel[c.rentalType] || c.rentalType}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
 
 export function Income() {
     const { user } = useAuthStore();
@@ -32,8 +120,6 @@ export function Income() {
     const month = parseInt(searchParams.get('month') || String(currentMonth), 10);
     const year = parseInt(searchParams.get('year') || String(currentYear), 10);
     const paymentType = searchParams.get('paymentType') || '';
-    const [page, setPage] = useState(1);
-    const limit = 30;
 
     const handleFilterChange = (key: string, value: string) => {
         const newParams = new URLSearchParams(searchParams);
@@ -47,13 +133,12 @@ export function Income() {
 
     // Main fetch
     const { data: paymentsData, isLoading, isError, refetch } = useQuery({
-        queryKey: ['payments', month, year, paymentType, page],
+        queryKey: ['payments', month, year, paymentType],
         queryFn: async () => {
             const params = new URLSearchParams({
                 month: String(month),
                 year: String(year),
-                limit: String(limit),
-                offset: String((page - 1) * limit),
+                limit: '100'
             });
             if (paymentType) params.append('paymentType', paymentType);
 
@@ -62,11 +147,10 @@ export function Income() {
         },
     });
 
-    // Active Contracts fetch for the Modal dropdown
+    // Contracts for dropdown
     const { data: contractsData } = useQuery({
         queryKey: ['active-contracts-short'],
         queryFn: async () => {
-            // Fetch all contracts to be available for income logic (for all user profiles / test accounts)
             const res = await api.get('/contracts?limit=100');
             return res.data;
         }
@@ -74,8 +158,6 @@ export function Income() {
 
     const payments = Array.isArray(paymentsData?.data) ? paymentsData.data : (paymentsData?.data?.data || []);
     const totalAmount = paymentsData?.meta?.totalAmount || paymentsData?.data?.meta?.totalAmount || 0;
-    const totalCount = paymentsData?.meta?.total || paymentsData?.data?.meta?.total || 0;
-    const totalPages = Math.ceil(totalCount / limit);
     const activeContracts = Array.isArray(contractsData?.data) ? contractsData.data : (contractsData?.data?.data || []);
 
     // Modal State
@@ -100,7 +182,6 @@ export function Income() {
             queryClient.invalidateQueries({ queryKey: ['payments'] });
             addToast({ message: 'Ödəniş uğurla əlavə edildi', type: 'success' });
             setIsModalOpen(false);
-            // Reset form
             setFormContractId('');
             setFormAmount('');
             setFormNote('');
@@ -209,6 +290,7 @@ export function Income() {
                                     <TableHead>Tarix</TableHead>
                                     <TableHead>Obyekt / İcarəçi</TableHead>
                                     <TableHead>Müqavilə</TableHead>
+                                    <TableHead>İstifadə Məqsədi</TableHead>
                                     <TableHead>Dövr</TableHead>
                                     <TableHead>Növü</TableHead>
                                     <TableHead className="text-right">Məbləğ</TableHead>
@@ -220,8 +302,12 @@ export function Income() {
                                         <TableCell>{new Date(payment.paymentDate).toLocaleDateString('az-AZ')}</TableCell>
                                         <TableCell>
                                             <p className="font-medium text-text">{payment.contract.tenant.fullName}</p>
+                                            <p className="text-xs text-muted">{payment.contract.property?.name}</p>
                                         </TableCell>
                                         <TableCell className="text-sm text-muted">N: {payment.contract.number}</TableCell>
+                                        <TableCell className="text-xs text-muted">
+                                            {rentalTypeLabel[payment.contract.rentalType] || payment.contract.rentalType}
+                                        </TableCell>
                                         <TableCell className="text-sm text-muted">
                                             {months[(payment.periodMonth || 1) - 1]} {payment.periodYear}
                                         </TableCell>
@@ -234,17 +320,17 @@ export function Income() {
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-right font-bold text-green">
-                                            +{formatMoney(payment.amount)}
+                                            +{formatMoney(Number(payment.amount))}
                                         </TableCell>
                                     </TableRow>
                                 ))}
                                 {/* Total Row */}
                                 <TableRow className="bg-surface/50">
-                                    <TableCell colSpan={5} className="text-right font-bold text-text">
+                                    <TableCell colSpan={6} className="text-right font-bold text-text">
                                         Yekun Məbləğ (Cari Dövr):
                                     </TableCell>
                                     <TableCell className="text-right font-extrabold text-green text-lg">
-                                        {formatMoney(totalAmount)}
+                                        {formatMoney(Number(totalAmount))}
                                     </TableCell>
                                 </TableRow>
                             </TableBody>
@@ -253,38 +339,15 @@ export function Income() {
                 </CardContent>
             </Card>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-4 mt-4">
-                    <Button variant="ghost" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
-                        <ChevronLeft className="w-4 h-4 mr-1" /> Əvvəlki
-                    </Button>
-                    <span className="text-sm text-muted">Səhifə {page} / {totalPages}</span>
-                    <Button variant="ghost" size="sm" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
-                        Sonrakı <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                </div>
-            )}
-
             {/* Add Payment Modal */}
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Yeni Ödəniş Əlavə Et">
                 <form onSubmit={handleAddPayment} className="space-y-4">
-                    {/* Make Select searchable or simulate searchable by displaying all names */}
-                    <div className="flex flex-col gap-1">
-                        <label className="text-sm font-medium text-text">Müqavilə Seçin <span className="text-red">*</span></label>
-                        <select
-                            required
+                    <div className="relative">
+                        <ContractCombobox
+                            contracts={activeContracts}
                             value={formContractId}
-                            onChange={(e) => setFormContractId(e.target.value)}
-                            className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text focus:outline-none focus:border-gold/50"
-                        >
-                            <option value="" disabled>Seçin...</option>
-                            {activeContracts.map((c: any) => (
-                                <option key={c.id} value={c.id}>
-                                    {c.tenant.fullName} - N: {c.number} ({c.property.name})
-                                </option>
-                            ))}
-                        </select>
+                            onChange={setFormContractId}
+                        />
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">
