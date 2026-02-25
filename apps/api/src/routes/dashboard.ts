@@ -18,6 +18,12 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
         const org = withOrg(req)
         const monthStart = new Date(year, month - 1, 1)
         const monthEnd = new Date(year, month, 0, 23, 59, 59)
+
+        const prevMonth = month === 1 ? 12 : month - 1
+        const prevYear = month === 1 ? year - 1 : year
+        const prevMonthStart = new Date(prevYear, prevMonth - 1, 1)
+        const prevMonthEnd = new Date(prevYear, prevMonth, 0, 23, 59, 59)
+
         const now = new Date()
         const in60Days = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000)
 
@@ -28,6 +34,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
             activeContracts,
             totalProperties,
             expiringContractsRaw,
+            prevMonthlyIncomeAgg,
         ] = await Promise.all([
             fastify.prisma.payment.aggregate({
                 _sum: { amount: true },
@@ -57,10 +64,15 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
                 },
                 orderBy: { endDate: 'asc' },
             }),
+            fastify.prisma.payment.aggregate({
+                _sum: { amount: true },
+                where: { ...org, paymentDate: { gte: prevMonthStart, lte: prevMonthEnd } },
+            }),
         ])
 
         const monthlyIncome = Number(monthlyIncomeAgg._sum.amount ?? 0)
         const monthlyExpenses = Number(monthlyExpensesAgg._sum.amount ?? 0)
+        const prevMonthIncome = Number(prevMonthlyIncomeAgg._sum.amount ?? 0)
         const balance = monthlyIncome - monthlyExpenses
 
         // Занятость
@@ -83,15 +95,21 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
         // Долги по активным контрактам
         let totalDebt = 0
         let currentMonthDebt = 0
+        let incomeForecast = 0
+
         const debtors: Array<{
             contractId: string
             contractNumber: string
             tenantName: string
             propertyName: string
             debtAmount: number
+            daysOverdue: number
         }> = []
 
         for (const c of activeContracts) {
+            // Forecast logic: sum up monthly rent of valid active contracts
+            incomeForecast += Number(c.monthlyRent)
+
             const start = new Date(c.startDate)
             const end = c.endDate < now ? new Date(c.endDate) : now
             const monthsElapsed = Math.max(0,
@@ -110,12 +128,24 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
             }
 
             if (debt > 0) {
+                // Determine expected payment date & days overdue
+                let daysOverdue = 0
+                const monthsPaidFully = Math.floor(totalPaid / Number(c.monthlyRent))
+                const expectedDate = new Date(start)
+                expectedDate.setMonth(expectedDate.getMonth() + monthsPaidFully)
+
+                if (expectedDate < now) {
+                    const diffTime = Math.abs(now.getTime() - expectedDate.getTime())
+                    daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+                }
+
                 debtors.push({
                     contractId: c.id,
                     contractNumber: c.number,
                     tenantName: c.tenant.fullName,
                     propertyName: c.property.name,
                     debtAmount: debt,
+                    daysOverdue,
                 })
             }
         }
@@ -160,9 +190,11 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
             data: {
                 balance,
                 monthlyIncome,
+                prevMonthIncome,
                 monthlyExpenses,
                 totalDebt,
                 currentMonthDebt,
+                incomeForecast,
                 occupancyRate,
                 debtors,
                 monthlyChart,

@@ -177,7 +177,14 @@ export function Contracts() {
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     {contract.debt > 0 ? (
-                                                        <span className="font-bold text-red">{formatMoney(contract.debt)}</span>
+                                                        <div className="flex flex-col items-end gap-1">
+                                                            <span className="font-bold text-red">{formatMoney(contract.debt)}</span>
+                                                            {contract.daysOverdue > 0 && (
+                                                                <span className="text-[10px] font-bold uppercase bg-red/10 text-red border border-red/20 px-1.5 py-0.5 rounded">
+                                                                    {contract.daysOverdue} gün gecikmə
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     ) : (
                                                         <span className="text-muted">Yoxdur</span>
                                                     )}
@@ -207,7 +214,16 @@ export function Contracts() {
 
                                             <div className="flex items-center justify-between text-sm">
                                                 <span className="font-bold text-gold">{formatMoney(contract.monthlyRent)}/ay</span>
-                                                {contract.debt > 0 && <span className="font-bold text-red ml-2">Borc: {formatMoney(contract.debt)}</span>}
+                                                {contract.debt > 0 && (
+                                                    <div className="flex flex-col items-end">
+                                                        <span className="font-bold text-red ml-2 block">Borc: {formatMoney(contract.debt)}</span>
+                                                        {contract.daysOverdue > 0 && (
+                                                            <span className="text-[10px] font-bold mt-1 uppercase bg-red/10 text-red border border-red/20 px-1.5 py-0.5 rounded block">
+                                                                {contract.daysOverdue} gün gecikmə
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                         <ChevronRight className="w-5 h-5 text-muted shrink-0" />

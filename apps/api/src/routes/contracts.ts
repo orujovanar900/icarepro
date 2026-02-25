@@ -72,9 +72,9 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
             fastify.prisma.contract.count({ where }),
         ])
 
-        // Добавляем computed debt для каждого контракта
+        // Calculate computed debt, expectedPaymentDate, and daysOverdue
         const contractsWithDebt = await Promise.all(contracts.map(async (c: any) => {
-            if (c.status !== 'ACTIVE') return { ...c, debt: 0 }
+            if (c.status !== 'ACTIVE') return { ...c, debt: 0, daysOverdue: 0 }
 
             const totalPaidAgg = await fastify.prisma.payment.aggregate({
                 _sum: { amount: true },
@@ -85,11 +85,35 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
             const now = new Date()
             const start = new Date(c.startDate)
             const end = c.endDate < now ? new Date(c.endDate) : now
+
+            // Total months effectively elapsed
             const monthsElapsed = Math.max(0,
                 (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1
             )
             const totalExpected = Number(c.monthlyRent) * monthsElapsed
-            return { ...c, debt: Math.max(0, totalExpected - totalPaid) }
+            const debt = Math.max(0, totalExpected - totalPaid)
+
+            let daysOverdue = 0
+            if (debt > 0) {
+                // Determine expected payment date for the currently unpaid month
+                // (Using monthsPaid completely to project the *next* expected cycle)
+                const monthsPaidFully = Math.floor(totalPaid / Number(c.monthlyRent))
+
+                const expectedDate = new Date(start)
+                expectedDate.setMonth(expectedDate.getMonth() + monthsPaidFully)
+
+                // If the expected payment date is in the past, it's overdue
+                if (expectedDate < now) {
+                    const diffTime = Math.abs(now.getTime() - expectedDate.getTime())
+                    daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+                }
+            }
+
+            return {
+                ...c,
+                debt,
+                daysOverdue
+            }
         }))
 
         return reply.send({

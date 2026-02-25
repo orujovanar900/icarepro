@@ -4,7 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
-import { Wallet, TrendingUp, AlertCircle, Calendar, ArrowRight, Users, Search } from 'lucide-react';
+import {
+    Wallet, TrendingUp, AlertCircle, Calendar, ArrowRight, Users, Search,
+    ArrowUpRight, ArrowDownRight, MapPin, Clock
+} from 'lucide-react';
 import { api } from '@/lib/api';
 import { TopBar } from '@/components/ui/TopBar';
 import { Sidebar } from '@/components/ui/Sidebar';
@@ -143,17 +146,7 @@ function DashboardContent() {
         setSearchParams(newParams);
     };
 
-    // Calculate changes comparing to previous month
-    let previousMonthIncome = 0;
-    if (dashboard?.monthlyChart) {
-        const prevMonthIndex = month - 2 >= 0 ? month - 2 : null;
-        if (prevMonthIndex !== null && dashboard.monthlyChart[prevMonthIndex]) {
-            previousMonthIncome = dashboard.monthlyChart[prevMonthIndex].income;
-        }
-    }
-
-    const incomeChange = previousMonthIncome === 0 ? 100 : Math.round(((dashboard?.monthlyIncome || 0) - previousMonthIncome) / previousMonthIncome * 100);
-
+    // Removed old incomeChange in favor of API calculated version at line 318
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [reportStartDate, setReportStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
     const [reportEndDate, setReportEndDate] = useState(new Date().toISOString().split('T')[0]);
@@ -312,6 +305,9 @@ function DashboardContent() {
             setIsExporting(false);
         }
     };
+    const incomeChange = (dashboard?.monthlyIncome || 0) - (dashboard?.prevMonthIncome || 0);
+    const incomeChangePct = dashboard?.prevMonthIncome ? Math.round((incomeChange / dashboard.prevMonthIncome) * 100) : 0;
+    const sortedDebtors = [...(dashboard?.debtors || [])].sort((a, b) => (b.daysOverdue || 0) - (a.daysOverdue || 0));
 
     return (
         <div className="flex-1 space-y-6 p-6 pb-24 max-w-7xl mx-auto print-dashboard">
@@ -382,9 +378,18 @@ function DashboardContent() {
                         ) : (
                             <div className="flex flex-col">
                                 <span className="text-3xl font-bold text-green">{formatMoney(dashboard?.monthlyIncome || 0)}</span>
-                                <span className={`text-xs mt-1 ${incomeChange >= 0 ? 'text-green' : 'text-red'}`}>
-                                    {incomeChange > 0 ? '+' : ''}{incomeChange}% keçən ayla müqayisədə
-                                </span>
+                                <div className="flex items-center gap-1 mt-1">
+                                    {incomeChange >= 0 ? (
+                                        <span className="text-xs font-semibold text-green/80 flex items-center">
+                                            <ArrowUpRight className="w-3 h-3 mr-0.5" /> +{formatMoney(incomeChange)} (+{incomeChangePct}%)
+                                        </span>
+                                    ) : (
+                                        <span className="text-xs font-semibold text-red/80 flex items-center">
+                                            <ArrowDownRight className="w-3 h-3 mr-0.5" /> {formatMoney(incomeChange)} ({incomeChangePct}%)
+                                        </span>
+                                    )}
+                                    <span className="text-xs text-muted ml-0.5">keçən aya nisbətən</span>
+                                </div>
                             </div>
                         )}
                     </CardContent>
@@ -423,6 +428,72 @@ function DashboardContent() {
                         ) : (
                             <div className="text-3xl font-bold text-orange">{formatMoney(dashboard?.currentMonthDebt || 0)}</div>
                         )}
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Stage 3 Metrics: Forecasting & Occupancy */}
+            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2">
+                <Card variant="elevated">
+                    <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-muted">Doluluq Dərəcəsi</CardTitle>
+                        <div className="h-8 w-8 rounded bg-white/10 flex items-center justify-center">
+                            <MapPin className="h-4 w-4 text-white" />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-col">
+                            <span className="text-3xl font-bold text-white">{dashboard?.occupancyRate || 0}%</span>
+                            <span className="text-xs text-muted mt-1">Aktiv icarəyə verilmiş obyektlər</span>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card variant="elevated">
+                    <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-muted">Aylıq Gəlir Proqnozu</CardTitle>
+                        <div className="h-8 w-8 rounded bg-gold/10 flex items-center justify-center">
+                            <TrendingUp className="h-4 w-4 text-gold" />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-col">
+                            <span className="text-3xl font-bold text-gold">{formatMoney(dashboard?.incomeForecast || 0)}</span>
+                            <span className="text-xs text-muted mt-1">Aktiv müqavilələr əsasında mədaxil potensialı</span>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Stage 3 Metrics: Forecasting & Occupancy */}
+            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2">
+                <Card variant="elevated">
+                    <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-muted">Doluluq Dərəcəsi</CardTitle>
+                        <div className="h-8 w-8 rounded bg-white/10 flex items-center justify-center">
+                            <MapPin className="h-4 w-4 text-white" />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-col">
+                            <span className="text-3xl font-bold text-white">{dashboard?.occupancyRate || 0}%</span>
+                            <span className="text-xs text-muted mt-1">Aktiv icarəyə verilmiş obyektlər</span>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card variant="elevated">
+                    <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-muted">Aylıq Gəlir Proqnozu</CardTitle>
+                        <div className="h-8 w-8 rounded bg-gold/10 flex items-center justify-center">
+                            <TrendingUp className="h-4 w-4 text-gold" />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-col">
+                            <span className="text-3xl font-bold text-gold">{formatMoney(dashboard?.incomeForecast || 0)}</span>
+                            <span className="text-xs text-muted mt-1">Aktiv müqavilələr əsasında mədaxil potensialı</span>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
@@ -527,17 +598,25 @@ function DashboardContent() {
                                 {dashboard?.debtors?.slice(0, window.innerWidth < 768 ? 3 : undefined).map((debtor: any, idx: number) => {
                                     const initials = debtor.tenantName.substring(0, 2).toUpperCase();
                                     return (
-                                        <div key={idx} className="flex items-center justify-between p-2 hover:bg-surface rounded-lg transition-colors cursor-pointer group" onClick={() => navigate(`/contracts/${debtor.contractId}`)}>
-                                            <div className="flex items-center gap-3 w-[70%]">
-                                                <div className="w-10 h-10 shrink-0 rounded-full bg-red/10 text-red border border-red/20 flex items-center justify-center font-bold text-sm">
+                                        <div key={idx} className="flex justify-between items-start border-b border-border/50 pb-3 last:border-0 last:pb-0 hover:bg-surface rounded-lg transition-colors cursor-pointer group" onClick={() => navigate(`/contracts/${debtor.contractId}`)}>
+                                            <div className="flex items-start gap-3 w-[70%]">
+                                                <div className="w-10 h-10 mt-1 shrink-0 rounded-full bg-red/10 text-red border border-red/20 flex items-center justify-center font-bold text-sm">
                                                     {initials}
                                                 </div>
                                                 <div className="overflow-hidden">
                                                     <p className="text-sm font-medium text-text group-hover:text-gold transition-colors truncate">{debtor.tenantName}</p>
-                                                    <p className="text-xs text-muted truncate">Müqavilə: {debtor.contractNumber}</p>
+                                                    <p className="text-xs text-muted truncate">{debtor.propertyName} • {debtor.contractNumber}</p>
+                                                    {debtor.daysOverdue > 0 && (
+                                                        <div className="mt-1.5 flex items-center gap-1.5">
+                                                            <span className="inline-flex py-0.5 px-2 bg-red/20 text-red border border-red/30 text-[10px] font-bold uppercase rounded items-center">
+                                                                <Clock className="w-3 h-3 mr-1" />
+                                                                {debtor.daysOverdue} gün gecikib
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
-                                            <div className="text-right shrink-0">
+                                            <div className="text-right shrink-0 mt-2">
                                                 <p className="text-sm font-bold text-red">{formatMoney(debtor.debtAmount)}</p>
                                             </div>
                                         </div>

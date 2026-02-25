@@ -1,12 +1,29 @@
 import * as React from 'react';
 import { useAuthStore } from '@/store/auth';
-import { LogOut, User as UserIcon, Menu } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { LogOut, User as UserIcon, Menu, Bell } from 'lucide-react';
 import { Button } from './Button';
 import { useLocation } from 'react-router-dom';
 
 export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
     const { user, logout } = useAuthStore();
     const location = useLocation();
+
+    // Notifications State
+    const [isNotifOpen, setIsNotifOpen] = React.useState(false);
+
+    const { data: notifData } = useQuery({
+        queryKey: ['notifications'],
+        queryFn: async () => {
+            const res = await api.get('/notifications');
+            return res.data;
+        },
+        refetchInterval: 60000 // refresh every minute automatically
+    });
+
+    const notifications = Array.isArray(notifData?.data) ? notifData.data : [];
+    const unreadCount = notifications.length;
 
     // Mapping English route bases to Azerbaijani titles
     const routeTitles: Record<string, string> = {
@@ -42,6 +59,54 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
             </h2>
 
             <div className="flex items-center gap-3 md:gap-4">
+                {/* Notification Bell */}
+                <div className="relative">
+                    <button
+                        onClick={() => setIsNotifOpen(!isNotifOpen)}
+                        className="relative p-2 text-muted hover:text-text focus:outline-none"
+                    >
+                        <Bell className="h-5 w-5" />
+                        {unreadCount > 0 && (
+                            <span className="absolute top-1.5 right-1.5 flex h-2 w-2 rounded-full bg-red ring-2 ring-surface"></span>
+                        )}
+                    </button>
+
+                    {/* Notification Dropdown */}
+                    {isNotifOpen && (
+                        <>
+                            <div
+                                className="fixed inset-0 z-40"
+                                onClick={() => setIsNotifOpen(false)}
+                            />
+                            <div className="absolute right-0 mt-2 w-80 md:w-96 origin-top-right rounded-lg bg-surface shadow-2xl ring-1 ring-border border border-border z-50">
+                                <div className="p-4 border-b border-border flex justify-between items-center">
+                                    <h3 className="text-sm font-semibold text-text">Bildirişlər</h3>
+                                    <span className="text-xs bg-gold/20 text-gold px-2 py-1 rounded-full">{unreadCount} bildiriş</span>
+                                </div>
+                                <div className="max-h-96 overflow-y-auto">
+                                    {notifications.length === 0 ? (
+                                        <div className="p-4 text-center text-sm text-muted">Aktiv bildiriş yoxdur</div>
+                                    ) : (
+                                        notifications.map((n: any) => (
+                                            <div key={n.id} className="p-4 border-b border-border/50 hover:bg-bg/50 transition-colors">
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <p className={`text-sm font-medium ${n.type === 'PAYMENT_OVERDUE' ? 'text-red' : n.type === 'PAYMENT_DUE' ? 'text-orange' : 'text-gold'}`}>
+                                                        {n.title}
+                                                    </p>
+                                                    <span className="text-xs text-muted whitespace-nowrap">
+                                                        {new Date(n.date).toLocaleDateString('az-AZ')}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-muted mt-1 leading-relaxed">{n.message}</p>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+
                 <div className="flex items-center gap-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gold/20 text-gold">
                         {user?.name?.charAt(0) || <UserIcon className="h-4 w-4" />}
