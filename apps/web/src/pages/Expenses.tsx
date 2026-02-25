@@ -78,9 +78,11 @@ export function Expenses() {
     const [formDescription, setFormDescription] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Delete confirm state
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+
+    // Export state
+    const [isExporting, setIsExporting] = useState(false);
 
     const categories = ['Kommunal', 'Təmir', 'Əmək haqqı', 'Vergi', 'Təmizlik', 'Digər'];
 
@@ -129,6 +131,54 @@ export function Expenses() {
         }
     };
 
+    const getReportPayload = () => {
+        const dateFrom = new Date(year, month - 1, 1).toISOString();
+        const dateTo = new Date(year, month, 0, 23, 59, 59).toISOString();
+        return {
+            startDate: dateFrom,
+            endDate: dateTo,
+            category: categoryFilter || undefined,
+        };
+    };
+
+    const handleExportExcel = async () => {
+        setIsExporting(true);
+        try {
+            const res = await api.post('/hesabat/expenses', { ...getReportPayload(), format: 'excel' }, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'xercler_hesabati.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+        } catch (error) {
+            console.error("Export failed", error);
+            addToast({ message: "Hesabat generasiyası xətası.", type: 'error' });
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const handlePrintPDF = async () => {
+        setIsExporting(true);
+        try {
+            const res = await api.post('/hesabat/expenses', { ...getReportPayload(), format: 'pdf' }, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'xercler_hesabati.pdf');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+        } catch (error) {
+            console.error("PDF generation failed", error);
+            addToast({ message: "PDF generasiyası xətası.", type: 'error' });
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     const monthsList = [
         'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'İyun',
         'İyul', 'Avqust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'
@@ -150,10 +200,18 @@ export function Expenses() {
                     <ArrowUpRight className="w-8 h-8 text-red" />
                     Məxaric
                 </h1>
-                <Button onClick={() => setIsModalOpen(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Xərc Əlavə Et
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleExportExcel} disabled={isExporting}>
+                        {isExporting ? 'Yüklənir...' : 'Excel'}
+                    </Button>
+                    <Button onClick={handlePrintPDF} disabled={isExporting} className="bg-gold border-gold text-black hover:bg-gold2">
+                        {isExporting ? 'Hazırlanır...' : 'PDF'}
+                    </Button>
+                    <Button onClick={() => setIsModalOpen(true)}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Əlavə Et
+                    </Button>
+                </div>
             </div>
 
             {/* Filters */}

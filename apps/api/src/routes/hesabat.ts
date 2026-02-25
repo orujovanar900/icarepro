@@ -39,7 +39,8 @@ const emailPayloadSchema = z.object({
 
 function buildPdfDoc(payments: any[], startDate: string, endDate: string, orgName?: string) {
     const now = new Date().toLocaleString('az-AZ', { timeZone: 'Asia/Baku' });
-    const totalIncome = payments.reduce((s: number, p: any) => s + Number(p.amount), 0);
+    const totalIncome = payments.filter((p: any) => p.paymentType !== 'Borc').reduce((s: number, p: any) => s + Number(p.amount), 0);
+    const totalDebt = payments.filter((p: any) => p.paymentType === 'Borc').reduce((s: number, p: any) => s + Number(p.amount), 0);
 
     const tableBody = [
         [
@@ -59,15 +60,9 @@ function buildPdfDoc(payments: any[], startDate: string, endDate: string, orgNam
             { text: p.contract?.tenant?.fullName || '-', fontSize: 9, fillColor: i % 2 === 0 ? '#f8f9fa' : '#ffffff' },
             { text: p.contract?.property?.name || '-', fontSize: 9, fillColor: i % 2 === 0 ? '#f8f9fa' : '#ffffff' },
             { text: rentalTypeLabel[p.contract?.rentalType] || p.contract?.rentalType || '-', fontSize: 9, fillColor: i % 2 === 0 ? '#f8f9fa' : '#ffffff' },
-            { text: p.paymentType || '-', fontSize: 9, fillColor: i % 2 === 0 ? '#f8f9fa' : '#ffffff' },
-            { text: Number(p.amount).toFixed(2), alignment: 'right', fontSize: 9, bold: true, fillColor: i % 2 === 0 ? '#f8f9fa' : '#ffffff' },
-        ]),
-        // Total row
-        [
-            { text: '', colSpan: 7, border: [false, true, false, false] },
-            {}, {}, {}, {}, {}, {},
-            { text: `${totalIncome.toFixed(2)} ₼`, bold: true, fontSize: 10, color: '#1a56db', alignment: 'right', border: [false, true, false, false] }
-        ]
+            { text: p.paymentType || '-', fontSize: 9, color: p.paymentType === 'Borc' ? '#ef4444' : '#111827', bold: p.paymentType === 'Borc', fillColor: i % 2 === 0 ? '#f8f9fa' : '#ffffff' },
+            { text: Number(p.amount).toFixed(2), alignment: 'right', fontSize: 9, bold: true, color: p.paymentType === 'Borc' ? '#ef4444' : '#16a34a', fillColor: i % 2 === 0 ? '#f8f9fa' : '#ffffff' },
+        ])
     ];
 
     return {
@@ -129,6 +124,10 @@ function buildPdfDoc(payments: any[], startDate: string, endDate: string, orgNam
                                 [
                                     { text: 'Ümumi Mədaxil:', bold: true, fontSize: 10, border: [false, false, false, false] },
                                     { text: `${totalIncome.toFixed(2)} ₼`, bold: true, fontSize: 10, color: '#16a34a', alignment: 'right', border: [false, false, false, false] }
+                                ],
+                                [
+                                    { text: 'Ümumi Borc:', bold: true, fontSize: 10, border: [false, false, false, false] },
+                                    { text: `${totalDebt.toFixed(2)} ₼`, bold: true, fontSize: 10, color: '#ef4444', alignment: 'right', border: [false, false, false, false] }
                                 ]
                             ]
                         },
@@ -155,31 +154,58 @@ const hesabatRoutes: FastifyPluginAsync = async (app) => {
         const { startDate, endDate, contractIds, format, direction } = parsed.data;
         const orgId = (request.user as any)?.organizationId;
 
-        const payments = await app.prisma.payment.findMany({
-            where: {
-                organizationId: orgId,
-                paymentDate: {
-                    gte: new Date(startDate),
-                    lte: new Date(endDate)
+        let payments: any[] = [];
+
+        if (direction === 'all' || direction === 'income') {
+            payments = await app.prisma.payment.findMany({
+                where: {
+                    organizationId: orgId,
+                    paymentDate: {
+                        gte: new Date(startDate),
+                        lte: new Date(endDate)
+                    },
+                    contractId: contractIds && contractIds.length > 0 ? { in: contractIds } : undefined
                 },
-                contractId: contractIds && contractIds.length > 0 ? { in: contractIds } : undefined
-            },
-            include: { contract: { include: { tenant: true, property: true } } },
-            orderBy: { paymentDate: 'asc' }
-        });
+                include: { contract: { include: { tenant: true, property: true } } },
+                orderBy: { paymentDate: 'asc' }
+            });
+        }
 
         // Compute debts per contract if direction filter includes debt
-        let allContracts: any[] = [];
         if (direction === 'all' || direction === 'debt') {
-            allContracts = await app.prisma.contract.findMany({
+            const allContracts = await app.prisma.contract.findMany({
                 where: {
                     organizationId: orgId,
                     status: 'ACTIVE',
                     id: contractIds && contractIds.length > 0 ? { in: contractIds } : undefined
                 },
-                include: { tenant: true, property: true }
+                include: { tenant: true, property: true, payments: true }
+            });
+
+            const targetDate = new Date(endDate);
+            allContracts.forEach((c: any) => {
+                const start = new Date(c.startDate);
+                const end = c.endDate < targetDate ? new Date(c.endDate) : targetDate;
+                const monthsElapsed = Math.max(0,
+                    (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1
+                );
+                const totalExpected = Number(c.monthlyRent) * monthsElapsed;
+                const totalPaid = c.payments.reduce((s: number, p: any) => s + Number(p.amount), 0);
+                const debt = Math.max(0, totalExpected - totalPaid);
+
+                if (debt > 0) {
+                    payments.push({
+                        paymentDate: targetDate, // show debt on the end date of report
+                        amount: debt,
+                        paymentType: 'Borc',
+                        contract: c,
+                    });
+                }
             });
         }
+
+        // Sort by date just in case
+        payments.sort((a, b) => new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime());
 
         if (format === 'excel') {
             const workbook = new ExcelJS.Workbook();
@@ -239,17 +265,31 @@ const hesabatRoutes: FastifyPluginAsync = async (app) => {
             });
 
             // Total row
-            const totalRow = sheet.getRow(payments.length + 3);
-            const totalAmount = payments.reduce((s: number, p: any) => s + Number(p.amount), 0);
-            sheet.mergeCells(`A${totalRow.number}:G${totalRow.number}`);
-            totalRow.getCell(1).value = 'Ümumi Mədaxil:';
-            totalRow.getCell(1).font = { bold: true, size: 11 };
-            totalRow.getCell(1).alignment = { horizontal: 'right' };
-            totalRow.getCell(8).value = totalAmount;
-            totalRow.getCell(8).numFmt = '#,##0.00 ₼';
-            totalRow.getCell(8).font = { bold: true, size: 12, color: { argb: 'FF1a56db' } };
-            totalRow.getCell(8).alignment = { horizontal: 'right' };
-            totalRow.height = 26;
+            const baseRow = payments.length + 3;
+            const totalIncome = payments.filter((p: any) => p.paymentType !== 'Borc').reduce((s: number, p: any) => s + Number(p.amount), 0);
+            const totalDebt = payments.filter((p: any) => p.paymentType === 'Borc').reduce((s: number, p: any) => s + Number(p.amount), 0);
+
+            // Income
+            sheet.mergeCells(`A${baseRow}:G${baseRow}`);
+            const t1 = sheet.getRow(baseRow);
+            t1.getCell(1).value = 'Ümumi Mədaxil:';
+            t1.getCell(1).font = { bold: true, size: 11 };
+            t1.getCell(1).alignment = { horizontal: 'right' };
+            t1.getCell(8).value = totalIncome;
+            t1.getCell(8).numFmt = '#,##0.00 ₼';
+            t1.getCell(8).font = { bold: true, size: 11, color: { argb: 'FF16a34a' } };
+            t1.getCell(8).alignment = { horizontal: 'right' };
+
+            // Debt
+            sheet.mergeCells(`A${baseRow + 1}:G${baseRow + 1}`);
+            const t2 = sheet.getRow(baseRow + 1);
+            t2.getCell(1).value = 'Ümumi Borc:';
+            t2.getCell(1).font = { bold: true, size: 11 };
+            t2.getCell(1).alignment = { horizontal: 'right' };
+            t2.getCell(8).value = totalDebt;
+            t2.getCell(8).numFmt = '#,##0.00 ₼';
+            t2.getCell(8).font = { bold: true, size: 11, color: { argb: 'FFef4444' } };
+            t2.getCell(8).alignment = { horizontal: 'right' };
 
             // Auto-fit columns
             sheet.columns = [
@@ -289,6 +329,146 @@ const hesabatRoutes: FastifyPluginAsync = async (app) => {
             });
         }
 
+        reply.status(400).send({ error: 'Invalid format' });
+    });
+
+    const expensePayloadSchema = z.object({
+        startDate: z.string(),
+        endDate: z.string(),
+        category: z.string().optional(),
+        format: z.enum(['excel', 'pdf'])
+    });
+
+    app.post('/expenses', async (request, reply) => {
+        const parsed = expensePayloadSchema.safeParse(request.body);
+        if (!parsed.success) return reply.status(400).send({ error: 'Validation error', details: parsed.error });
+        const { startDate, endDate, category, format } = parsed.data;
+        const orgId = (request.user as any)?.organizationId;
+
+        const expenses = await app.prisma.expense.findMany({
+            where: {
+                organizationId: orgId,
+                date: {
+                    gte: new Date(startDate),
+                    lte: new Date(endDate)
+                },
+                category: category || undefined
+            },
+            include: { createdByUser: true },
+            orderBy: { date: 'asc' }
+        });
+
+        const totalAmount = expenses.reduce((s: number, e: any) => s + Number(e.amount), 0);
+        const org = await app.prisma.organization.findFirst({ where: { id: orgId } });
+
+        if (format === 'excel') {
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('Xərclər', { pageSetup: { fitToPage: true } });
+
+            sheet.mergeCells('A1:E1');
+            sheet.getCell('A1').value = `İCARƏ PRO — Xərclər Hesabatı | Dövr: ${startDate} — ${endDate}`;
+            sheet.getCell('A1').font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
+            sheet.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFef4444' } };
+            sheet.getCell('A1').alignment = { vertical: 'middle', horizontal: 'center' };
+            sheet.getRow(1).height = 32;
+
+            const headers = ['№', 'Tarix', 'Kateqoriya', 'Açıqlama', 'Məbləğ (₼)'];
+            const headerRow = sheet.getRow(2);
+            headers.forEach((h, i) => {
+                const cell = headerRow.getCell(i + 1);
+                cell.value = h;
+                cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFef4444' } };
+                cell.border = { bottom: { style: 'thin', color: { argb: 'FFe5e7eb' } } };
+            });
+
+            expenses.forEach((e: any, i) => {
+                const r = sheet.getRow(i + 3);
+                r.getCell(1).value = i + 1;
+                r.getCell(2).value = new Date(e.date).toLocaleDateString('az-AZ');
+                r.getCell(3).value = e.category;
+                r.getCell(4).value = e.description || '';
+                r.getCell(5).value = Number(e.amount);
+                r.getCell(5).numFmt = '#,##0.00 ₼';
+            });
+
+            const tr = sheet.getRow(expenses.length + 3);
+            sheet.mergeCells(`A${tr.number}:D${tr.number}`);
+            tr.getCell(1).value = 'Yekun Xərc:';
+            tr.getCell(1).alignment = { horizontal: 'right' };
+            tr.getCell(1).font = { bold: true };
+            tr.getCell(5).value = totalAmount;
+            tr.getCell(5).font = { bold: true, color: { argb: 'FFef4444' } };
+            tr.getCell(5).numFmt = '#,##0.00 ₼';
+
+            sheet.columns = [
+                { width: 5 }, { width: 14 }, { width: 22 }, { width: 40 }, { width: 16 }
+            ];
+
+            const buffer = await workbook.xlsx.writeBuffer();
+            reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            return reply.send(buffer);
+        }
+
+        if (format === 'pdf') {
+            const tableBody = [
+                [
+                    { text: '№', bold: true, fillColor: '#ef4444', color: 'white' },
+                    { text: 'Tarix', bold: true, fillColor: '#ef4444', color: 'white' },
+                    { text: 'Kateqoriya', bold: true, fillColor: '#ef4444', color: 'white' },
+                    { text: 'Açıqlama', bold: true, fillColor: '#ef4444', color: 'white' },
+                    { text: 'Məbləğ (₼)', bold: true, fillColor: '#ef4444', color: 'white' },
+                ],
+                ...expenses.map((e: any, i: number) => [
+                    String(i + 1),
+                    new Date(e.date).toLocaleDateString('az-AZ'),
+                    e.category,
+                    e.description || '-',
+                    { text: Number(e.amount).toFixed(2), alignment: 'right' }
+                ]),
+            ];
+
+            const docDefinition = {
+                pageSize: 'A4' as any,
+                content: [
+                    { text: `İcarə Pro - Xərclər Hesabatı`, fontSize: 16, bold: true, color: '#ef4444', margin: [0, 0, 0, 8] },
+                    { text: `Dövr: ${startDate} — ${endDate}`, fontSize: 10, color: '#6b7280', margin: [0, 0, 0, 16] },
+                    {
+                        table: {
+                            headerRows: 1,
+                            widths: [20, 60, 80, '*', 70],
+                            body: tableBody
+                        }
+                    },
+                    {
+                        margin: [0, 16, 0, 0],
+                        table: {
+                            widths: ['*', 100],
+                            body: [
+                                [
+                                    { text: 'Yekun Xərc:', bold: true, alignment: 'right', border: [false, false, false, false] },
+                                    { text: `${totalAmount.toFixed(2)} ₼`, bold: true, color: '#ef4444', alignment: 'right', border: [false, false, false, false] }
+                                ]
+                            ]
+                        },
+                        layout: 'noBorders'
+                    }
+                ],
+                defaultStyle: { font: 'Roboto', fontSize: 10 }
+            };
+
+            const pdfDoc = printer.createPdfKitDocument(docDefinition);
+            const chunks: Buffer[] = [];
+            pdfDoc.on('data', (c: Buffer) => chunks.push(c));
+            return new Promise((resolve) => {
+                pdfDoc.on('end', () => {
+                    reply.header('Content-Type', 'application/pdf');
+                    reply.send(Buffer.concat(chunks));
+                    resolve(null);
+                });
+                pdfDoc.end();
+            });
+        }
         reply.status(400).send({ error: 'Invalid format' });
     });
 

@@ -206,6 +206,7 @@ function DashboardContent() {
         startDate: reportStartDate,
         endDate: reportEndDate,
         contractIds: reportContracts.length > 0 ? reportContracts : undefined,
+        direction: reportDirection,
     });
 
     const handleExportExcel = async () => {
@@ -571,6 +572,17 @@ function DashboardContent() {
                             onChange={(e) => setReportEndDate(e.target.value)}
                         />
                     </div>
+
+                    <Select
+                        label="Hesabatın Növü"
+                        value={reportDirection}
+                        onChange={e => setReportDirection(e.target.value as any)}
+                        options={[
+                            { label: 'Hamısı (Mədaxil + Borc)', value: 'all' },
+                            { label: 'Yalnız Mədaxil', value: 'income' },
+                            { label: 'Yalnız Aktiv Borc', value: 'debt' },
+                        ]}
+                    />
 
                     <div className="mt-4 border border-border rounded-lg p-2 max-h-52 overflow-y-auto">
                         <div className="flex justify-between items-center mb-2 px-2 py-1 sticky top-0 bg-surface z-10">
