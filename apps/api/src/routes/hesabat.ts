@@ -472,6 +472,199 @@ const hesabatRoutes: FastifyPluginAsync = async (app) => {
         reply.status(400).send({ error: 'Invalid format' });
     });
 
+    const propertyPayloadSchema = z.object({
+        startDate: z.string(),
+        endDate: z.string(),
+        direction: z.enum(['all', 'income', 'debt']).optional().default('all'),
+        format: z.enum(['excel', 'pdf'])
+    });
+
+    app.post('/properties', async (request, reply) => {
+        const parsed = propertyPayloadSchema.safeParse(request.body);
+        if (!parsed.success) return reply.status(400).send({ error: 'Validation error', details: parsed.error });
+        const { startDate, endDate, direction, format } = parsed.data;
+        const orgId = (request.user as any)?.organizationId;
+
+        const allProperties = await app.prisma.property.findMany({
+            where: { organizationId: orgId, isActive: true },
+            orderBy: { name: 'asc' }
+        });
+
+        // Pre-fetch active contracts for properties
+        const allContracts = await app.prisma.contract.findMany({
+            where: { organizationId: orgId, status: 'ACTIVE' },
+            include: { tenant: true, payments: true }
+        });
+
+        const targetDate = new Date(endDate);
+        const startTargetDate = new Date(startDate);
+
+        let reportData: any[] = [];
+        let grandTotalIncome = 0;
+        let grandTotalDebt = 0;
+
+        for (const prop of allProperties) {
+            const contract = allContracts.find((c: any) => c.propertyId === prop.id);
+            let income = 0;
+            let debt = 0;
+
+            if (contract) {
+                // Calculator income in the selected date range
+                income = contract.payments
+                    .filter((p: any) => p.paymentType !== 'Borc')
+                    .filter((p: any) => new Date(p.paymentDate) >= startTargetDate && new Date(p.paymentDate) <= targetDate)
+                    .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+
+                // Calculate overall debt up to end date
+                const start = new Date(contract.startDate);
+                const end = contract.endDate < targetDate ? new Date(contract.endDate) : targetDate;
+                const monthsElapsed = Math.max(0,
+                    (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1
+                );
+                const totalExpected = Number(contract.monthlyRent) * monthsElapsed;
+                const totalPaid = contract.payments
+                    .filter((p: any) => new Date(p.paymentDate) <= targetDate) // All payments before/on endDate
+                    .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+
+                debt = Math.max(0, totalExpected - totalPaid);
+            }
+
+            if (direction === 'income' && income <= 0) continue;
+            if (direction === 'debt' && debt <= 0) continue;
+
+            grandTotalIncome += income;
+            grandTotalDebt += debt;
+
+            reportData.push({
+                property: prop,
+                contract,
+                income,
+                debt
+            });
+        }
+
+        if (format === 'excel') {
+            const workbook = new ExcelJS.Workbook();
+            const sheet = workbook.addWorksheet('Obyektlər', { pageSetup: { fitToPage: true, orientation: 'landscape' } });
+
+            sheet.mergeCells('A1:G1');
+            const titleRowType = direction === 'income' ? 'Mədaxil ' : direction === 'debt' ? 'Borc ' : '';
+            sheet.getCell('A1').value = `İCARƏ PRO — Obyektlər üzrə ${titleRowType}Hesabatı | Dövr: ${startDate} — ${endDate}`;
+            sheet.getCell('A1').font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } };
+            sheet.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1a56db' } };
+            sheet.getCell('A1').alignment = { vertical: 'middle', horizontal: 'center' };
+            sheet.getRow(1).height = 32;
+
+            const headers = ['№', 'Obyekt', 'Nömrə/Ünvan', 'İcarəçi', 'Məbləğ (₼)', 'Mədaxil (₼)', 'Borc (₼)'];
+            const headerRow = sheet.getRow(2);
+            headers.forEach((h, i) => {
+                const cell = headerRow.getCell(i + 1);
+                cell.value = h;
+                cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1a56db' } };
+                cell.border = { bottom: { style: 'thin', color: { argb: 'FFe5e7eb' } } };
+            });
+
+            reportData.forEach((r: any, i) => {
+                const row = sheet.getRow(i + 3);
+                row.getCell(1).value = i + 1;
+                row.getCell(2).value = r.property.name;
+                row.getCell(3).value = r.property.number || r.property.address || '-';
+                row.getCell(4).value = r.contract?.tenant?.fullName || '-';
+                row.getCell(5).value = r.contract ? Number(r.contract.monthlyRent) : 0;
+                row.getCell(5).numFmt = '#,##0.00 ₼';
+                row.getCell(6).value = r.income;
+                row.getCell(6).numFmt = '#,##0.00 ₼';
+                row.getCell(6).font = { color: { argb: 'FF16a34a' } }; // green
+                row.getCell(7).value = r.debt;
+                row.getCell(7).numFmt = '#,##0.00 ₼';
+                row.getCell(7).font = { color: { argb: 'FFef4444' } }; // red
+            });
+
+            const trObj = sheet.getRow(reportData.length + 3);
+            sheet.mergeCells(`A${trObj.number}:E${trObj.number}`);
+            trObj.getCell(1).value = 'Yekun cəmlər:';
+            trObj.getCell(1).alignment = { horizontal: 'right' };
+            trObj.getCell(1).font = { bold: true };
+            trObj.getCell(6).value = grandTotalIncome;
+            trObj.getCell(6).font = { bold: true, color: { argb: 'FF16a34a' } };
+            trObj.getCell(6).numFmt = '#,##0.00 ₼';
+            trObj.getCell(7).value = grandTotalDebt;
+            trObj.getCell(7).font = { bold: true, color: { argb: 'FFef4444' } };
+            trObj.getCell(7).numFmt = '#,##0.00 ₼';
+
+            sheet.columns = [
+                { width: 5 }, { width: 25 }, { width: 30 }, { width: 25 }, { width: 14 }, { width: 16 }, { width: 16 }
+            ];
+
+            const buffer = await workbook.xlsx.writeBuffer();
+            reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            return reply.send(buffer);
+        }
+
+        if (format === 'pdf') {
+            const tableBody = [
+                [
+                    { text: '№', bold: true, fillColor: '#1a56db', color: 'white' },
+                    { text: 'Obyekt', bold: true, fillColor: '#1a56db', color: 'white' },
+                    { text: 'Nömrə/Ünvan', bold: true, fillColor: '#1a56db', color: 'white' },
+                    { text: 'İcarəçi', bold: true, fillColor: '#1a56db', color: 'white' },
+                    { text: 'Məbləğ (₼)', bold: true, fillColor: '#1a56db', color: 'white', alignment: 'right' },
+                    { text: 'Mədaxil (₼)', bold: true, fillColor: '#1a56db', color: 'white', alignment: 'right' },
+                    { text: 'Borc (₼)', bold: true, fillColor: '#1a56db', color: 'white', alignment: 'right' },
+                ],
+                ...reportData.map((r: any, i: number) => {
+                    const isBg = i % 2 === 0 ? '#f8f9fa' : '#ffffff';
+                    return [
+                        { text: String(i + 1), fillColor: isBg },
+                        { text: r.property.name, fillColor: isBg },
+                        { text: r.property.number || r.property.address || '-', fillColor: isBg },
+                        { text: r.contract?.tenant?.fullName || '-', fillColor: isBg },
+                        { text: r.contract ? Number(r.contract.monthlyRent).toFixed(2) : '0.00', alignment: 'right', fillColor: isBg },
+                        { text: r.income.toFixed(2), color: '#16a34a', bold: true, alignment: 'right', fillColor: isBg },
+                        { text: r.debt.toFixed(2), color: '#ef4444', bold: true, alignment: 'right', fillColor: isBg }
+                    ];
+                }),
+                [
+                    { text: 'Yekun:', colSpan: 5, bold: true, alignment: 'right' }, {}, {}, {}, {},
+                    { text: grandTotalIncome.toFixed(2) + ' ₼', color: '#16a34a', bold: true, alignment: 'right' },
+                    { text: grandTotalDebt.toFixed(2) + ' ₼', color: '#ef4444', bold: true, alignment: 'right' }
+                ]
+            ];
+
+            const docDefinition = {
+                pageSize: 'A4' as any,
+                pageOrientation: 'landscape' as any,
+                content: [
+                    { text: `İcarə Pro - Obyektlər üzrə Hesabat`, fontSize: 16, bold: true, color: '#1a56db', margin: [0, 0, 0, 8] },
+                    { text: `Dövr: ${startDate} — ${endDate}`, fontSize: 10, color: '#6b7280', margin: [0, 0, 0, 16] },
+                    {
+                        table: {
+                            headerRows: 1,
+                            widths: [20, 100, '*', 120, 60, 60, 60],
+                            body: tableBody
+                        }
+                    }
+                ],
+                defaultStyle: { font: 'Roboto', fontSize: 9 }
+            };
+
+            const pdfDoc = printer.createPdfKitDocument(docDefinition);
+            const chunks: Buffer[] = [];
+            pdfDoc.on('data', (c: Buffer) => chunks.push(c));
+            return new Promise((resolve) => {
+                pdfDoc.on('end', () => {
+                    reply.header('Content-Type', 'application/pdf');
+                    reply.send(Buffer.concat(chunks));
+                    resolve(null);
+                });
+                pdfDoc.end();
+            });
+        }
+        reply.status(400).send({ error: 'Invalid format' });
+    });
+
+
     app.post('/send-email', async (request, reply) => {
         const parsed = emailPayloadSchema.safeParse(request.body);
         if (!parsed.success) return reply.status(400).send({ error: 'Validation error', details: parsed.error });

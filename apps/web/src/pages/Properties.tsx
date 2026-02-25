@@ -9,7 +9,9 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
+import { Select } from '@/components/ui/Select';
 import SimpleMap from '@/components/SimpleMap';
+import { useToastStore } from '@/store/toast';
 
 const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('az-AZ', {
@@ -25,6 +27,15 @@ export function Properties() {
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Report Modal State
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [reportStartDate, setReportStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
+    const [reportEndDate, setReportEndDate] = useState(new Date().toISOString().split('T')[0]);
+    const [reportDirection, setReportDirection] = useState<'all' | 'income' | 'debt'>('all');
+    const [isExporting, setIsExporting] = useState(false);
+
+    const addToast = useToastStore((state) => state.addToast);
 
     React.useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearch(search), 500);
@@ -60,6 +71,52 @@ export function Properties() {
 
     const canAddProperty = user?.role === 'OWNER' || user?.role === 'STAFF';
 
+    const getReportPayload = () => ({
+        startDate: new Date(reportStartDate || '').toISOString(),
+        endDate: new Date(new Date(reportEndDate || '').setHours(23, 59, 59)).toISOString(),
+        direction: reportDirection
+    });
+
+    const handleExportExcel = async () => {
+        setIsExporting(true);
+        try {
+            const res = await api.post('/hesabat/properties', { ...getReportPayload(), format: 'excel' }, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'obyektler_hesabati.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+        } catch (error) {
+            console.error("Export failed", error);
+            addToast({ message: "Hesabat generasiyası xətası.", type: 'error' });
+        } finally {
+            setIsExporting(false);
+            setIsReportModalOpen(false);
+        }
+    };
+
+    const handlePrintPDF = async () => {
+        setIsExporting(true);
+        try {
+            const res = await api.post('/hesabat/properties', { ...getReportPayload(), format: 'pdf' }, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'obyektler_hesabati.pdf');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+        } catch (error) {
+            console.error("PDF generation failed", error);
+            addToast({ message: "PDF generasiyası xətası.", type: 'error' });
+        } finally {
+            setIsExporting(false);
+            setIsReportModalOpen(false);
+        }
+    };
+
     return (
         <div className="flex-1 space-y-6 p-6 max-w-7xl mx-auto pb-24">
             {/* Header */}
@@ -68,12 +125,17 @@ export function Properties() {
                     <Building className="w-8 h-8 text-gold" />
                     Obyektlər
                 </h1>
-                {canAddProperty && (
-                    <Button onClick={() => setIsModalOpen(true)}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Yeni Obyekt
+                <div className="flex gap-2">
+                    <Button onClick={() => setIsReportModalOpen(true)} className="bg-gold border-gold text-black hover:bg-gold2">
+                        📊 Hesabat
                     </Button>
-                )}
+                    {canAddProperty && (
+                        <Button onClick={() => setIsModalOpen(true)}>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Yeni Obyekt
+                        </Button>
+                    )}
+                </div>
             </div>
 
             {/* Modal placeholder */}
@@ -198,6 +260,55 @@ export function Properties() {
                     })}
                 </div>
             )}
+            {/* Report Modal */}
+            <Modal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} title="Obyektlər üzrə Hesabat Yarat">
+                <div className="space-y-4">
+                    <p className="text-sm text-muted">Obyektlərinizin seçilmiş dövr üzrə mədaxil və borc hesabatını generə edin.</p>
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input
+                            label="Başlanğıc tarixi"
+                            type="date"
+                            value={reportStartDate}
+                            onChange={(e) => setReportStartDate(e.target.value)}
+                        />
+                        <Input
+                            label="Bitmə tarixi"
+                            type="date"
+                            value={reportEndDate}
+                            onChange={(e) => setReportEndDate(e.target.value)}
+                        />
+                    </div>
+
+                    <Select
+                        label="Hesabatın Növü"
+                        value={reportDirection}
+                        onChange={(e: any) => setReportDirection(e.target.value as any)}
+                        options={[
+                            { label: 'Hamısı (Mədaxil + Borc)', value: 'all' },
+                            { label: 'Yalnız Mədaxil', value: 'income' },
+                            { label: 'Yalnız Aktiv Borc', value: 'debt' },
+                        ]}
+                    />
+
+                    <div className="flex gap-4 pt-4 border-t border-border mt-6">
+                        <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={handleExportExcel}
+                            disabled={isExporting}
+                        >
+                            {isExporting ? 'Yüklənir...' : 'Excel Yüklə'}
+                        </Button>
+                        <Button
+                            className="flex-1 bg-gold hover:bg-gold2 text-black"
+                            onClick={handlePrintPDF}
+                            disabled={isExporting}
+                        >
+                            {isExporting ? 'Hazırlanır...' : 'PDF Yüklə'}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }

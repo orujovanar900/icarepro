@@ -71,6 +71,11 @@ export function Expenses() {
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    // Report Modal State
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [reportStartDate, setReportStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
+    const [reportEndDate, setReportEndDate] = useState(new Date().toISOString().split('T')[0]);
+
     // Form State
     const [formAmount, setFormAmount] = useState('');
     const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0]);
@@ -132,11 +137,9 @@ export function Expenses() {
     };
 
     const getReportPayload = () => {
-        const dateFrom = new Date(year, month - 1, 1).toISOString();
-        const dateTo = new Date(year, month, 0, 23, 59, 59).toISOString();
         return {
-            startDate: dateFrom,
-            endDate: dateTo,
+            startDate: new Date(reportStartDate || '').toISOString(),
+            endDate: new Date(new Date(reportEndDate || '').setHours(23, 59, 59)).toISOString(),
             category: categoryFilter || undefined,
         };
     };
@@ -176,6 +179,7 @@ export function Expenses() {
             addToast({ message: "PDF generasiyası xətası.", type: 'error' });
         } finally {
             setIsExporting(false);
+            setIsReportModalOpen(false);
         }
     };
 
@@ -201,11 +205,8 @@ export function Expenses() {
                     Məxaric
                 </h1>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleExportExcel} disabled={isExporting}>
-                        {isExporting ? 'Yüklənir...' : 'Excel'}
-                    </Button>
-                    <Button onClick={handlePrintPDF} disabled={isExporting} className="bg-gold border-gold text-black hover:bg-gold2">
-                        {isExporting ? 'Hazırlanır...' : 'PDF'}
+                    <Button onClick={() => setIsReportModalOpen(true)} className="bg-gold border-gold text-black hover:bg-gold2">
+                        📊 Hesabat
                     </Button>
                     <Button onClick={() => setIsModalOpen(true)}>
                         <Plus className="w-4 h-4 mr-2" />
@@ -367,6 +368,44 @@ export function Expenses() {
                 onCancel={() => setDeleteId(null)}
                 isLoading={isDeleting}
             />
+
+            {/* Expenses Report Modal */}
+            <Modal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} title="Xərclər Hesabatı Yarat">
+                <div className="space-y-4">
+                    <p className="text-sm text-muted">Xərclər hesabatını generə etmək üçün tarix aralığını seçin (hazırkı kateqoriya süzgəci nəzərə alınacaq).</p>
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                        <Input
+                            label="Başlanğıc tarixi"
+                            type="date"
+                            value={reportStartDate}
+                            onChange={(e) => setReportStartDate(e.target.value)}
+                        />
+                        <Input
+                            label="Bitmə tarixi"
+                            type="date"
+                            value={reportEndDate}
+                            onChange={(e) => setReportEndDate(e.target.value)}
+                        />
+                    </div>
+                    <div className="flex gap-4 pt-4 border-t border-border mt-6">
+                        <Button
+                            variant="outline"
+                            className="flex-1"
+                            onClick={handleExportExcel}
+                            disabled={isExporting}
+                        >
+                            {isExporting ? 'Yüklənir...' : 'Excel Yüklə'}
+                        </Button>
+                        <Button
+                            className="flex-1 bg-gold hover:bg-gold2 text-black"
+                            onClick={handlePrintPDF}
+                            disabled={isExporting}
+                        >
+                            {isExporting ? 'Hazırlanır...' : 'PDF Yüklə'}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }
