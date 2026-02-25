@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, FileText, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -88,7 +88,7 @@ export function Contracts() {
                 </h1>
                 {canAddContract && (
                     <Button onClick={() => navigate('/sanad-ustasi')}>
-                        <Plus className="w-4 h-4 mr-2" />
+                        <Sparkles className="w-4 h-4 mr-2" />
                         Sənəd Ustası ilə yarat
                     </Button>
                 )}
