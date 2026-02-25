@@ -173,6 +173,7 @@ function DashboardContent() {
 
     // Report contract combobox search
     const [contractSearch, setContractSearch] = useState('');
+    const [reportSubject, setReportSubject] = useState<'contracts' | 'expenses'>('contracts');
     const [reportDirection, setReportDirection] = useState<'all' | 'income' | 'debt'>('all');
     const filteredContractsForReport = activeContractsList.filter((c: any) => {
         const q = contractSearch.toLowerCase();
@@ -619,100 +620,99 @@ function DashboardContent() {
                     </div>
 
                     <Select
-                        label="Hesabatın Növü"
-                        value={reportDirection}
-                        onChange={e => setReportDirection(e.target.value as any)}
+                        label="Hesabatın Mövzusu"
+                        value={reportSubject}
+                        onChange={e => setReportSubject(e.target.value as any)}
                         options={[
-                            { label: 'Hamısı (Mədaxil + Borc)', value: 'all' },
-                            { label: 'Yalnız Mədaxil', value: 'income' },
-                            { label: 'Yalnız Aktiv Borc', value: 'debt' },
+                            { label: 'İcarə Müqavilələri (Mədaxil/Borc)', value: 'contracts' },
+                            { label: 'Xərclər (Məxaric)', value: 'expenses' },
                         ]}
                     />
 
-                    <div className="mt-4 border border-border rounded-lg p-2 max-h-52 overflow-y-auto">
-                        <div className="flex justify-between items-center mb-2 px-2 py-1 sticky top-0 bg-surface z-10">
-                            <h4 className="text-sm font-medium">Müqavilələr</h4>
-                            <div className="space-x-2 text-xs">
-                                <button type="button" className="text-gold" onClick={() => setReportContracts(activeContractsList.map((c: any) => c.id))}>Hamısını seç</button>
-                                <button type="button" className="text-muted" onClick={() => setReportContracts([])}>Sıfırla</button>
+                    {reportSubject === 'contracts' && (
+                        <Select
+                            label="Hesabatın Növü"
+                            value={reportDirection}
+                            onChange={e => setReportDirection(e.target.value as any)}
+                            options={[
+                                { label: 'Hamısı (Mədaxil + Borc)', value: 'all' },
+                                { label: 'Yalnız Mədaxil', value: 'income' },
+                                { label: 'Yalnız Aktiv Borc', value: 'debt' },
+                            ]}
+                        />
+                    )}
+
+                    {reportSubject === 'contracts' && (
+                        <div className="mt-4 border border-border rounded-lg p-2 max-h-52 overflow-y-auto">
+                            <div className="flex justify-between items-center mb-2 px-2 py-1 sticky top-0 bg-surface z-10">
+                                <h4 className="text-sm font-medium">Müqavilələr</h4>
+                                <div className="space-x-2 text-xs">
+                                    <button type="button" className="text-gold" onClick={() => setReportContracts(activeContractsList.map((c: any) => c.id))}>Hamısını seç</button>
+                                    <button type="button" className="text-muted" onClick={() => setReportContracts([])}>Sıfırla</button>
+                                </div>
                             </div>
-                        </div>
-                        {/* Search inside contracts */}
-                        <div className="relative mb-2">
-                            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
-                            <input
-                                className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border border-border rounded-lg focus:outline-none focus:border-gold/50 text-text"
-                                placeholder="Adı, ünvan, nömrə..."
-                                value={contractSearch}
-                                onChange={e => setContractSearch(e.target.value)}
-                            />
-                        </div>
-                        {filteredContractsForReport.length === 0 ? (
-                            <p className="text-center text-xs text-muted py-4">Müqavilə tapılmadı</p>
-                        ) : filteredContractsForReport.map((c: any) => (
-                            <label key={c.id} className="flex items-start gap-2 px-2 py-1.5 hover:bg-surface rounded cursor-pointer">
+                            {/* Search inside contracts */}
+                            <div className="relative mb-2">
+                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted" />
                                 <input
-                                    type="checkbox"
-                                    className="mt-0.5 shrink-0"
-                                    checked={reportContracts.includes(c.id)}
-                                    onChange={(e: any) => {
-                                        if (e.target.checked) setReportContracts([...reportContracts, c.id]);
-                                        else setReportContracts(reportContracts.filter((id: string) => id !== c.id));
-                                    }}
+                                    className="w-full pl-8 pr-3 py-1.5 text-xs bg-background border border-border rounded-lg focus:outline-none focus:border-gold/50 text-text"
+                                    placeholder="Adı, ünvan, nömrə..."
+                                    value={contractSearch}
+                                    onChange={e => setContractSearch(e.target.value)}
                                 />
-                                <span className="text-xs">
-                                    <span className="font-medium text-text">{c.tenant?.fullName}</span>
-                                    <span className="text-muted"> — №{c.number}</span>
-                                    <br />
-                                    <span className="text-muted">{c.property?.name} · </span>
-                                    <span className="text-gold/80">{rentalTypeLabel[c.rentalType] || c.rentalType}</span>
-                                </span>
-                            </label>
-                        ))}
-                    </div>
+                            </div>
+                            {filteredContractsForReport.length === 0 ? (
+                                <p className="text-center text-xs text-muted py-4">Müqavilə tapılmadı</p>
+                            ) : filteredContractsForReport.map((c: any) => (
+                                <label key={c.id} className="flex items-start gap-2 px-2 py-1.5 hover:bg-surface rounded cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="mt-0.5 shrink-0"
+                                        checked={reportContracts.includes(c.id)}
+                                        onChange={(e: any) => {
+                                            if (e.target.checked) setReportContracts([...reportContracts, c.id]);
+                                            else setReportContracts(reportContracts.filter((id: string) => id !== c.id));
+                                        }}
+                                    />
+                                    <span className="text-xs">
+                                        <span className="font-medium text-text">{c.tenant?.fullName}</span>
+                                        <span className="text-muted"> — №{c.number}</span>
+                                        <br />
+                                        <span className="text-muted">{c.property?.name} · </span>
+                                        <span className="text-gold/80">{rentalTypeLabel[c.rentalType] || c.rentalType}</span>
+                                    </span>
+                                </label>
+                            ))}
+                        </div>
+                    )}
 
                     <div className="flex flex-col gap-2 pt-4 border-t border-border mt-6">
                         <div className="flex gap-4">
                             <Button
                                 variant="outline"
                                 className="flex-1"
-                                onClick={handleExportExcel}
+                                onClick={reportSubject === 'contracts' ? handleExportExcel : handleExportExpensesExcel}
                                 disabled={isExporting}
                             >
-                                {isExporting ? 'Yüklənir...' : 'Mədaxil/Borc (Excel)'}
+                                {isExporting ? 'Yüklənir...' : 'Excel Yüklə'}
                             </Button>
                             <Button
                                 className="flex-1 bg-gold hover:bg-gold2 text-black"
-                                onClick={handlePrintPDF}
+                                onClick={reportSubject === 'contracts' ? handlePrintPDF : handlePrintExpensesPDF}
                                 disabled={isExporting}
                             >
-                                {isExporting ? 'Hazırlanır...' : 'Mədaxil/Borc (PDF)'}
+                                {isExporting ? 'Hazırlanır...' : 'PDF Yüklə'}
                             </Button>
                         </div>
-                        <div className="flex gap-4">
+                        {reportSubject === 'contracts' && (
                             <Button
-                                variant="outline"
-                                className="flex-1 border-red text-red hover:bg-red/10"
-                                onClick={handleExportExpensesExcel}
+                                className="w-full bg-blue border-blue/50 text-white"
+                                onClick={() => setIsEmailModalOpen(true)}
                                 disabled={isExporting}
                             >
-                                {isExporting ? 'Yüklənir...' : 'Xərclər (Excel)'}
+                                MAIL-a göndər
                             </Button>
-                            <Button
-                                className="flex-1 bg-red hover:bg-red/90 text-white"
-                                onClick={handlePrintExpensesPDF}
-                                disabled={isExporting}
-                            >
-                                {isExporting ? 'Hazırlanır...' : 'Xərclər (PDF)'}
-                            </Button>
-                        </div>
-                        <Button
-                            className="w-full bg-blue border-blue/50 text-white"
-                            onClick={() => setIsEmailModalOpen(true)}
-                            disabled={isExporting}
-                        >
-                            MAIL-a göndər
-                        </Button>
+                        )}
                     </div>
                 </div>
             </Modal>

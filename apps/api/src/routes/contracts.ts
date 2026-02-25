@@ -116,7 +116,7 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // POST /contracts
-    fastify.post('/', { preHandler: [authenticate, requireRole(['OWNER', 'STAFF'])] }, async (req, reply) => {
+    fastify.post('/', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
         const body = createSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
 
@@ -143,7 +143,7 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // PATCH /contracts/:id
-    fastify.patch('/:id', { preHandler: [authenticate, requireRole(['OWNER', 'STAFF'])] }, async (req, reply) => {
+    fastify.patch('/:id', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
         const body = updateSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
@@ -175,8 +175,8 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.send({ success: true, data: contract })
     })
 
-    // PATCH /contracts/:id/archive — только OWNER
-    fastify.patch('/:id/archive', { preHandler: [authenticate, requireRole(['OWNER'])] }, async (req, reply) => {
+    // PATCH /contracts/:id/archive
+    fastify.patch('/:id/archive', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
         const exists = await fastify.prisma.contract.findFirst({ where: { id, ...withOrg(req) } })
         if (!exists) return reply.code(404).send({ success: false, error: 'Contract not found' })

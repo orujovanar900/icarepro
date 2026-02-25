@@ -76,7 +76,7 @@ const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // POST /payments
-    fastify.post('/', { preHandler: [authenticate, requireRole(['OWNER', 'STAFF'])] }, async (req, reply) => {
+    fastify.post('/', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'CASHIER'])] }, async (req, reply) => {
         const body = createSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
 
@@ -129,8 +129,8 @@ const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.code(201).send({ success: true, data: payment })
     })
 
-    // DELETE /payments/:id — только OWNER
-    fastify.delete('/:id', { preHandler: [authenticate, requireRole(['OWNER'])] }, async (req, reply) => {
+    // DELETE /payments/:id — OWNER & MANAGER
+    fastify.delete('/:id', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
         const payment = await fastify.prisma.payment.findFirst({
             where: { id, ...withOrg(req) },

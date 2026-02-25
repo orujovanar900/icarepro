@@ -17,7 +17,10 @@ datasource db {
 
 enum UserRole {
   OWNER
-  STAFF
+  MANAGER
+  CASHIER
+  ACCOUNTANT
+  ADMINISTRATOR
   TENANT
 }
 
@@ -99,7 +102,7 @@ model User {
   email          String
   passwordHash   String
   name           String
-  role           UserRole @default(STAFF)
+  role           UserRole @default(MANAGER)
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
   telegramChatId        String?

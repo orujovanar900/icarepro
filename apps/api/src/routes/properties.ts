@@ -66,7 +66,7 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // POST /properties
-    fastify.post('/', { preHandler: [authenticate, requireRole(['OWNER', 'STAFF'])] }, async (req, reply) => {
+    fastify.post('/', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
         const body = createSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
         const property = await fastify.prisma.property.create({ data: { ...body.data, ...withOrg(req) } })
@@ -74,7 +74,7 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // PATCH /properties/:id
-    fastify.patch('/:id', { preHandler: [authenticate, requireRole(['OWNER', 'STAFF'])] }, async (req, reply) => {
+    fastify.patch('/:id', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
         const body = updateSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
@@ -85,7 +85,7 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // DELETE /properties/:id — soft delete
-    fastify.delete('/:id', { preHandler: [authenticate, requireRole(['OWNER'])] }, async (req, reply) => {
+    fastify.delete('/:id', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
         const exists = await fastify.prisma.property.findFirst({ where: { id, ...withOrg(req) } })
         if (!exists) return reply.code(404).send({ success: false, error: 'Property not found' })
@@ -94,7 +94,7 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // POST /properties/:id/photos — multipart upload → Supabase Storage
-    fastify.post('/:id/photos', { preHandler: [authenticate, requireRole(['OWNER', 'STAFF'])] }, async (req, reply) => {
+    fastify.post('/:id/photos', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
         const exists = await fastify.prisma.property.findFirst({ where: { id, ...withOrg(req) } })
         if (!exists) return reply.code(404).send({ success: false, error: 'Property not found' })

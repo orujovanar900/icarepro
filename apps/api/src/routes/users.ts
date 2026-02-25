@@ -13,14 +13,14 @@ const schema = {
     body: z.object({
         email: z.string().email(),
         name: z.string().min(2),
-        role: z.enum(['OWNER', 'STAFF', 'TENANT']).optional(),
+        role: z.enum(['OWNER', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR', 'TENANT']).optional(),
         phone: z.string().optional()
     }),
 }
 
 const updateSchema = z.object({
     name: z.string().min(1).optional(),
-    role: z.enum(['OWNER', 'STAFF', 'TENANT']).optional(),
+    role: z.enum(['OWNER', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR', 'TENANT']).optional(),
     isActive: z.boolean().optional(),
     password: z.string().min(8).optional(),
     telegramChatId: z.string().optional(),
@@ -28,7 +28,7 @@ const updateSchema = z.object({
 })
 
 const usersRoutes: FastifyPluginAsync = async (fastify) => {
-    const ownerOnly = [authenticate, requireRole(['OWNER'])]
+    const ownerOnly = [authenticate, requireRole(['OWNER', 'MANAGER'])]
 
     // GET /users
     fastify.get('/', { preHandler: ownerOnly }, async (_req, reply) => {
@@ -65,7 +65,7 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
                 data: {
                     email,
                     name,
-                    role: role || 'STAFF',
+                    role: role || 'MANAGER',
                     phone: userPhone,
                     passwordHash,
                     ...withOrg(req),

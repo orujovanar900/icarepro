@@ -70,19 +70,58 @@ async function main() {
     })
     console.log(`✅ Test owner: ${testOwner.email} / Test@2026!`)
 
-    const testStaffHash = await bcrypt.hash('IcarePro2024!', BCRYPT_ROUNDS)
-    const testStaff = await prisma.user.upsert({
-        where: { organizationId_email: { organizationId: TEST_ORG_ID, email: 'staff@icare-test.az' } },
-        update: { passwordHash: testStaffHash },
+    const testManagerHash = await bcrypt.hash('IcarePro2024!', BCRYPT_ROUNDS)
+    const testManager = await prisma.user.upsert({
+        where: { organizationId_email: { organizationId: TEST_ORG_ID, email: 'manager@icare-test.az' } },
+        update: { passwordHash: testManagerHash },
         create: {
             organizationId: TEST_ORG_ID,
-            email: 'staff@icare-test.az',
-            passwordHash: testStaffHash,
-            name: 'Aysel Məmmədova',
-            role: UserRole.STAFF,
+            email: 'manager@icare-test.az',
+            passwordHash: testManagerHash,
+            name: 'Aysel (Menecer)',
+            role: UserRole.MANAGER,
         },
     })
-    console.log(`✅ Test staff: ${testStaff.email} / IcarePro2024!`)
+    console.log(`✅ Test manager: ${testManager.email} / IcarePro2024!`)
+
+    const testCashier = await prisma.user.upsert({
+        where: { organizationId_email: { organizationId: TEST_ORG_ID, email: 'cashier@icare-test.az' } },
+        update: { passwordHash: testManagerHash },
+        create: {
+            organizationId: TEST_ORG_ID,
+            email: 'cashier@icare-test.az',
+            passwordHash: testManagerHash,
+            name: 'Leyla (Kassir)',
+            role: UserRole.CASHIER,
+        },
+    })
+    console.log(`✅ Test cashier: ${testCashier.email} / IcarePro2024!`)
+
+    const testAccountant = await prisma.user.upsert({
+        where: { organizationId_email: { organizationId: TEST_ORG_ID, email: 'accountant@icare-test.az' } },
+        update: { passwordHash: testManagerHash },
+        create: {
+            organizationId: TEST_ORG_ID,
+            email: 'accountant@icare-test.az',
+            passwordHash: testManagerHash,
+            name: 'Tural (Mühasib)',
+            role: UserRole.ACCOUNTANT,
+        },
+    })
+    console.log(`✅ Test accountant: ${testAccountant.email} / IcarePro2024!`)
+
+    const testAdministrator = await prisma.user.upsert({
+        where: { organizationId_email: { organizationId: TEST_ORG_ID, email: 'admin@icare-test.az' } },
+        update: { passwordHash: testManagerHash },
+        create: {
+            organizationId: TEST_ORG_ID,
+            email: 'admin@icare-test.az',
+            passwordHash: testManagerHash,
+            name: 'Ramil (İnzibatçı)',
+            role: UserRole.ADMINISTRATOR,
+        },
+    })
+    console.log(`✅ Test administrator: ${testAdministrator.email} / IcarePro2024!`)
 
     // ── Properties (3 объекта) ─────────────────────────────────────────────────
     const [prop1, prop2, prop3] = await Promise.all([
@@ -291,7 +330,10 @@ async function main() {
     console.log(`📋 LOGIN CREDENTIALS:`)
     console.log(`   İcarə Pro (OWNER):  admin@icare.pro.az  /  anar900`)
     console.log(`   Icare Test (OWNER): owner@icare-test.az /  Test@2026!`)
-    console.log(`   Icare Test (STAFF): staff@icare-test.az /  IcarePro2024!`)
+    console.log(`   Icare Test (MANAGER): manager@icare-test.az /  IcarePro2024!`)
+    console.log(`   Icare Test (CASHIER): cashier@icare-test.az /  IcarePro2024!`)
+    console.log(`   Icare Test (ACCTG):   accountant@icare-test.az / IcarePro2024!`)
+    console.log(`   Icare Test (ADMIN):   admin@icare-test.az /    IcarePro2024!`)
     console.log('═══════════════════════════════════════════════════')
     console.log(`📦 Test org ID:  ${TEST_ORG_ID}`)
     console.log(`📄 Contracts:    K-2026-001 | K-2026-002 | K-2026-003`)

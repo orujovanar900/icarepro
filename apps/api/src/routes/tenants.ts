@@ -69,7 +69,7 @@ const tenantsRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // POST /tenants
-    fastify.post('/', { preHandler: [authenticate, requireRole(['OWNER', 'STAFF'])] }, async (req, reply) => {
+    fastify.post('/', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
         const body = createSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
         const tenant = await fastify.prisma.tenant.create({ data: { ...body.data, ...withOrg(req) } })
@@ -77,7 +77,7 @@ const tenantsRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // PATCH /tenants/:id
-    fastify.patch('/:id', { preHandler: [authenticate, requireRole(['OWNER', 'STAFF'])] }, async (req, reply) => {
+    fastify.patch('/:id', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
         const body = updateSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
@@ -88,7 +88,7 @@ const tenantsRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // DELETE /tenants/:id
-    fastify.delete('/:id', { preHandler: [authenticate, requireRole(['OWNER'])] }, async (req, reply) => {
+    fastify.delete('/:id', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
         const exists = await fastify.prisma.tenant.findFirst({ where: { id, ...withOrg(req) } })
         if (!exists) return reply.code(404).send({ success: false, error: 'Tenant not found' })
@@ -101,7 +101,7 @@ const tenantsRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // POST /tenants/:id/documents — multipart → Supabase Storage
-    fastify.post('/:id/documents', { preHandler: [authenticate, requireRole(['OWNER', 'STAFF'])] }, async (req, reply) => {
+    fastify.post('/:id/documents', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
         const exists = await fastify.prisma.tenant.findFirst({ where: { id, ...withOrg(req) } })
         if (!exists) return reply.code(404).send({ success: false, error: 'Tenant not found' })

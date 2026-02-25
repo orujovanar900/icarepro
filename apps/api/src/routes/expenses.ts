@@ -15,10 +15,10 @@ const createSchema = z.object({
 const updateSchema = createSchema.partial()
 
 const expensesRoutes: FastifyPluginAsync = async (fastify) => {
-    const ownerOnly = [authenticate, requireRole(['OWNER'])]
+    const financeRoles = [authenticate, requireRole(['OWNER', 'MANAGER', 'CASHIER'])]
 
     // GET /expenses
-    fastify.get('/', { preHandler: ownerOnly }, async (req, reply) => {
+    fastify.get('/', { preHandler: financeRoles }, async (req, reply) => {
         const q = req.query as Record<string, string>
         const where = {
             ...withOrg(req),
@@ -48,7 +48,7 @@ const expensesRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // GET /expenses/:id
-    fastify.get('/:id', { preHandler: ownerOnly }, async (req, reply) => {
+    fastify.get('/:id', { preHandler: financeRoles }, async (req, reply) => {
         const { id } = req.params as { id: string }
         const expense = await fastify.prisma.expense.findFirst({ where: { id, ...withOrg(req) } })
         if (!expense) return reply.code(404).send({ success: false, error: 'Expense not found' })
@@ -56,7 +56,7 @@ const expensesRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // POST /expenses
-    fastify.post('/', { preHandler: ownerOnly }, async (req, reply) => {
+    fastify.post('/', { preHandler: financeRoles }, async (req, reply) => {
         const body = createSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
         const expense = await fastify.prisma.expense.create({
@@ -66,7 +66,7 @@ const expensesRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // PATCH /expenses/:id
-    fastify.patch('/:id', { preHandler: ownerOnly }, async (req, reply) => {
+    fastify.patch('/:id', { preHandler: financeRoles }, async (req, reply) => {
         const { id } = req.params as { id: string }
         const body = updateSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
@@ -81,7 +81,7 @@ const expensesRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // DELETE /expenses/:id
-    fastify.delete('/:id', { preHandler: ownerOnly }, async (req, reply) => {
+    fastify.delete('/:id', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
         const exists = await fastify.prisma.expense.findFirst({ where: { id, ...withOrg(req) } })
         if (!exists) return reply.code(404).send({ success: false, error: 'Expense not found' })
