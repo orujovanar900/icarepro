@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowDownLeft, Plus, Calendar as CalendarIcon, Filter } from 'lucide-react';
+import { ArrowDownLeft, Plus, Calendar as CalendarIcon, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { useToastStore } from '@/store/toast';
@@ -32,6 +32,8 @@ export function Income() {
     const month = parseInt(searchParams.get('month') || String(currentMonth), 10);
     const year = parseInt(searchParams.get('year') || String(currentYear), 10);
     const paymentType = searchParams.get('paymentType') || '';
+    const [page, setPage] = useState(1);
+    const limit = 30;
 
     const handleFilterChange = (key: string, value: string) => {
         const newParams = new URLSearchParams(searchParams);
@@ -45,17 +47,18 @@ export function Income() {
 
     // Main fetch
     const { data: paymentsData, isLoading, isError, refetch } = useQuery({
-        queryKey: ['payments', month, year, paymentType],
+        queryKey: ['payments', month, year, paymentType, page],
         queryFn: async () => {
             const params = new URLSearchParams({
                 month: String(month),
                 year: String(year),
-                limit: '100' // Get all for the month
+                limit: String(limit),
+                offset: String((page - 1) * limit),
             });
             if (paymentType) params.append('paymentType', paymentType);
 
             const res = await api.get(`/payments?${params.toString()}`);
-            return res.data; // expects { success: true, data: [...], meta: { totalAmount } }
+            return res.data;
         },
     });
 
@@ -71,6 +74,8 @@ export function Income() {
 
     const payments = Array.isArray(paymentsData?.data) ? paymentsData.data : (paymentsData?.data?.data || []);
     const totalAmount = paymentsData?.meta?.totalAmount || paymentsData?.data?.meta?.totalAmount || 0;
+    const totalCount = paymentsData?.meta?.total || paymentsData?.data?.meta?.total || 0;
+    const totalPages = Math.ceil(totalCount / limit);
     const activeContracts = Array.isArray(contractsData?.data) ? contractsData.data : (contractsData?.data?.data || []);
 
     // Modal State
@@ -247,6 +252,19 @@ export function Income() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-4 mt-4">
+                    <Button variant="ghost" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+                        <ChevronLeft className="w-4 h-4 mr-1" /> Əvvəlki
+                    </Button>
+                    <span className="text-sm text-muted">Səhifə {page} / {totalPages}</span>
+                    <Button variant="ghost" size="sm" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
+                        Sonrakı <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                </div>
+            )}
 
             {/* Add Payment Modal */}
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Yeni Ödəniş Əlavə Et">

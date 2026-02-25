@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { Trash2 } from 'lucide-react';
 
 const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('az-AZ', {
@@ -76,6 +78,10 @@ export function Expenses() {
     const [formDescription, setFormDescription] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Delete confirm state
+    const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const categories = ['Kommunal', 'Təmir', 'Əmək haqqı', 'Vergi', 'Təmizlik', 'Digər'];
 
     const addExpenseMutation = useMutation({
@@ -106,6 +112,21 @@ export function Expenses() {
             category: formCategory,
             description: formDescription,
         });
+    };
+
+    const handleDeleteExpense = async () => {
+        if (!deleteId) return;
+        setIsDeleting(true);
+        try {
+            await api.delete(`/expenses/${deleteId}`);
+            queryClient.invalidateQueries({ queryKey: ['expenses'] });
+            addToast({ message: 'Xərc silindi', type: 'success' });
+            setDeleteId(null);
+        } catch (err: any) {
+            addToast({ message: err.response?.data?.error || 'Xəta baş verdi', type: 'error' });
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     const monthsList = [
@@ -195,6 +216,7 @@ export function Expenses() {
                                     <TableHead>Açıqlama</TableHead>
                                     <TableHead>Əlavə edən</TableHead>
                                     <TableHead className="text-right">Məbləğ</TableHead>
+                                    <TableHead></TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -211,11 +233,16 @@ export function Expenses() {
                                         <TableCell className="text-right font-bold text-red">
                                             -{formatMoney(expense.amount)}
                                         </TableCell>
+                                        <TableCell>
+                                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setDeleteId(expense.id); }}>
+                                                <Trash2 className="w-4 h-4 text-red/60 hover:text-red" />
+                                            </Button>
+                                        </TableCell>
                                     </TableRow>
                                 ))}
                                 {/* Total Row */}
                                 <TableRow className="bg-surface/50">
-                                    <TableCell colSpan={4} className="text-right font-bold text-text">
+                                    <TableCell colSpan={5} className="text-right font-bold text-text">
                                         Yekun Xərc (Cari Dövr):
                                     </TableCell>
                                     <TableCell className="text-right font-extrabold text-red text-lg">
@@ -271,6 +298,17 @@ export function Expenses() {
                     </div>
                 </form>
             </Modal>
+
+            {/* Delete Confirm */}
+            <ConfirmDialog
+                isOpen={!!deleteId}
+                title="Xərci Sil"
+                message="Bu xərc qeydini silmək istədiyinizdən əminsinizmi? Bu əməliyyat geri alına bilməz."
+                confirmLabel="Bəli, Sil"
+                onConfirm={handleDeleteExpense}
+                onCancel={() => setDeleteId(null)}
+                isLoading={isDeleting}
+            />
         </div>
     );
 }

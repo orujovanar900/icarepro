@@ -102,8 +102,12 @@ model User {
   role           UserRole @default(STAFF)
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
-  telegramChatId String?
-  phone          String?
+  telegramChatId        String?
+  phone                 String?
+  failedAttempts        Int       @default(0)
+  lockedUntil           DateTime?
+  passwordResetToken    String?
+  passwordResetExpiry   DateTime?
 
   organization Organization @relation(fields: [organizationId], references: [id])
   payments     Payment[]

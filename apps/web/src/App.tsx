@@ -4,8 +4,9 @@ import { AppLayout } from './layouts/AppLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { PageSkeleton } from './components/ui/PageSkeleton';
 
-// Pages
 const Login = React.lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
+const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
+const ResetPassword = React.lazy(() => import('./pages/ResetPassword').then(m => ({ default: m.ResetPassword })));
 const Dashboard = React.lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
 const Contracts = React.lazy(() => import('./pages/Contracts').then(m => ({ default: m.Contracts })));
 const ContractDetail = React.lazy(() => import('./pages/ContractDetail').then(m => ({ default: m.ContractDetail })));
@@ -19,6 +20,7 @@ const Documents = React.lazy(() => import('./pages/Documents').then(m => ({ defa
 const SanadUstasi = React.lazy(() => import('./pages/SanadUstasi').then(m => ({ default: m.SanadUstasi })));
 const Users = React.lazy(() => import('./pages/Users').then(m => ({ default: m.Users })));
 const Settings = React.lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
+const NotFound = React.lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 
 export default function App() {
     return (
@@ -27,6 +29,8 @@ export default function App() {
                 <Routes>
                     {/* Public Routes */}
                     <Route path="/login" element={<Login />} />
+                    <Route path="/forgot-password" element={<ForgotPassword />} />
+                    <Route path="/reset-password" element={<ResetPassword />} />
 
                     {/* Protected Routes directly hitting the AppLayout */}
                     <Route element={<ProtectedRoute />}>
@@ -54,8 +58,8 @@ export default function App() {
                         </Route>
                     </Route>
 
-                    {/* Catch all route */}
-                    <Route path="*" element={<Navigate to="/" replace />} />
+                    {/* 404 */}
+                    <Route path="*" element={<NotFound />} />
                 </Routes>
             </Suspense>
         </Router>

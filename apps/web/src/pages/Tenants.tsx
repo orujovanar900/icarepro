@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Search, Users, Plus } from 'lucide-react';
+import { Search, Users, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -22,6 +22,8 @@ export function Tenants() {
     const { user } = useAuthStore();
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const limit = 20;
 
     React.useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearch(search), 500);
@@ -29,9 +31,12 @@ export function Tenants() {
     }, [search]);
 
     const { data: tenantsData, isLoading, isError, refetch } = useQuery({
-        queryKey: ['tenants', debouncedSearch],
+        queryKey: ['tenants', debouncedSearch, page],
         queryFn: async () => {
-            const params = new URLSearchParams();
+            const params = new URLSearchParams({
+                limit: String(limit),
+                offset: String((page - 1) * limit),
+            });
             if (debouncedSearch) params.append('search', debouncedSearch);
             const res = await api.get(`/tenants?${params.toString()}`);
             return res.data;
@@ -39,6 +44,8 @@ export function Tenants() {
     });
 
     const tenants = Array.isArray(tenantsData?.data) ? tenantsData.data : (tenantsData?.data?.data || []);
+    const meta = tenantsData?.meta || tenantsData?.data?.meta || { total: 0 };
+    const totalPages = Math.ceil(meta.total / limit);
     const canAddTenant = user?.role === 'OWNER' || user?.role === 'STAFF';
 
     // Calculate Debt for each tenant based on their ACTIVE contracts' payments
@@ -164,6 +171,19 @@ export function Tenants() {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-4 mt-4">
+                    <Button variant="ghost" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+                        <ChevronLeft className="w-4 h-4 mr-1" /> Əvvəlki
+                    </Button>
+                    <span className="text-sm text-muted">Səhifə {page} / {totalPages}</span>
+                    <Button variant="ghost" size="sm" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>
+                        Sonrakı <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                </div>
+            )}
         </div>
     );
 }

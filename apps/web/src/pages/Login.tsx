@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
 import { useToastStore } from '@/store/toast';
 import { api } from '@/lib/api';
@@ -126,10 +126,16 @@ export function Login() {
                                 <span>Məni xatırla</span>
                             </label>
                         </CardContent>
-                        <CardFooter>
+                        <CardFooter className="flex flex-col gap-3">
                             <Button type="submit" variant="primary" className="w-full" size="lg" isLoading={isLoading}>
                                 Daxil ol
                             </Button>
+                            <Link
+                                to="/forgot-password"
+                                className="text-sm text-muted hover:text-gold transition-colors text-center"
+                            >
+                                Şifrəni unutmusunuz?
+                            </Link>
                         </CardFooter>
                     </form>
                 </Card>
