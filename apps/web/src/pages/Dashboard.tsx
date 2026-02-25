@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -15,21 +15,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSke
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { useAuthStore } from '@/store/auth';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
 import { useToastStore } from '@/store/toast';
 
-// Use CDN URLs — importing PNGs from node_modules/leaflet breaks in Vite prod builds
-L.Icon.Default.mergeOptions({
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41],
-});
+// Lazy-load map so Leaflet never runs during initial page parse (fixes prod TypeError)
+const DashboardMap = lazy(() => import('@/components/DashboardMap'));
 
 const rentalTypeLabel: Record<string, string> = {
     RESIDENTIAL_LONG: 'Yaşayış (uzunmüddətli)',
@@ -393,48 +382,21 @@ function DashboardContent() {
                 </Card>
             </div>
 
-            {/* Mini Map Widget */}
+            {/* Mini Map Widget — lazy loaded */}
             <Card variant="elevated" className="overflow-hidden">
                 <CardHeader className="pb-2">
                     <CardTitle className="flex items-center gap-2">
-                        📍 Obyektlər Xəritəsi
+                        📍 Obyektlər xəritədə
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="p-0">
-                    <div style={{ height: 280, position: 'relative', zIndex: 0 }}>
-                        <MapContainer center={[40.4093, 49.8671]} zoom={12} scrollWheelZoom={false} style={{ height: '100%', width: '100%', zIndex: 0 }}>
-                            <TileLayer
-                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                            />
-                            {mapProperties.map((property: any) => {
-                                const lat = property.lat ? Number(property.lat) : 40.4093 + (Math.random() - 0.5) * 0.05;
-                                const lng = property.lng ? Number(property.lng) : 49.8671 + (Math.random() - 0.5) * 0.05;
-                                const contract = mapContracts.find((c: any) => c.propertyId === property.id);
-                                return (
-                                    <Marker key={`dash-map-${property.id}`} position={[lat, lng]}>
-                                        <Popup>
-                                            <div style={{ fontFamily: 'sans-serif', minWidth: 140 }}>
-                                                <p style={{ fontWeight: 'bold', marginBottom: 2 }}>{property.name}</p>
-                                                <p style={{ fontSize: 12, color: '#6b7280' }}>{property.address || ''}</p>
-                                                {contract && (
-                                                    <p style={{ fontSize: 12, marginTop: 4 }}>
-                                                        <span style={{ fontWeight: 600 }}>İcarəçi:</span> {contract.tenant?.fullName}
-                                                    </p>
-                                                )}
-                                                <button
-                                                    style={{ marginTop: 6, fontSize: 12, color: '#1a56db', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                                                    onClick={() => navigate(`/properties/${property.id}`)}
-                                                >
-                                                    Ətraflı →
-                                                </button>
-                                            </div>
-                                        </Popup>
-                                    </Marker>
-                                );
-                            })}
-                        </MapContainer>
-                    </div>
+                <CardContent className="p-0" style={{ position: 'relative', zIndex: 0 }}>
+                    <Suspense fallback={
+                        <div className="h-[220px] bg-surface animate-pulse flex items-center justify-center text-muted text-sm">
+                            Xəritə yüklənir...
+                        </div>
+                    }>
+                        <DashboardMap properties={mapProperties} contracts={mapContracts} />
+                    </Suspense>
                 </CardContent>
             </Card>
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Search, Building, Plus, MapPin, Maximize } from 'lucide-react';
@@ -9,20 +9,8 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
 
-// Use CDN URLs — importing PNGs from node_modules/leaflet breaks in Vite prod builds
-L.Icon.Default.mergeOptions({
-    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    iconSize: [25, 41],
-    iconAnchor: [12, 41],
-    popupAnchor: [1, -34],
-    shadowSize: [41, 41],
-});
+const PropertyMap = lazy(() => import('@/components/PropertyMap'));
 
 const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('az-AZ', {
@@ -94,37 +82,15 @@ export function Properties() {
                 <div className="p-4 text-center text-muted">Tezliklə əlavə ediləcək...</div>
             </Modal>
 
-            {/* Map Section */}
-            <div className="w-full h-[300px] mb-6 rounded-xl overflow-hidden border border-border shadow-sm z-0 relative">
-                <MapContainer center={[40.4093, 49.8671]} zoom={12} scrollWheelZoom={false} style={{ height: '100%', width: '100%', zIndex: 0 }}>
-                    <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                    {properties.map((property: any) => {
-                        const lat = property.lat ? Number(property.lat) : 40.4093 + (Math.random() - 0.5) * 0.05; // Fallback jitter
-                        const lng = property.lng ? Number(property.lng) : 49.8671 + (Math.random() - 0.5) * 0.05;
-                        const contract = activeContracts.find((c: any) => c.propertyId === property.id);
-
-                        return (
-                            <Marker key={`map-${property.id}`} position={[lat, lng]}>
-                                <Popup>
-                                    <div className="font-sans">
-                                        <h3 className="font-bold text-sm mb-1">{property.name}</h3>
-                                        <p className="text-xs text-muted-foreground">{property.address || '-'}</p>
-                                        <div className="mt-2 pt-2 border-t border-border/50">
-                                            <p className="text-xs"><span className="font-medium">İcarəçi:</span> {contract ? contract.tenant.fullName : 'Yoxdur'}</p>
-                                            <p className="text-xs"><span className="font-medium">Məbləğ:</span> {contract ? formatMoney(contract.monthlyRent) : '-'}</p>
-                                            <Button size="sm" variant="outline" className="w-full mt-2 h-7 text-xs" onClick={() => navigate(`/properties/${property.id}`)}>
-                                                Ətraflı
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </Popup>
-                            </Marker>
-                        );
-                    })}
-                </MapContainer>
+            {/* Map Section - lazy loaded so Leaflet doesn't break React on init */}
+            <div className="w-full h-[380px] mb-6 rounded-xl overflow-hidden border border-border shadow-sm" style={{ zIndex: 0, position: 'relative' }}>
+                <Suspense fallback={
+                    <div className="w-full h-full bg-surface flex items-center justify-center text-muted text-sm animate-pulse rounded-xl">
+                        Xəritə yüklənir...
+                    </div>
+                }>
+                    <PropertyMap properties={properties} contracts={activeContracts} height={380} />
+                </Suspense>
             </div>
 
             {/* Filters */}
