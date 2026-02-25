@@ -36,7 +36,7 @@ const meterReadingsRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // POST /meter-readings — авто-вычисляет consumption
-    fastify.post('/', { preHandler: [authenticate, requireRole(['OWNER', 'STAFF'])] }, async (req, reply) => {
+    fastify.post('/', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
         const body = createSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
 

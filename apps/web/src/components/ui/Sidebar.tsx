@@ -30,19 +30,19 @@ export function Sidebar() {
     const { user } = useAuthStore();
 
     const navItems = React.useMemo(() => {
-        let items = allNavItems;
+        const allowedMenu = {
+            OWNER: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'Mədaxil', 'Məxaric', 'Sənədlər', '✦ Sənəd Ustası AI', 'İstifadəçilər', 'Parametrlər'],
+            MANAGER: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'Mədaxil', 'Məxaric', 'Sənədlər', '✦ Sənəd Ustası AI', 'İstifadəçilər', 'Parametrlər'],
+            CASHIER: ['İdarə Paneli', 'Mədaxil', 'Məxaric'],
+            ACCOUNTANT: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'Sənədlər', '✦ Sənəd Ustası AI'],
+            ADMINISTRATOR: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'Sənədlər', '✦ Sənəd Ustası AI'],
+            TENANT: [],
+        };
 
-        // Only owners can see Users and Settings
-        if (user?.role !== 'OWNER') {
-            items = items.filter((item) => !['İstifadəçilər', 'Parametrlər'].includes(item.name));
-        }
+        const role = user?.role || 'TENANT';
+        const allowed = allowedMenu[role as keyof typeof allowedMenu] || [];
 
-        // Staff specific limits
-        if (user?.role === 'STAFF') {
-            items = items.filter((item) => item.name !== 'Məxaric');
-        }
-
-        return items;
+        return allNavItems.filter(item => (allowed as string[]).includes(item.name));
     }, [user?.role]);
 
     return (

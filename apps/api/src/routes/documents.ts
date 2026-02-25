@@ -6,6 +6,8 @@ const pdfParse = (pdfParseModule as any).default || pdfParseModule;
 // Use explicit Type string matching the prisma DocumentType Enum
 type DocumentTypeRaw = 'CONTRACT' | 'ACT' | 'DEBT_NOTICE' | 'INVOICE' | 'RECEIPT' | 'ADDENDUM' | 'TERMINATION' | 'PHOTO_REPORT';
 
+import { requireRole } from '../middleware/requireRole.js'
+
 export default async function documentsRoutes(app: FastifyInstance) {
     // Requires authentication for all document routes
     app.addHook('onRequest', async (request, reply) => {
@@ -89,7 +91,7 @@ export default async function documentsRoutes(app: FastifyInstance) {
             type: string
             content: string
         }
-    }>('/save', async (request, reply) => {
+    }>('/save', { preHandler: [requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (request, reply) => {
         const user = request.user as unknown as { id: string; organizationId: string; role: string }
         const { contractId, title, type, content } = request.body
 
@@ -166,7 +168,7 @@ export default async function documentsRoutes(app: FastifyInstance) {
     })
 
     // ── 4. DELETE /documents/:id ────────────────────────────────
-    app.delete<{ Params: { id: string } }>('/:id', async (request, reply) => {
+    app.delete<{ Params: { id: string } }>('/:id', { preHandler: [requireRole(['OWNER', 'MANAGER'])] }, async (request, reply) => {
         const user = request.user as unknown as { id: string; organizationId: string; role: string }
         const { id } = request.params
 

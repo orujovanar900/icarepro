@@ -33,25 +33,33 @@ export default function App() {
                     <Route path="/reset-password" element={<ResetPassword />} />
 
                     {/* Protected Routes directly hitting the AppLayout */}
-                    <Route element={<ProtectedRoute />}>
+                    <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
                         {/* Full Screen AI Chat Interface */}
-                        <Route path="/sanad-ustasi" element={<SanadUstasi />} />
+                        <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
+                            <Route path="/sanad-ustasi" element={<SanadUstasi />} />
+                        </Route>
 
                         <Route element={<AppLayout />}>
                             <Route path="/" element={<Navigate to="/dashboard" replace />} />
                             <Route path="/dashboard" element={<Dashboard />} />
-                            <Route path="/contracts" element={<Contracts />} />
-                            <Route path="/contracts/:id" element={<ContractDetail />} />
-                            <Route path="/properties" element={<Properties />} />
-                            <Route path="/properties/:id" element={<PropertyDetail />} />
-                            <Route path="/income" element={<Income />} />
-                            <Route path="/tenants" element={<Tenants />} />
-                            <Route path="/tenants/:id" element={<TenantDetail />} />
-                            <Route path="/documents" element={<Documents />} />
 
-                            {/* OWNER only routes */}
-                            <Route element={<ProtectedRoute allowedRoles={['OWNER']} />}>
+                            <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
+                                <Route path="/contracts" element={<Contracts />} />
+                                <Route path="/contracts/:id" element={<ContractDetail />} />
+                                <Route path="/properties" element={<Properties />} />
+                                <Route path="/properties/:id" element={<PropertyDetail />} />
+                                <Route path="/tenants" element={<Tenants />} />
+                                <Route path="/tenants/:id" element={<TenantDetail />} />
+                                <Route path="/documents" element={<Documents />} />
+                            </Route>
+
+                            <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER', 'CASHIER']} />}>
+                                <Route path="/income" element={<Income />} />
                                 <Route path="/expenses" element={<Expenses />} />
+                            </Route>
+
+                            {/* OWNER & MANAGER only routes */}
+                            <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER']} />}>
                                 <Route path="/users" element={<Users />} />
                                 <Route path="/settings" element={<Settings />} />
                             </Route>

@@ -37,7 +37,7 @@ export function Users() {
     const [formName, setFormName] = useState('');
     const [formEmail, setFormEmail] = useState('');
     const [formPhone, setFormPhone] = useState('');
-    const [formRole, setFormRole] = useState('STAFF');
+    const [formRole, setFormRole] = useState('MANAGER');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const openCreateModal = () => {
@@ -46,7 +46,7 @@ export function Users() {
         setFormName('');
         setFormEmail('');
         setFormPhone('');
-        setFormRole('STAFF');
+        setFormRole('MANAGER');
         setIsModalOpen(true);
     };
 
@@ -56,7 +56,7 @@ export function Users() {
         setFormName(userToEdit.name || '');
         setFormEmail(userToEdit.email || '');
         setFormPhone(userToEdit.phone || '');
-        setFormRole(userToEdit.role || 'STAFF');
+        setFormRole(userToEdit.role || 'MANAGER');
         setIsModalOpen(true);
     };
 
@@ -76,7 +76,7 @@ export function Users() {
             setFormName('');
             setFormEmail('');
             setFormPhone('');
-            setFormRole('STAFF');
+            setFormRole('MANAGER');
         },
         onError: (err: any) => {
             addToast({ message: err.response?.data?.error || 'Xəta baş verdi', type: 'error' });
@@ -194,7 +194,7 @@ export function Users() {
                                         <TableCell className="font-medium text-text">{u.name}</TableCell>
                                         <TableCell className="text-sm text-muted">{u.email}</TableCell>
                                         <TableCell>
-                                            <Badge variant={u.role === 'OWNER' ? 'draft' : u.role === 'STAFF' ? 'aktiv' : 'arxiv'}>
+                                            <Badge variant={u.role === 'OWNER' ? 'draft' : u.role === 'TENANT' ? 'arxiv' : 'aktiv'}>
                                                 {u.role}
                                             </Badge>
                                         </TableCell>
@@ -266,8 +266,10 @@ export function Users() {
                         value={formRole}
                         onChange={(e) => setFormRole(e.target.value)}
                         options={[
-                            { label: 'Sistem İstifadəçisi (STAFF)', value: 'STAFF' },
-                            { label: 'Sahibkar (OWNER)', value: 'OWNER' },
+                            { label: 'Menecer (MANAGER)', value: 'MANAGER' },
+                            { label: 'Kassir (CASHIER)', value: 'CASHIER' },
+                            { label: 'Mühasib (ACCOUNTANT)', value: 'ACCOUNTANT' },
+                            { label: 'İnzibatçı (ADMINISTRATOR)', value: 'ADMINISTRATOR' },
                             { label: 'İcarəçi (TENANT)', value: 'TENANT' },
                         ]}
                     />
