@@ -31,6 +31,7 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
         'dashboard': 'İdarə Paneli',
         'contracts': 'Müqavilələr',
         'properties': 'Obyektlər',
+        'tenants': 'İcarəçilər',
         'income': 'Mədaxil',
         'expenses': 'Məxaric',
         'documents': 'Sənədlər',

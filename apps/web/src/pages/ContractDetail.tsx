@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, FileText, Download, Plus, Archive, RefreshCw, History } from 'lucide-react';
+import { ArrowLeft, FileText, Download, Plus, Archive, RefreshCw, History, AlertCircle, ShieldCheck } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSkeleton } from '@/components/ui/Table';
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { useToastStore } from '@/store/toast';
+import { useAuthStore } from '@/store/auth';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 const formatMoney = (amount: number) => {
@@ -53,6 +54,15 @@ export function ContractDetail() {
     const [renewNote, setRenewNote] = useState('');
     const [isRenewing, setIsRenewing] = useState(false);
 
+    // Deposit & penalty state
+    const [isTogglingDeposit, setIsTogglingDeposit] = useState(false);
+    const [showPenaltyModal, setShowPenaltyModal] = useState(false);
+    const [penaltyAmount, setPenaltyAmount] = useState('');
+    const [penaltyNote, setPenaltyNote] = useState('');
+    const [isApplyingPenalty, setIsApplyingPenalty] = useState(false);
+    const { user: currentUser } = useAuthStore();
+    const canManagePenalties = ['OWNER', 'MANAGER'].includes(currentUser?.role || '');
+
     const handleArchive = async () => {
         setIsArchiving(true);
         try {
@@ -88,6 +98,45 @@ export function ContractDetail() {
             addToast({ message: err.response?.data?.error || 'Xəta baş verdi', type: 'error' });
         } finally {
             setIsRenewing(false);
+        }
+    };
+
+    const handleToggleDeposit = async () => {
+        setIsTogglingDeposit(true);
+        try {
+            const newVal = !contract.isDepositReturned;
+            await api.patch(`/contracts/${id}`, { isDepositReturned: newVal });
+            queryClient.invalidateQueries({ queryKey: ['contract', id] });
+            addToast({ message: newVal ? 'Depozit qaytarildı olaraq işarləndi' : 'Depozit qaytarilmamış olaraq işarləndi', type: 'success' });
+        } catch (err: any) {
+            addToast({ message: err.response?.data?.error || 'Xəta baş verdi', type: 'error' });
+        } finally {
+            setIsTogglingDeposit(false);
+        }
+    };
+
+    const handleApplyPenalty = async () => {
+        if (!penaltyAmount || Number(penaltyAmount) <= 0) return;
+        setIsApplyingPenalty(true);
+        try {
+            await api.post('/payments', {
+                contractId: id,
+                amount: -Math.abs(Number(penaltyAmount)), // negative = penalty deduction marker
+                paymentDate: new Date().toISOString().split('T')[0],
+                paymentType: 'LATE_FEE',
+                periodMonth: new Date().getMonth() + 1,
+                periodYear: new Date().getFullYear(),
+                note: `Cərimə: ${penaltyNote || 'gecikmə cəriməsi'}`,
+            });
+            queryClient.invalidateQueries({ queryKey: ['contract', id] });
+            addToast({ message: 'Cərimə tətbiq edildi', type: 'success' });
+            setShowPenaltyModal(false);
+            setPenaltyAmount('');
+            setPenaltyNote('');
+        } catch (err: any) {
+            addToast({ message: err.response?.data?.error || 'Xəta baş verdi', type: 'error' });
+        } finally {
+            setIsApplyingPenalty(false);
         }
     };
 
@@ -303,27 +352,85 @@ export function ContractDetail() {
 
                     <div className="space-y-6">
                         {/* Summary */}
-                        <Card variant="elevated" className={totalDebt > 0 ? "border-red/20" : "border-green/20"}>
+                        <Card variant="elevated" className={totalDebt > 0 ? 'border-red/20' : 'border-green/20'}>
                             <CardHeader>
                                 <CardTitle>Maliyyə Xülasəsi</CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted">Cari günə hesablanmış</span>
-                                    <span className="font-bold text-text">{formatMoney(totalExpected)}</span>
+                            <CardContent className="space-y-3">
+                                {/* Partial payment breakdown */}
+                                <div className="bg-surface rounded-lg p-3 space-y-1.5 text-sm border border-border">
+                                    <div className="flex justify-between">
+                                        <span className="text-muted">Aylıq icarə</span>
+                                        <span className="font-medium">{formatMoney(contract.monthlyRent)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted">× Keçən aylar</span>
+                                        <span className="font-medium">{monthsElapsed} ay</span>
+                                    </div>
+                                    <div className="flex justify-between border-t border-border pt-1.5">
+                                        <span className="text-muted">Hesablanmış cəmi</span>
+                                        <span className="font-bold">{formatMoney(totalExpected)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-muted">— Ödənilmiş</span>
+                                        <span className="font-bold text-green">{formatMoney(totalPaid)}</span>
+                                    </div>
                                 </div>
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted">Ödənilmiş</span>
-                                    <span className="font-bold text-green">{formatMoney(totalPaid)}</span>
-                                </div>
-                                <div className="pt-4 border-t border-border flex justify-between items-center">
+                                <div className="pt-2 border-t border-border flex justify-between items-center">
                                     <span className="text-sm font-bold text-text">Cari Borc</span>
-                                    <span className={`text-xl font-bold ${totalDebt > 0 ? 'text-red' : 'text-green'}`}>
+                                    <span className={`text-2xl font-bold ${totalDebt > 0 ? 'text-red' : 'text-green'}`}>
                                         {formatMoney(totalDebt)}
                                     </span>
                                 </div>
                             </CardContent>
                         </Card>
+
+                        {/* Deposit Card */}
+                        {Number(contract.depositAmount) > 0 && (
+                            <Card variant="elevated">
+                                <CardContent className="p-4 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <ShieldCheck className={`w-8 h-8 ${contract.isDepositReturned ? 'text-green' : 'text-gold'}`} />
+                                        <div>
+                                            <p className="text-sm font-medium text-text">Depozit</p>
+                                            <p className="text-xs text-muted">{formatMoney(Number(contract.depositAmount))}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant={contract.isDepositReturned ? 'aktiv' : 'draft'}>
+                                            {contract.isDepositReturned ? 'Qaytarildı' : 'Saxlanılır'}
+                                        </Badge>
+                                        {canManagePenalties && (
+                                            <Button variant="ghost" size="sm" onClick={handleToggleDeposit} disabled={isTogglingDeposit}>
+                                                {isTogglingDeposit ? '...' : contract.isDepositReturned ? 'Geri al' : 'Qaytarilıb'}
+                                            </Button>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Penalty Button */}
+                        {canManagePenalties && computedStatus === 'ACTIVE' && (
+                            <Card variant="elevated">
+                                <CardContent className="p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <AlertCircle className="w-5 h-5 text-red" />
+                                            <span className="text-sm font-medium text-text">Cərimə</span>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="border-red/40 text-red hover:bg-red/10"
+                                            onClick={() => setShowPenaltyModal(true)}
+                                        >
+                                            Cərimə tətbiq et
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Quick Add Form */}
                         <Card variant="default">

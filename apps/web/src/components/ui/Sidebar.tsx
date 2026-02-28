@@ -9,6 +9,7 @@ import {
     Receipt,
     FolderOpen,
     Users,
+    UserCheck,
     Settings,
     Sparkles,
     X,
@@ -19,6 +20,7 @@ const allNavItems = [
     { name: 'İdarə Paneli', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Müqavilələr', path: '/contracts', icon: FileText },
     { name: 'Obyektlər', path: '/properties', icon: Home },
+    { name: 'İcarəçilər', path: '/tenants', icon: UserCheck },
     { name: 'Mədaxil', path: '/income', icon: TrendingUp },
     { name: 'Məxaric', path: '/expenses', icon: Receipt },
     { name: 'Sənədlər', path: '/documents', icon: FolderOpen },
@@ -32,11 +34,11 @@ export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: bool
 
     const navItems = React.useMemo(() => {
         const allowedMenu = {
-            OWNER: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'Mədaxil', 'Məxaric', 'Sənədlər', '✦ Sənəd Ustası AI', 'İstifadəçilər', 'Parametrlər'],
-            MANAGER: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'Mədaxil', 'Məxaric', 'Sənədlər', '✦ Sənəd Ustası AI', 'İstifadəçilər', 'Parametrlər'],
+            OWNER: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'İcarəçilər', 'Mədaxil', 'Məxaric', 'Sənədlər', '✦ Sənəd Ustası AI', 'İstifadəçilər', 'Parametrlər'],
+            MANAGER: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'İcarəçilər', 'Mədaxil', 'Məxaric', 'Sənədlər', '✦ Sənəd Ustası AI', 'İstifadəçilər', 'Parametrlər'],
             CASHIER: ['İdarə Paneli', 'Mədaxil', 'Məxaric'],
-            ACCOUNTANT: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'Sənədlər', '✦ Sənəd Ustası AI'],
-            ADMINISTRATOR: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'Sənədlər', '✦ Sənəd Ustası AI'],
+            ACCOUNTANT: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'İcarəçilər', 'Sənədlər', '✦ Sənəd Ustası AI'],
+            ADMINISTRATOR: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'İcarəçilər', 'Sənədlər', '✦ Sənəd Ustası AI'],
             TENANT: [],
         };
 
