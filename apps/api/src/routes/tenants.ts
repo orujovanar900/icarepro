@@ -7,8 +7,8 @@ import { sendZodError } from '../utils/zodError.js'
 import { withOrg } from '../utils/withOrg.js'
 
 const commonFields = {
-    phone: z.string().regex(/^\+994\d{9}$/, 'Must be in +994XXXXXXXXX format'),
-    phone2: z.string().optional(),
+    phone: z.string().regex(/^\+994\d{9}$/, 'Must be in +994XXXXXXXXX format').optional().or(z.literal('')),
+    phone2: z.string().regex(/^\+994\d{9}$/, 'Must be in +994XXXXXXXXX format').optional().or(z.literal('')),
     email: z.string().email().optional().or(z.literal('')),
     address: z.string().optional(),
     notes: z.string().optional(),
@@ -33,7 +33,7 @@ const huquqiSchema = z.object({
     tenantType: z.literal('huquqi'),
     companyName: z.string().min(1, 'Şirkət adı daxil edilməlidir'),
     voen: z.string().regex(/^\d{10}$/, 'VÖEN 10 rəqəm olmalıdır').optional().or(z.literal('')),
-    directorName: z.string().min(1, 'Direktor adı daxil edilməlidir'),
+    directorName: z.string().optional(),
     companyAddress: z.string().optional(),
     bankName: z.string().optional(),
     bankCode: z.string().optional(),

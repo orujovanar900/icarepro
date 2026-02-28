@@ -78,7 +78,7 @@ export function TenantForm() {
     const isOwner = user?.role === 'OWNER';
 
     const [tenantType, setTenantType] = useState<'fiziki' | 'huquqi'>('fiziki');
-    const [form, setForm] = useState<Record<string, any>>(FIZIKI_DEFAULTS);
+    const [form, setForm] = useState<any>(FIZIKI_DEFAULTS);
     const [errors, setErrors] = useState<Record<string, string | null>>({});
     const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -119,13 +119,13 @@ export function TenantForm() {
     const validate = () => {
         const newErrors: Record<string, string | null> = {};
         if (tenantType === 'fiziki') {
-            if (!form.firstName) newErrors.firstName = 'Ad daxil edilməlidir';
-            if (!form.lastName) newErrors.lastName = 'Soyad daxil edilməlidir';
+            if (!form['firstName']) newErrors['firstName'] = 'Ad daxil edilməlidir';
+            if (!form['lastName']) newErrors['lastName'] = 'Soyad daxil edilməlidir';
         } else {
-            if (!form.companyName) newErrors.companyName = 'Şirkət adı daxil edilməlidir';
+            if (!form['companyName']) newErrors['companyName'] = 'Şirkət adı daxil edilməlidir';
         }
         // Validate phone if filled
-        if (form.phone) newErrors.phone = validateField('phone', form.phone);
+        if (form['phone']) newErrors['phone'] = validateField('phone', form['phone']);
         Object.entries(form).forEach(([k, v]) => {
             if (typeof v === 'string') {
                 const err = validateField(k, v);
@@ -157,7 +157,7 @@ export function TenantForm() {
         e.preventDefault();
         if (!validate()) return;
         setSubmitError(null);
-        const payload = { ...form, tenantType };
+        const payload: Record<string, any> = { ...form, tenantType };
         // Clean up empty strings to undefined
         Object.keys(payload).forEach((k) => {
             if (payload[k] === '') payload[k] = undefined;

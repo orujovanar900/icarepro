@@ -12,6 +12,7 @@ interface Property {
 
 interface SimpleMapProps {
     compact?: boolean;
+    hidePanel?: boolean;
     properties: Property[];
     onPropertyClick?: (id: string) => void;
 }
@@ -28,8 +29,8 @@ const STATUS_LABEL: Record<string, string> = {
     expired: 'Bitmişdir',
 };
 
-export default function SimpleMap({ compact = false, properties, onPropertyClick }: SimpleMapProps) {
-    const height = compact ? 220 : 380;
+export default function SimpleMap({ compact = false, hidePanel = false, properties, onPropertyClick }: SimpleMapProps) {
+    const height = compact ? '100%' : 380;
 
     // OpenStreetMap iframe — Baku area, zero JS dependencies
     const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=49.65,40.30,50.05,40.55&layer=mapnik`;
@@ -43,8 +44,8 @@ export default function SimpleMap({ compact = false, properties, onPropertyClick
                 loading="lazy"
             />
 
-            {/* Property overlay panel */}
-            {properties.length > 0 && (
+            {/* Property overlay panel — hidden when Dashboard shows its own side list */}
+            {!hidePanel && properties.length > 0 && (
                 <div style={{
                     position: 'absolute',
                     top: 8,
@@ -52,7 +53,7 @@ export default function SimpleMap({ compact = false, properties, onPropertyClick
                     background: 'rgba(255,255,255,0.97)',
                     borderRadius: 10,
                     padding: '6px 6px 2px',
-                    maxHeight: height - 20,
+                    maxHeight: compact ? 200 : (height as number) - 20,
                     overflowY: 'auto',
                     boxShadow: '0 2px 10px rgba(0,0,0,0.18)',
                     minWidth: 190,

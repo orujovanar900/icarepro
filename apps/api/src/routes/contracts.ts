@@ -291,6 +291,59 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
 
         return reply.send({ success: true, data: contract })
     })
+
+    // GET /contracts/:id/audit-logs
+    fastify.get('/:id/audit-logs', { preHandler: [authenticate] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const exists = await fastify.prisma.contract.findFirst({ where: { id, ...withOrg(req) } })
+        if (!exists) return reply.code(404).send({ success: false, error: 'Contract not found' })
+
+        const logs = await fastify.prisma.auditLog.findMany({
+            where: { entityType: 'Contract', entityId: id },
+            include: { user: { select: { id: true, name: true, email: true, role: true } } },
+            orderBy: { createdAt: 'desc' },
+            take: 50,
+        })
+
+        return reply.send({ success: true, data: logs })
+    })
+
+    // POST /contracts/:id/renew — extend end date
+    fastify.post('/:id/renew', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ADMINISTRATOR'])] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const body = req.body as { newEndDate: string; newMonthlyRent?: number; note?: string }
+
+        if (!body.newEndDate) return reply.code(400).send({ success: false, error: 'newEndDate is required' })
+
+        const old = await fastify.prisma.contract.findFirst({ where: { id, ...withOrg(req) } })
+        if (!old) return reply.code(404).send({ success: false, error: 'Contract not found' })
+
+        const updateData: Record<string, unknown> = {
+            endDate: new Date(body.newEndDate),
+            status: 'ACTIVE',
+        }
+        if (body.newMonthlyRent !== undefined) updateData['monthlyRent'] = body.newMonthlyRent
+
+        const contract = await fastify.prisma.contract.update({
+            where: { id },
+            data: updateData as never,
+        })
+
+        await writeAuditLog(fastify.prisma, {
+            organizationId: req.user.organizationId,
+            userId: req.user.sub,
+            action: 'RENEW_CONTRACT',
+            entityType: 'Contract',
+            entityId: id,
+            metadata: {
+                oldEndDate: old.endDate,
+                newEndDate: body.newEndDate,
+                note: body.note ?? null,
+            },
+        })
+
+        return reply.send({ success: true, data: contract })
+    })
 }
 
 export default contractsRoutes

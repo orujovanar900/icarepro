@@ -493,6 +493,7 @@ function DashboardContent() {
                         <div style={{ width: '320px', height: '320px', borderRadius: '12px', flexShrink: 0, overflow: 'hidden' }}>
                             <SimpleMap
                                 compact
+                                hidePanel
                                 properties={mapProperties.map((p: any) => {
                                     const contract = mapContracts.find((c: any) => c.propertyId === p.id);
                                     let status: 'active' | 'expiring' | 'expired' = 'expired';
@@ -504,7 +505,11 @@ function DashboardContent() {
                                         id: p.id,
                                         name: p.name,
                                         address: p.address,
-                                        tenantName: contract?.tenant?.fullName,
+                                        tenantName: contract?.tenant
+                                            ? contract.tenant.tenantType === 'fiziki'
+                                                ? `${contract.tenant.firstName || ''} ${contract.tenant.lastName || ''}`.trim()
+                                                : contract.tenant.companyName || ''
+                                            : undefined,
                                         rent: contract ? Number(contract.monthlyRent) : undefined,
                                         status,
                                     };
@@ -529,7 +534,11 @@ function DashboardContent() {
                                         <p className="text-xs text-muted truncate">{p.address || 'Ünvan yoxdur'}</p>
                                         {contract && (
                                             <div className="flex justify-between items-center mt-1">
-                                                <p className="text-xs text-text/80">{contract.tenant?.fullName}</p>
+                                                <p className="text-xs text-text/80">
+                                                    {contract.tenant?.tenantType === 'fiziki'
+                                                        ? `${contract.tenant?.firstName || ''} ${contract.tenant?.lastName || ''}`.trim()
+                                                        : contract.tenant?.companyName || ''}
+                                                </p>
                                                 <p className="text-xs font-bold text-gold">{formatMoney(Number(contract.monthlyRent))}</p>
                                             </div>
                                         )}
