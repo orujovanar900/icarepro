@@ -490,7 +490,7 @@ function DashboardContent() {
                 </CardHeader>
                 <CardContent className="p-0">
                     <div style={{ display: 'flex', flexDirection: 'row', gap: '16px', alignItems: 'flex-start', padding: '16px' }}>
-                        <div style={{ width: '320px', height: '320px', borderRadius: '12px', flexShrink: 0, overflow: 'hidden' }}>
+                        <div style={{ flex: '3', height: '360px', borderRadius: '12px', flexShrink: 0, overflow: 'hidden', minWidth: 0 }}>
                             <SimpleMap
                                 compact
                                 hidePanel
@@ -517,7 +517,7 @@ function DashboardContent() {
                                 onPropertyClick={(id) => navigate(`/properties/${id}`)}
                             />
                         </div>
-                        <div style={{ flex: 1, height: '320px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }} className="custom-scrollbar pr-2">
+                        <div style={{ flex: '2', height: '360px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '220px' }} className="custom-scrollbar pr-2">
                             {mapProperties.map((p: any) => {
                                 const contract = mapContracts.find((c: any) => c.propertyId === p.id);
                                 let status: 'active' | 'expiring' | 'expired' = 'expired';
