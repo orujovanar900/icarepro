@@ -245,7 +245,7 @@ DİL:
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Mesajınızı yazın..."
-                        className="flex-1 bg-gray-100 rounded-full px-4 text-[14px] outline-none focus:ring-2 focus:ring-purple-500/50 transition-all placeholder:text-gray-400"
+                        className="flex-1 bg-gray-100 rounded-full px-4 text-[14px] text-gray-900 outline-none focus:ring-2 focus:ring-purple-500/50 transition-all placeholder:text-gray-400"
                         disabled={isLoading}
                     />
                     <button
