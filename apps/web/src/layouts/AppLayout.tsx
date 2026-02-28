@@ -4,6 +4,7 @@ import { Sidebar } from '@/components/ui/Sidebar';
 import { TopBar } from '@/components/ui/TopBar';
 import { BottomNav } from '@/components/ui/BottomNav';
 import { ToastContainer } from '@/components/ui/Toast';
+import { PageSkeleton } from '@/components/ui/PageSkeleton';
 
 export function AppLayout() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
@@ -14,7 +15,9 @@ export function AppLayout() {
             <div className="flex flex-1 flex-col overflow-hidden">
                 <TopBar onMenuClick={() => setIsMobileMenuOpen(true)} />
                 <main className="flex-1 overflow-y-auto bg-bg p-4 md:p-6 pb-[70px] md:pb-6 relative main-content">
-                    <Outlet />
+                    <React.Suspense fallback={<PageSkeleton />}>
+                        <Outlet />
+                    </React.Suspense>
                 </main>
             </div>
             <BottomNav />

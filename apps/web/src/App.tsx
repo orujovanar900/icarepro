@@ -5,6 +5,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { PageSkeleton } from './components/ui/PageSkeleton';
 import { SupportChat } from './components/SupportChat';
 import { PublicRoute } from './components/PublicRoute';
+import { GlobalErrorBoundary } from './components/GlobalErrorBoundary';
 
 const Landing = React.lazy(() => import('./pages/Landing').then(m => ({ default: m.Landing })));
 const Login = React.lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
@@ -30,61 +31,63 @@ const NotFound = React.lazy(() => import('./pages/NotFound').then(m => ({ defaul
 
 export default function App() {
     return (
-        <Router>
-            <SupportChat />
-            <Suspense fallback={<PageSkeleton />}>
-                <Routes>
-                    {/* Public Routes — redirect to /dashboard if already logged in */}
-                    <Route element={<PublicRoute />}>
-                        <Route path="/" element={<Landing />} />
-                        <Route path="/login" element={<Login />} />
-                        <Route path="/register" element={<Register />} />
-                    </Route>
-
-                    {/* Always-public auth pages (password reset links, etc.) */}
-                    <Route path="/forgot-password" element={<ForgotPassword />} />
-                    <Route path="/reset-password" element={<ResetPassword />} />
-
-                    {/* Protected Routes directly hitting the AppLayout */}
-                    <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
-                        {/* Full Screen AI Chat Interface */}
-                        <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
-                            <Route path="/sanad-ustasi" element={<SanadUstasi />} />
+        <GlobalErrorBoundary>
+            <Router>
+                <SupportChat />
+                <Suspense fallback={<PageSkeleton />}>
+                    <Routes>
+                        {/* Public Routes — redirect to /dashboard if already logged in */}
+                        <Route element={<PublicRoute />}>
+                            <Route path="/" element={<Landing />} />
+                            <Route path="/login" element={<Login />} />
+                            <Route path="/register" element={<Register />} />
                         </Route>
 
-                        <Route element={<AppLayout />}>
-                            <Route path="/dashboard" element={<Dashboard />} />
-                            <Route path="/profile" element={<Profile />} />
+                        {/* Always-public auth pages (password reset links, etc.) */}
+                        <Route path="/forgot-password" element={<ForgotPassword />} />
+                        <Route path="/reset-password" element={<ResetPassword />} />
 
+                        {/* Protected Routes directly hitting the AppLayout */}
+                        <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
+                            {/* Full Screen AI Chat Interface */}
                             <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
-                                <Route path="/contracts" element={<Contracts />} />
-                                <Route path="/contracts/:id" element={<ContractDetail />} />
-                                <Route path="/properties" element={<Properties />} />
-                                <Route path="/properties/:id" element={<PropertyDetail />} />
-                                <Route path="/tenants" element={<Tenants />} />
-                                <Route path="/tenants/new" element={<TenantForm />} />
-                                <Route path="/tenants/:id" element={<TenantDetail />} />
-                                <Route path="/tenants/:id/edit" element={<TenantForm />} />
-                                <Route path="/documents" element={<Documents />} />
+                                <Route path="/sanad-ustasi" element={<SanadUstasi />} />
                             </Route>
 
-                            <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER', 'CASHIER']} />}>
-                                <Route path="/income" element={<Income />} />
-                                <Route path="/expenses" element={<Expenses />} />
-                            </Route>
+                            <Route element={<AppLayout />}>
+                                <Route path="/dashboard" element={<Dashboard />} />
+                                <Route path="/profile" element={<Profile />} />
 
-                            {/* OWNER & MANAGER only routes */}
-                            <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER']} />}>
-                                <Route path="/users" element={<Users />} />
-                                <Route path="/settings" element={<Settings />} />
+                                <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
+                                    <Route path="/contracts" element={<Contracts />} />
+                                    <Route path="/contracts/:id" element={<ContractDetail />} />
+                                    <Route path="/properties" element={<Properties />} />
+                                    <Route path="/properties/:id" element={<PropertyDetail />} />
+                                    <Route path="/tenants" element={<Tenants />} />
+                                    <Route path="/tenants/new" element={<TenantForm />} />
+                                    <Route path="/tenants/:id" element={<TenantDetail />} />
+                                    <Route path="/tenants/:id/edit" element={<TenantForm />} />
+                                    <Route path="/documents" element={<Documents />} />
+                                </Route>
+
+                                <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER', 'CASHIER']} />}>
+                                    <Route path="/income" element={<Income />} />
+                                    <Route path="/expenses" element={<Expenses />} />
+                                </Route>
+
+                                {/* OWNER & MANAGER only routes */}
+                                <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER']} />}>
+                                    <Route path="/users" element={<Users />} />
+                                    <Route path="/settings" element={<Settings />} />
+                                </Route>
                             </Route>
                         </Route>
-                    </Route>
 
-                    {/* 404 */}
-                    <Route path="*" element={<NotFound />} />
-                </Routes>
-            </Suspense>
-        </Router>
+                        {/* 404 */}
+                        <Route path="*" element={<NotFound />} />
+                    </Routes>
+                </Suspense>
+            </Router>
+        </GlobalErrorBoundary>
     );
 }
