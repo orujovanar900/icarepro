@@ -21,8 +21,13 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply) {
             select: { id: true, email: true, role: true, organizationId: true, name: true, jwtVersion: true, avatarUrl: true },
         })
 
-        if (!user || user.jwtVersion !== payload.jwtVersion) {
+        // Only invalidate if the DB has a jwtVersion AND it doesn't match the token.
+        // If jwtVersion is null (not yet set), allow any token through (backward compat).
+        if (!user) {
             return reply.code(401).send({ success: false, error: 'Unauthorized' })
+        }
+        if (user.jwtVersion !== null && user.jwtVersion !== (payload.jwtVersion ?? null)) {
+            return reply.code(401).send({ success: false, error: 'Session expired. Please log in again.' })
         }
 
         // Нормализуем req.user
