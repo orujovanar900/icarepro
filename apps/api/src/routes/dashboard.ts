@@ -47,7 +47,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
             fastify.prisma.contract.findMany({
                 where: { ...org, status: 'ACTIVE' },
                 include: {
-                    tenant: { select: { fullName: true } },
+                    tenant: { select: { tenantType: true, firstName: true, lastName: true, companyName: true } },
                     property: { select: { name: true } },
                     payments: { select: { amount: true } },
                 },
@@ -59,7 +59,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
                     id: true,
                     number: true,
                     endDate: true,
-                    tenant: { select: { fullName: true } },
+                    tenant: { select: { tenantType: true, firstName: true, lastName: true, companyName: true } },
                     property: { select: { name: true } },
                 },
                 orderBy: { endDate: 'asc' },
@@ -128,7 +128,6 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
             }
 
             if (debt > 0) {
-                // Determine expected payment date & days overdue
                 let daysOverdue = 0
                 const monthsPaidFully = Math.floor(totalPaid / Number(c.monthlyRent))
                 const expectedDate = new Date(start)
@@ -142,7 +141,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
                 debtors.push({
                     contractId: c.id,
                     contractNumber: c.number,
-                    tenantName: c.tenant.fullName,
+                    tenantName: c.tenant.tenantType === 'fiziki' ? `${c.tenant.firstName || ''} ${c.tenant.lastName || ''}`.trim() : c.tenant.companyName || '',
                     propertyName: c.property.name,
                     debtAmount: debt,
                     daysOverdue,
@@ -179,7 +178,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
         const expiringContracts = expiringContractsRaw.map((c: any) => ({
             contractId: c.id,
             number: c.number,
-            tenantName: c.tenant.fullName,
+            tenantName: c.tenant.tenantType === 'fiziki' ? `${c.tenant.firstName || ''} ${c.tenant.lastName || ''}`.trim() : c.tenant.companyName || '',
             propertyName: c.property.name,
             endDate: c.endDate,
             daysLeft: Math.ceil((new Date(c.endDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),

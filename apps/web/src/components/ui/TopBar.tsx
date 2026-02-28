@@ -4,11 +4,12 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { LogOut, User as UserIcon, Menu, Bell } from 'lucide-react';
 import { Button } from './Button';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
     const { user, logout } = useAuthStore();
     const location = useLocation();
+    const navigate = useNavigate();
 
     // Notifications State
     const [isNotifOpen, setIsNotifOpen] = React.useState(false);
@@ -36,6 +37,7 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
         'sanad-ustasi': 'Sənəd Ustası',
         'users': 'İstifadəçilər',
         'settings': 'Parametrlər',
+        'profile': 'Profil',
     };
 
     const pathBase = location.pathname.split('/')[1] || 'dashboard';
@@ -107,9 +109,16 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
                     )}
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gold/20 text-gold">
-                        {user?.name?.charAt(0) || <UserIcon className="h-4 w-4" />}
+                <button
+                    onClick={() => navigate('/profile')}
+                    className="flex items-center gap-2 hover:bg-surface-hover p-1.5 rounded-lg transition-colors"
+                >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gold/20 text-gold overflow-hidden">
+                        {(user as any)?.avatarUrl ? (
+                            <img src={(user as any).avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                        ) : (
+                            user?.name?.charAt(0) || <UserIcon className="h-4 w-4" />
+                        )}
                     </div>
                     <span className="text-sm font-medium hidden sm:inline-block">
                         {user?.name}
@@ -117,7 +126,7 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
                     <span className="rounded bg-border px-1.5 py-0.5 text-xs text-muted md:ml-2">
                         {user?.role}
                     </span>
-                </div>
+                </button>
 
                 <div className="hidden md:block h-6 w-px bg-border" />
 

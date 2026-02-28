@@ -6,14 +6,44 @@ import { requireRole } from '../middleware/requireRole.js'
 import { sendZodError } from '../utils/zodError.js'
 import { withOrg } from '../utils/withOrg.js'
 
-const createSchema = z.object({
-    fullName: z.string().min(1),
-    phone: z.string().min(1),
-    email: z.email().optional(),
-    voen: z.string().optional(),
+const commonFields = {
+    phone: z.string().regex(/^\+994\d{9}$/, 'Must be in +994XXXXXXXXX format'),
+    phone2: z.string().optional(),
+    email: z.string().email().optional().or(z.literal('')),
+    address: z.string().optional(),
+    notes: z.string().optional(),
+    isBlacklisted: z.coerce.boolean().default(false),
+    blacklistReason: z.string().optional(),
+}
+
+const fizikiSchema = z.object({
+    tenantType: z.literal('fiziki'),
+    firstName: z.string().min(1, 'Ad daxil edilməlidir'),
+    lastName: z.string().min(1, 'Soyad daxil edilməlidir'),
+    fatherName: z.string().optional(),
+    fin: z.string().length(7, 'FİN 7 simvol olmalıdır').optional().or(z.literal('')),
+    passportSeries: z.string().regex(/^[A-Z]{2}\d{7}$/, 'Format: AA1234567').optional().or(z.literal('')),
+    passportIssuedBy: z.string().optional(),
+    passportIssuedAt: z.string().date().optional().or(z.literal('')),
+    birthDate: z.string().date().optional().or(z.literal('')),
+    ...commonFields,
 })
 
-const updateSchema = createSchema.partial()
+const huquqiSchema = z.object({
+    tenantType: z.literal('huquqi'),
+    companyName: z.string().min(1, 'Şirkət adı daxil edilməlidir'),
+    voen: z.string().regex(/^\d{10}$/, 'VÖEN 10 rəqəm olmalıdır').optional().or(z.literal('')),
+    directorName: z.string().min(1, 'Direktor adı daxil edilməlidir'),
+    companyAddress: z.string().optional(),
+    bankName: z.string().optional(),
+    bankCode: z.string().optional(),
+    iban: z.string().regex(/^AZ\d{2}[A-Z]{4}[A-Z0-9]{20}$/).optional().or(z.literal('')),
+    ...commonFields,
+})
+
+const createSchema = z.discriminatedUnion('tenantType', [fizikiSchema, huquqiSchema])
+const updateSchema = z.union([fizikiSchema.partial(), huquqiSchema.partial()])
+
 
 const tenantsRoutes: FastifyPluginAsync = async (fastify) => {
     const supabase = createClient(
@@ -29,9 +59,12 @@ const tenantsRoutes: FastifyPluginAsync = async (fastify) => {
                 ...withOrg(req),
                 ...(search ? {
                     OR: [
-                        { fullName: { contains: search, mode: 'insensitive' } },
+                        { firstName: { contains: search, mode: 'insensitive' } },
+                        { lastName: { contains: search, mode: 'insensitive' } },
+                        { companyName: { contains: search, mode: 'insensitive' } },
                         { phone: { contains: search } },
                         { voen: { contains: search } },
+                        { fin: { contains: search } },
                     ]
                 } : {}),
             },
@@ -43,9 +76,15 @@ const tenantsRoutes: FastifyPluginAsync = async (fastify) => {
                 },
                 _count: { select: { contracts: true } },
             },
-            orderBy: { fullName: 'asc' },
+            orderBy: { createdAt: 'desc' }, // Switched to createdAt, fullName no longer exists
         })
-        return reply.send({ success: true, data: tenants, meta: { total: tenants.length } })
+
+        const tenantsMapped = tenants.map(t => ({
+            ...t,
+            fullName: t.tenantType === 'fiziki' ? `${t.firstName || ''} ${t.lastName || ''}`.trim() : t.companyName || '',
+        }))
+
+        return reply.send({ success: true, data: tenantsMapped, meta: { total: tenantsMapped.length } })
     })
 
     // GET /tenants/:id
@@ -65,7 +104,13 @@ const tenantsRoutes: FastifyPluginAsync = async (fastify) => {
             },
         })
         if (!tenant) return reply.code(404).send({ success: false, error: 'Tenant not found' })
-        return reply.send({ success: true, data: tenant })
+
+        const tenantMapped = {
+            ...tenant,
+            fullName: tenant.tenantType === 'fiziki' ? `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() : tenant.companyName || '',
+        }
+
+        return reply.send({ success: true, data: tenantMapped })
     })
 
     // POST /tenants

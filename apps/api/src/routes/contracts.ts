@@ -6,10 +6,45 @@ import { sendZodError } from '../utils/zodError.js'
 import { withOrg } from '../utils/withOrg.js'
 import { writeAuditLog } from '../utils/audit.js'
 
+// Inline tenant creation schema (mirrors the full tenant schemas)
+const newTenantSchema = z.union([
+    z.object({
+        tenantType: z.literal('fiziki'),
+        firstName: z.string().min(1),
+        lastName: z.string().min(1),
+        fatherName: z.string().optional(),
+        fin: z.string().optional(),
+        passportSeries: z.string().optional(),
+        passportIssuedBy: z.string().optional(),
+        passportIssuedAt: z.string().optional(),
+        birthDate: z.string().optional(),
+        phone: z.string().optional(),
+        phone2: z.string().optional(),
+        email: z.string().email().optional().or(z.literal('')),
+        address: z.string().optional(),
+        notes: z.string().optional(),
+    }),
+    z.object({
+        tenantType: z.literal('huquqi'),
+        companyName: z.string().min(1),
+        voen: z.string().optional(),
+        directorName: z.string().optional(),
+        companyAddress: z.string().optional(),
+        bankName: z.string().optional(),
+        bankCode: z.string().optional(),
+        iban: z.string().optional(),
+        phone: z.string().optional(),
+        phone2: z.string().optional(),
+        email: z.string().email().optional().or(z.literal('')),
+        address: z.string().optional(),
+        notes: z.string().optional(),
+    }),
+])
+
 const createSchema = z.object({
     number: z.string().min(1),
     propertyId: z.string().min(1),
-    tenantId: z.string().min(1),
+    tenantId: z.string().optional(), // optional if newTenant is provided
     rentalType: z.enum(['RESIDENTIAL_LONG', 'COMMERCIAL', 'RESIDENTIAL_SHORT', 'PARKING', 'SUBLEASE']),
     monthlyRent: z.number().positive(),
     startDate: z.string().date(),
@@ -21,9 +56,14 @@ const createSchema = z.object({
     dailyRate: z.number().min(0).optional(),
     parentContractId: z.string().optional(),
     notes: z.string().optional(),
+    // Inline tenant creation
+    newTenant: newTenantSchema.optional(),
+    // When existing tenant's data was changed in contract form
+    updateTenant: z.boolean().optional(),
 })
 
 const updateSchema = createSchema.partial()
+
 
 const listQuerySchema = z.object({
     status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED']).optional(),
@@ -51,7 +91,15 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
             ...(search ? {
                 OR: [
                     { number: { contains: search, mode: 'insensitive' as const } },
-                    { tenant: { fullName: { contains: search, mode: 'insensitive' as const } } },
+                    {
+                        tenant: {
+                            OR: [
+                                { firstName: { contains: search, mode: 'insensitive' as const } },
+                                { lastName: { contains: search, mode: 'insensitive' as const } },
+                                { companyName: { contains: search, mode: 'insensitive' as const } },
+                            ]
+                        }
+                    },
                     { property: { name: { contains: search, mode: 'insensitive' as const } } },
                 ],
             } : {}),
@@ -62,7 +110,7 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
                 where,
                 include: {
                     property: { select: { id: true, number: true, name: true, address: true } },
-                    tenant: { select: { id: true, fullName: true, phone: true, email: true } },
+                    tenant: { select: { id: true, tenantType: true, firstName: true, lastName: true, companyName: true, phone: true, email: true } },
                     _count: { select: { payments: true } },
                 },
                 orderBy: { [sortBy]: sortOrder },
@@ -74,7 +122,16 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
 
         // Calculate computed debt, expectedPaymentDate, and daysOverdue
         const contractsWithDebt = await Promise.all(contracts.map(async (c: any) => {
-            if (c.status !== 'ACTIVE') return { ...c, debt: 0, daysOverdue: 0 }
+            const tenantFullName = c.tenant.tenantType === 'fiziki'
+                ? `${c.tenant.firstName || ''} ${c.tenant.lastName || ''}`.trim()
+                : c.tenant.companyName || ''
+
+            if (c.status !== 'ACTIVE') return {
+                ...c,
+                tenant: { ...c.tenant, fullName: tenantFullName },
+                debt: 0,
+                daysOverdue: 0
+            }
 
             const totalPaidAgg = await fastify.prisma.payment.aggregate({
                 _sum: { amount: true },
@@ -144,10 +201,24 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
         const body = createSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
 
-        const { startDate, endDate, monthlyRent, ...rest } = body.data
+        const { startDate, endDate, monthlyRent, newTenant, updateTenant, ...rest } = body.data
+
+        // Resolve tenantId: either existing or create a new tenant inline
+        let tenantId = rest.tenantId
+        if (!tenantId && !newTenant) {
+            return reply.code(400).send({ success: false, error: 'Either tenantId or newTenant must be provided' })
+        }
+        if (newTenant) {
+            const createdTenant = await fastify.prisma.tenant.create({
+                data: { ...newTenant, ...withOrg(req) } as never,
+            })
+            tenantId = createdTenant.id
+        }
+
         const contract = await fastify.prisma.contract.create({
             data: {
                 ...rest,
+                tenantId: tenantId!,
                 ...withOrg(req),
                 monthlyRent,
                 startDate: new Date(startDate),

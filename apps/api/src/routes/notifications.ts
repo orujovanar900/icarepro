@@ -33,7 +33,7 @@ const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
                 status: 'ACTIVE',
                 endDate: { gte: now, lte: in30Days }
             },
-            include: { property: true, tenant: true }
+            include: { property: true, tenant: { select: { id: true, tenantType: true, firstName: true, lastName: true, companyName: true } } }
         })
 
         for (const c of expiringContracts) {
@@ -42,7 +42,7 @@ const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
                 id: `exp-${c.id}`,
                 type: 'CONTRACT_EXPIRING',
                 title: 'Müqavilə bitir',
-                message: `${c.property.name} əmlakında ${c.tenant.fullName} ilə olan müqavilənin bitməsinə ${daysLeft} gün qalıb.`,
+                message: `${c.property.name} əmlakında ${c.tenant.tenantType === 'fiziki' ? `${c.tenant.firstName || ''} ${c.tenant.lastName || ''}`.trim() : c.tenant.companyName || ''} ilə olan müqavilənin bitməsinə ${daysLeft} gün qalıb.`,
                 date: new Date(c.endDate),
                 metadata: { contractId: c.id, tenantId: c.tenant.id, propertyId: c.property.id }
             })
@@ -51,7 +51,7 @@ const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
         // 2 & 3. Overdue Payments & Payment Due Reminders
         const activeContracts = await fastify.prisma.contract.findMany({
             where: { ...org, status: 'ACTIVE' },
-            include: { tenant: true, property: true, payments: true }
+            include: { tenant: { select: { id: true, tenantType: true, firstName: true, lastName: true, companyName: true } }, property: true, payments: true }
         })
 
         for (const c of activeContracts) {
@@ -72,7 +72,7 @@ const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
                         id: `overdue-${c.id}`,
                         type: 'PAYMENT_OVERDUE',
                         title: 'Gecikmiş Ödəniş',
-                        message: `${c.tenant.fullName} (${c.property.name}) ödənişi ${daysOverdue} gün gecikdirilir.`,
+                        message: `${c.tenant.tenantType === 'fiziki' ? `${c.tenant.firstName || ''} ${c.tenant.lastName || ''}`.trim() : c.tenant.companyName || ''} (${c.property.name}) ödənişi ${daysOverdue} gün gecikdirilir.`,
                         date: nextExpectedDate,
                         metadata: { contractId: c.id, daysOverdue }
                     })
@@ -85,7 +85,7 @@ const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
                     id: `due-${c.id}`,
                     type: 'PAYMENT_DUE',
                     title: 'Yaxınlaşan Ödəniş',
-                    message: `${c.tenant.fullName} (${c.property.name}) üçün ödəniş vaxtına ${daysLeft} gün qalıb.`,
+                    message: `${c.tenant.tenantType === 'fiziki' ? `${c.tenant.firstName || ''} ${c.tenant.lastName || ''}`.trim() : c.tenant.companyName || ''} (${c.property.name}) üçün ödəniş vaxtına ${daysLeft} gün qalıb.`,
                     date: nextExpectedDate,
                     metadata: { contractId: c.id, daysLeft }
                 })

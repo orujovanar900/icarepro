@@ -40,8 +40,11 @@ cron.schedule('0 9 * * *', async () => {
             const debt = Math.max(0, totalExpected - totalPaid);
 
             if (debt > 0) {
+                const tenantName = contract.tenant.tenantType === 'fiziki'
+                    ? `${contract.tenant.firstName || ''} ${contract.tenant.lastName || ''}`.trim()
+                    : contract.tenant.companyName || ''
                 await sendDebtAlert(owner.email, {
-                    tenantName: contract.tenant.fullName,
+                    tenantName,
                     propertyName: contract.property.name,
                     debtAmount: Number(debt.toFixed(2)),
                     contractNumber: contract.number
@@ -51,7 +54,7 @@ cron.schedule('0 9 * * *', async () => {
                     await sendTelegramAlert(
                         owner.telegramChatId,
                         `⚠️ <b>Borc xəbərdarlığı</b>\n` +
-                        `İcarəçi: ${contract.tenant.fullName}\n` +
+                        `İcarəçi: ${tenantName}\n` +
                         `Məbləğ: <b>${debt.toFixed(2)} ₼</b>`
                     );
                 }
@@ -89,7 +92,9 @@ cron.schedule('0 9 * * *', async () => {
             else continue;
 
             await sendExpiringContractAlert(owner.email, {
-                tenantName: contract.tenant.fullName,
+                tenantName: contract.tenant.tenantType === 'fiziki'
+                    ? `${contract.tenant.firstName || ''} ${contract.tenant.lastName || ''}`.trim()
+                    : contract.tenant.companyName || '',
                 propertyName: contract.property.name,
                 endDate: new Date(contract.endDate).toLocaleDateString('az-AZ'),
                 daysLeft,

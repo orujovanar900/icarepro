@@ -12,6 +12,7 @@ const createSchema = z.object({
     building: z.string().min(1),
     address: z.string().min(1),
     area: z.number().positive(),
+    status: z.enum(['VACANT', 'OCCUPIED', 'UNDER_REPAIR']).optional(),
 })
 
 const updateSchema = createSchema.partial()
@@ -55,7 +56,14 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
             }),
             fastify.prisma.property.count({ where: where as any })
         ])
-        return reply.send({ success: true, data: properties, meta: { total } })
+
+        // Dynamically compute 'OCCUPIED' if there's an active contract and not under repair
+        const mappedProperties = properties.map(p => ({
+            ...p,
+            status: p.status !== 'UNDER_REPAIR' && p._count.contracts > 0 ? 'OCCUPIED' : p.status
+        }))
+
+        return reply.send({ success: true, data: mappedProperties, meta: { total } })
     })
 
     // GET /properties/:id
@@ -67,13 +75,46 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
                 photos: { orderBy: { sortOrder: 'asc' } },
                 meterReadings: { orderBy: { readingDate: 'desc' }, take: 12 },
                 contracts: {
-                    include: { tenant: { select: { fullName: true, phone: true } } },
+                    include: { tenant: { select: { tenantType: true, firstName: true, lastName: true, companyName: true, phone: true } } },
                     orderBy: { startDate: 'desc' },
                 },
+                documents: { orderBy: { uploadedAt: 'desc' } },
             },
         })
         if (!property) return reply.code(404).send({ success: false, error: 'Property not found' })
-        return reply.send({ success: true, data: property })
+
+        // Map tenant name for each contract
+        const propertyMapped = {
+            ...property,
+            contracts: property.contracts.map(c => ({
+                ...c,
+                tenant: {
+                    ...c.tenant,
+                    fullName: c.tenant.tenantType === 'fiziki' ? `${c.tenant.firstName || ''} ${c.tenant.lastName || ''}`.trim() : c.tenant.companyName || '',
+                }
+            }))
+        }
+
+        // Apply status logic to the mapped property
+        if (propertyMapped.status !== 'UNDER_REPAIR' && propertyMapped.contracts.some((c: any) => c.status === 'ACTIVE')) {
+            propertyMapped.status = 'OCCUPIED'
+        }
+
+        return reply.send({ success: true, data: propertyMapped })
+    })
+
+    // GET /properties/:id/tenants
+    fastify.get('/:id/tenants', { preHandler: [authenticate] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const exists = await fastify.prisma.property.findFirst({ where: { id, ...withOrg(req) } })
+        if (!exists) return reply.code(404).send({ success: false, error: 'Property not found' })
+
+        const contracts = await fastify.prisma.contract.findMany({
+            where: { propertyId: id, ...withOrg(req) },
+            include: { tenant: true },
+            orderBy: { startDate: 'desc' }
+        })
+        return reply.send({ success: true, data: contracts })
     })
 
     // POST /properties
@@ -134,6 +175,69 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
         })
 
         return reply.code(201).send({ success: true, data: photo })
+    })
+
+    // POST /properties/:id/documents — multipart upload property documents
+    fastify.post('/:id/documents', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const exists = await fastify.prisma.property.findFirst({ where: { id, ...withOrg(req) } })
+        if (!exists) return reply.code(404).send({ success: false, error: 'Property not found' })
+
+        const data = await req.file()
+        if (!data) return reply.code(400).send({ success: false, error: 'No file uploaded' })
+
+        // Extract query parameters manually
+        const typeRaw = (req.query as Record<string, string>)['type']
+        const nameRaw = (req.query as Record<string, string>)['name']
+        const docType = (typeRaw && ['OWNERSHIP_CERT', 'TEX_PASSPORT'].includes(typeRaw) ? typeRaw : 'OWNERSHIP_CERT') as any
+
+        const fileBuffer = await data.toBuffer()
+        const ext = data.filename.split('.').pop() ?? 'pdf'
+        const path = `properties/${req.user.organizationId}/${id}/${Date.now()}.${ext}`
+
+        const { error } = await supabase.storage
+            .from('tenant-documents') // Recycled bucket since it handles private org files
+            .upload(path, fileBuffer, { contentType: data.mimetype, upsert: false })
+
+        if (error) {
+            fastify.log.error(error)
+            return reply.code(500).send({ success: false, error: 'Upload failed' })
+        }
+
+        const { data: { publicUrl } } = supabase.storage.from('tenant-documents').getPublicUrl(path)
+
+        const document = await fastify.prisma.propertyDocument.create({
+            data: {
+                propertyId: id,
+                filePath: publicUrl,
+                type: docType,
+                name: nameRaw || data.filename
+            },
+        })
+
+        return reply.code(201).send({ success: true, data: document })
+    })
+
+    // DELETE /properties/:id/documents/:docId
+    fastify.delete('/:id/documents/:docId', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
+        const { id, docId } = req.params as { id: string, docId: string }
+
+        await fastify.prisma.propertyDocument.delete({
+            where: { id: docId, propertyId: id, property: { ...withOrg(req) } }
+        }).catch(() => null)
+
+        return reply.code(204).send()
+    })
+
+    // DELETE /properties/:id/photos/:photoId
+    fastify.delete('/:id/photos/:photoId', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
+        const { id, photoId } = req.params as { id: string, photoId: string }
+
+        await fastify.prisma.propertyPhoto.delete({
+            where: { id: photoId, propertyId: id, property: { ...withOrg(req) } }
+        }).catch(() => null)
+
+        return reply.code(204).send()
     })
 }
 

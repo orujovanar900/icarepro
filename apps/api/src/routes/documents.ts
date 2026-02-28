@@ -55,7 +55,7 @@ export default async function documentsRoutes(app: FastifyInstance) {
                             id: true,
                             number: true,
                             tenantId: true,
-                            tenant: { select: { fullName: true } }
+                            tenant: { select: { tenantType: true, firstName: true, lastName: true, companyName: true } }
                         }
                     }
                 }
@@ -66,7 +66,7 @@ export default async function documentsRoutes(app: FastifyInstance) {
                 contractInfo = await app.prisma.contract.findUnique({
                     where: { id: contractId, organizationId: user.organizationId },
                     include: {
-                        tenant: { select: { fullName: true } },
+                        tenant: { select: { tenantType: true, firstName: true, lastName: true, companyName: true } },
                         property: { select: { name: true } }
                     }
                 })

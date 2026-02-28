@@ -22,6 +22,14 @@ const rentalTypeLabel: Record<string, string> = {
     SUBLEASE: 'Alt-icarə'
 };
 
+// Helper: compute tenant display name from new Fiziki/Hüquqi schema
+function getTenantName(tenant: any): string {
+    if (!tenant) return '-'
+    if (tenant.fullName) return tenant.fullName // backward compat
+    if (tenant.tenantType === 'fiziki') return `${tenant.firstName || ''} ${tenant.lastName || ''}`.trim() || '-'
+    return tenant.companyName || '-'
+}
+
 const payloadSchema = z.object({
     startDate: z.string(),
     endDate: z.string(),
@@ -57,7 +65,7 @@ function buildPdfDoc(payments: any[], startDate: string, endDate: string, orgNam
             { text: String(i + 1), alignment: 'center', fontSize: 9, fillColor: i % 2 === 0 ? '#f8f9fa' : '#ffffff' },
             { text: new Date(p.paymentDate).toLocaleDateString('az-AZ'), fontSize: 9, fillColor: i % 2 === 0 ? '#f8f9fa' : '#ffffff' },
             { text: p.contract?.number || '-', fontSize: 9, fillColor: i % 2 === 0 ? '#f8f9fa' : '#ffffff' },
-            { text: p.contract?.tenant?.fullName || '-', fontSize: 9, fillColor: i % 2 === 0 ? '#f8f9fa' : '#ffffff' },
+            { text: getTenantName(p.contract?.tenant), fontSize: 9, fillColor: i % 2 === 0 ? '#f8f9fa' : '#ffffff' },
             { text: p.contract?.property?.name || '-', fontSize: 9, fillColor: i % 2 === 0 ? '#f8f9fa' : '#ffffff' },
             { text: rentalTypeLabel[p.contract?.rentalType] || p.contract?.rentalType || '-', fontSize: 9, fillColor: i % 2 === 0 ? '#f8f9fa' : '#ffffff' },
             { text: p.paymentType || '-', fontSize: 9, color: p.paymentType === 'Borc' ? '#ef4444' : '#111827', bold: p.paymentType === 'Borc', fillColor: i % 2 === 0 ? '#f8f9fa' : '#ffffff' },
@@ -246,7 +254,7 @@ const hesabatRoutes: FastifyPluginAsync = async (app) => {
                     i + 1,
                     new Date(p.paymentDate).toLocaleDateString('az-AZ'),
                     p.contract?.number || '-',
-                    p.contract?.tenant?.fullName || '-',
+                    getTenantName(p.contract?.tenant),
                     p.contract?.property?.name || '-',
                     rentalTypeLabel[p.contract?.rentalType] || p.contract?.rentalType || '-',
                     p.paymentType,
@@ -665,7 +673,7 @@ const hesabatRoutes: FastifyPluginAsync = async (app) => {
                 row.getCell(1).value = i + 1;
                 row.getCell(2).value = r.property.name;
                 row.getCell(3).value = r.property.number || r.property.address || '-';
-                row.getCell(4).value = r.contract?.tenant?.fullName || '-';
+                row.getCell(4).value = getTenantName(r.contract?.tenant);
                 row.getCell(5).value = r.contract ? Number(r.contract.monthlyRent) : 0;
                 row.getCell(5).numFmt = '#,##0.00 ₼';
                 row.getCell(6).value = r.income;
@@ -714,7 +722,7 @@ const hesabatRoutes: FastifyPluginAsync = async (app) => {
                         { text: String(i + 1), fillColor: isBg },
                         { text: r.property.name, fillColor: isBg },
                         { text: r.property.number || r.property.address || '-', fillColor: isBg },
-                        { text: r.contract?.tenant?.fullName || '-', fillColor: isBg },
+                        { text: getTenantName(r.contract?.tenant), fillColor: isBg },
                         { text: r.contract ? Number(r.contract.monthlyRent).toFixed(2) : '0.00', alignment: 'right', fillColor: isBg },
                         { text: r.income.toFixed(2), color: '#16a34a', bold: true, alignment: 'right', fillColor: isBg },
                         { text: r.debt.toFixed(2), color: '#ef4444', bold: true, alignment: 'right', fillColor: isBg }
@@ -836,7 +844,7 @@ const hesabatRoutes: FastifyPluginAsync = async (app) => {
                     { text: String(i + 1), fillColor: isBg },
                     { text: r.property.name, fillColor: isBg },
                     { text: r.property.number || r.property.address || '-', fillColor: isBg },
-                    { text: r.contract?.tenant?.fullName || '-', fillColor: isBg },
+                    { text: getTenantName(r.contract?.tenant), fillColor: isBg },
                     { text: r.contract ? Number(r.contract.monthlyRent).toFixed(2) : '0.00', alignment: 'right', fillColor: isBg },
                     { text: r.income.toFixed(2), color: '#16a34a', bold: true, alignment: 'right', fillColor: isBg },
                     { text: r.debt.toFixed(2), color: '#ef4444', bold: true, alignment: 'right', fillColor: isBg }

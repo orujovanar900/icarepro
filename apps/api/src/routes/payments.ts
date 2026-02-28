@@ -51,7 +51,7 @@ const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
                 where,
                 include: {
                     contract: {
-                        select: { number: true, tenant: { select: { fullName: true } } },
+                        select: { number: true, tenant: { select: { tenantType: true, firstName: true, lastName: true, companyName: true } } },
                     },
                     createdByUser: { select: { id: true, name: true } },
                 },
@@ -63,9 +63,20 @@ const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
             fastify.prisma.payment.aggregate({ _sum: { amount: true }, where }),
         ])
 
+        const paymentsMapped = payments.map(p => ({
+            ...p,
+            contract: {
+                ...p.contract,
+                tenant: {
+                    ...p.contract.tenant,
+                    fullName: p.contract.tenant.tenantType === 'fiziki' ? `${p.contract.tenant.firstName || ''} ${p.contract.tenant.lastName || ''}`.trim() : p.contract.tenant.companyName || '',
+                }
+            }
+        }))
+
         return reply.send({
             success: true,
-            data: payments,
+            data: paymentsMapped,
             meta: {
                 total,
                 limit,

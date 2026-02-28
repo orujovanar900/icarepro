@@ -57,7 +57,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
             },
         })
 
-        if (!user || !user.organization.isActive) {
+        if (!user || !user.organization?.isActive) {
             return reply.code(401).send({ success: false, error: 'Məlumatlar yanlışdır' })
         }
 
@@ -107,6 +107,8 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
             role: user.role,
             organizationId: user.organizationId,
             name: user.name,
+            jwtVersion: user.jwtVersion,
+            avatarUrl: user.avatarUrl,
         })
 
         reply.setCookie('token', token, {
@@ -126,6 +128,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
                     email: user.email,
                     name: user.name,
                     role: user.role,
+                    avatarUrl: user.avatarUrl,
                     organization: user.organization,
                 },
             },
@@ -141,6 +144,18 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // ─────────────────────────────────────────
+    // POST /auth/logout-all
+    // ─────────────────────────────────────────
+    fastify.post('/logout-all', { preHandler: [authenticate] }, async (req, reply) => {
+        await fastify.prisma.user.update({
+            where: { id: req.user.sub },
+            data: { jwtVersion: { increment: 1 } }
+        })
+        reply.clearCookie('token', { path: '/' })
+        return reply.send({ success: true, message: 'Bütün cihazlardan çıxış edildi' })
+    })
+
+    // ─────────────────────────────────────────
     // GET /auth/me
     // ─────────────────────────────────────────
     fastify.get('/me', { preHandler: [authenticate] }, async (req, reply) => {
@@ -148,7 +163,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
             where: { id: req.user.sub },
             select: {
                 id: true, email: true, name: true, role: true, phone: true,
-                isActive: true, createdAt: true, telegramChatId: true,
+                isActive: true, createdAt: true, telegramChatId: true, avatarUrl: true,
                 organization: { select: { id: true, name: true, plan: true } },
             },
         })

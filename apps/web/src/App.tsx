@@ -9,6 +9,7 @@ const Login = React.lazy(() => import('./pages/Login').then(m => ({ default: m.L
 const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
 const ResetPassword = React.lazy(() => import('./pages/ResetPassword').then(m => ({ default: m.ResetPassword })));
 const Dashboard = React.lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const Profile = React.lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
 const Contracts = React.lazy(() => import('./pages/Contracts').then(m => ({ default: m.Contracts })));
 const ContractDetail = React.lazy(() => import('./pages/ContractDetail').then(m => ({ default: m.ContractDetail })));
 const Properties = React.lazy(() => import('./pages/Properties').then(m => ({ default: m.Properties })));
@@ -44,6 +45,7 @@ export default function App() {
                         <Route element={<AppLayout />}>
                             <Route path="/" element={<Navigate to="/dashboard" replace />} />
                             <Route path="/dashboard" element={<Dashboard />} />
+                            <Route path="/profile" element={<Profile />} />
 
                             <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
                                 <Route path="/contracts" element={<Contracts />} />

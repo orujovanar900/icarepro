@@ -7,6 +7,8 @@ export interface JwtPayload {
     role: UserRole
     organizationId: string
     name: string
+    jwtVersion: number
+    avatarUrl: string | null
 }
 
 // Расширяем @fastify/jwt чтобы req.user был типизирован как JwtPayload

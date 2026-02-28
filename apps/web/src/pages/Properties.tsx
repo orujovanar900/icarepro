@@ -243,15 +243,18 @@ export function Properties() {
                                             </h3>
                                             <p className="text-sm text-muted mt-1">Nömrə: {property.number}</p>
                                         </div>
-                                        {contract ? (
-                                            contract.debt > 0 ? (
+                                        <div className="flex flex-col items-end gap-1">
+                                            <Badge variant={
+                                                property.status === 'OCCUPIED' ? 'draft' :
+                                                    property.status === 'UNDER_REPAIR' ? 'arxiv' : 'aktiv'
+                                            }>
+                                                {property.status === 'OCCUPIED' ? 'Tutulub' :
+                                                    property.status === 'UNDER_REPAIR' ? 'Təmirdə' : 'Boş'}
+                                            </Badge>
+                                            {contract && contract.debt > 0 && (
                                                 <Badge variant="borclu">Borc: {formatMoney(contract.debt)}</Badge>
-                                            ) : (
-                                                <Badge variant="aktiv">Ödənilib</Badge>
-                                            )
-                                        ) : (
-                                            <Badge variant="arxiv">Boş</Badge>
-                                        )}
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="space-y-2 mt-auto">

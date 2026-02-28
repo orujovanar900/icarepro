@@ -18,10 +18,10 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply) {
                 organizationId: payload.organizationId,
                 isActive: true,
             },
-            select: { id: true, email: true, role: true, organizationId: true, name: true },
+            select: { id: true, email: true, role: true, organizationId: true, name: true, jwtVersion: true, avatarUrl: true },
         })
 
-        if (!user) {
+        if (!user || user.jwtVersion !== payload.jwtVersion) {
             return reply.code(401).send({ success: false, error: 'Unauthorized' })
         }
 
@@ -32,6 +32,8 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply) {
             role: user.role,
             organizationId: user.organizationId,
             name: user.name,
+            jwtVersion: user.jwtVersion,
+            avatarUrl: user.avatarUrl,
         }
     } catch {
         return reply.code(401).send({ success: false, error: 'Unauthorized' })
