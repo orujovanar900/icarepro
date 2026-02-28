@@ -171,7 +171,9 @@ async function main() {
             update: {},
             create: {
                 organizationId: TEST_ORG_ID,
-                fullName: 'Əliyev Murad Elnur oğlu',
+                tenantType: 'fiziki',
+                firstName: 'Murad',
+                lastName: 'Əliyev',
                 phone: '+994501234567',
                 email: 'murad.aliyev@email.com',
                 voen: '1234567890',
@@ -182,7 +184,9 @@ async function main() {
             update: {},
             create: {
                 organizationId: TEST_ORG_ID,
-                fullName: 'Hüseynova Leyla Kamran qızı',
+                tenantType: 'fiziki',
+                firstName: 'Hüseynova Leyla',
+                lastName: 'Kamran qızı',
                 phone: '+994559876543',
                 email: 'leyla.huseynova@biznes.az',
                 voen: '9876543210',
@@ -193,7 +197,9 @@ async function main() {
             update: {},
             create: {
                 organizationId: TEST_ORG_ID,
-                fullName: 'Quliyev Rauf Xəyal oğlu',
+                tenantType: 'fiziki',
+                firstName: 'Quliyev Rauf',
+                lastName: 'Xəyal oğlu',
                 phone: '+994705554433',
                 voen: '5555555555',
             },
