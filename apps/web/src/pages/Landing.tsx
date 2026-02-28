@@ -9,7 +9,7 @@ import {
 
 const C = {
     gold: '#C9A84C', goldA: 'rgba(201,168,76,0.14)', goldA3: 'rgba(201,168,76,0.28)',
-    dark: '#141820', surf: '#1C2130', surf2: '#222840',
+    dark: 'transparent', surf: 'rgba(28,33,48,0.45)', surf2: 'rgba(34,40,64,0.55)',
     text: '#F0F2F5', muted: '#9AAABB', green: '#34d399', purple: '#a78bfa',
     orange: '#fb923c', red: 'rgba(239,68,68,0.12)', redB: 'rgba(239,68,68,0.22)',
     w06: 'rgba(255,255,255,0.06)', w10: 'rgba(255,255,255,0.10)',
@@ -167,9 +167,17 @@ export function Landing() {
     return (
         <>
             <style>{G}</style>
-            {dm && <DemoModal close={() => setDm(false)} />}
-            {toast && <Toast msg={toast} done={() => setToast(null)} />}
-            {stt && <button className="stt" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}><ArrowUp size={20} /></button>}
+
+            {/* ── GLOBAL FIXED SLIDESHOW BACKGROUND ── */}
+            <div style={{ position: 'fixed', inset: 0, zIndex: -2, pointerEvents: 'none' }}>
+                {SLIDES.map((src, i) => (
+                    <div key={i} style={{ position: 'absolute', inset: 0, backgroundImage: `url('${src}')`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: sl === i ? 1 : 0, transition: 'opacity 1.2s ease-in-out' }} />
+                ))}
+                {/* dark base overlay */}
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(8,10,18,0.80)' }} />
+                {/* subtle grid */}
+                <div style={{ position: 'absolute', inset: 0, backgroundImage: `linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px)`, backgroundSize: '64px 64px' }} />
+            </div>
 
             {/* NAVBAR */}
             <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000, padding: '0 32px', height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'background .35s', background: sc ? 'rgba(14,17,26,.9)' : 'transparent', backdropFilter: sc ? 'blur(22px)' : 'none', borderBottom: sc ? '1px solid rgba(255,255,255,.06)' : 'none' }}>
@@ -195,14 +203,8 @@ export function Landing() {
                 </div>
             )}
 
-            {/* HERO */}
-            <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', padding: '120px 32px 90px', overflow: 'hidden' }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
-                {SLIDES.map((src, i) => (
-                    <div key={i} style={{ position: 'absolute', inset: 0, backgroundImage: `url('${src}')`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: sl === i ? 1 : 0, transition: 'opacity 1.2s ease-in-out', zIndex: 0 }} />
-                ))}
-                <div style={{ position: 'absolute', inset: 0, background: 'rgba(10,12,20,.82)', zIndex: 1 }} />
-                <div style={{ position: 'absolute', inset: 0, zIndex: 2, backgroundImage: `linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px)`, backgroundSize: '64px 64px' }} />
-                <div style={{ position: 'absolute', top: -100, right: -100, zIndex: 2, width: 700, height: 700, borderRadius: '50%', background: 'radial-gradient(circle,rgba(201,168,76,.10) 0%,transparent 65%)', pointerEvents: 'none' }} />
+            {/* HERO - transparent, bg comes from fixed layer */}
+            <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', padding: '120px 32px 90px' }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
                 {/* Slide dots */}
                 <div style={{ position: 'absolute', bottom: 32, left: '50%', transform: 'translateX(-50%)', zIndex: 10, display: 'flex', gap: 8 }}>
                     {SLIDES.map((_, i) => (
