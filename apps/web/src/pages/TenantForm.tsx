@@ -79,7 +79,7 @@ export function TenantForm() {
 
     const [tenantType, setTenantType] = useState<'fiziki' | 'huquqi'>('fiziki');
     const [form, setForm] = useState<any>(FIZIKI_DEFAULTS);
-    const [errors, setErrors] = useState<Record<string, string | null>>({});
+    const [errors, setErrors] = useState<any>({});
     const [submitError, setSubmitError] = useState<string | null>(null);
 
     // Fetch existing tenant for edit mode
@@ -113,7 +113,7 @@ export function TenantForm() {
         const val = type === 'checkbox' ? checked : value;
         setForm((prev: any) => ({ ...prev, [name]: val }));
         const err = type !== 'checkbox' ? validateField(name, value) : null;
-        setErrors((prev) => ({ ...prev, [name]: err }));
+        setErrors((prev: any) => ({ ...prev, [name]: err }));
     };
 
     const validate = () => {

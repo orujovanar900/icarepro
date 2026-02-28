@@ -181,6 +181,60 @@ const tenantsRoutes: FastifyPluginAsync = async (fastify) => {
 
         return reply.code(201).send({ success: true, data: doc })
     })
+
+    // DELETE /tenants/:id/documents/:docId
+    fastify.delete('/:id/documents/:docId', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
+        const { id, docId } = req.params as { id: string; docId: string }
+        const exists = await fastify.prisma.tenantDocument.findFirst({ where: { id: docId, tenantId: id } })
+        if (!exists) return reply.code(404).send({ success: false, error: 'Document not found' })
+        await fastify.prisma.tenantDocument.delete({ where: { id: docId } })
+        return reply.code(204).send()
+    })
+
+    // GET /tenants/:id/payments — all payments across tenant's contracts
+    fastify.get('/:id/payments', { preHandler: [authenticate] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const tenant = await fastify.prisma.tenant.findFirst({ where: { id, ...withOrg(req) } })
+        if (!tenant) return reply.code(404).send({ success: false, error: 'Tenant not found' })
+
+        const contracts = await fastify.prisma.contract.findMany({
+            where: { tenantId: id, ...withOrg(req) },
+            select: { id: true, number: true },
+        })
+        const contractIds = contracts.map(c => c.id)
+
+        const payments = await fastify.prisma.payment.findMany({
+            where: { contractId: { in: contractIds } },
+            include: { contract: { select: { id: true, number: true, property: { select: { name: true } } } } },
+            orderBy: { paymentDate: 'desc' },
+            take: 200,
+        })
+
+        // Compute debt summary per contract
+        const debtSummary = await Promise.all(contracts.map(async (c) => {
+            const contractFull = await fastify.prisma.contract.findFirst({
+                where: { id: c.id },
+                include: { payments: { select: { amount: true } } },
+            })
+            if (!contractFull) return null
+            const now = new Date()
+            const start = new Date(contractFull.startDate)
+            const end = contractFull.endDate < now ? new Date(contractFull.endDate) : now
+            const monthsElapsed = Math.max(0,
+                (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1
+            )
+            const totalExpected = Number(contractFull.monthlyRent) * monthsElapsed
+            const totalPaid = contractFull.payments.reduce((s, p) => s + Number(p.amount), 0)
+            const debt = Math.max(0, totalExpected - totalPaid)
+            return { contractId: c.id, contractNumber: c.number, totalExpected, totalPaid, debt }
+        }))
+
+        return reply.send({
+            success: true,
+            data: payments,
+            debtSummary: debtSummary.filter(Boolean),
+        })
+    })
 }
 
 export default tenantsRoutes

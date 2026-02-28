@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSke
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import toast from 'react-hot-toast';
+import { useToastStore } from '@/store/toast';
 
 const formatMoney = (amount: number) =>
     new Intl.NumberFormat('az-AZ', { style: 'currency', currency: 'AZN', maximumFractionDigits: 0 }).format(amount);
@@ -32,6 +32,7 @@ const TABS: { key: TabKey; label: string }[] = [
 export function Tenants() {
     const navigate = useNavigate();
     const { user } = useAuthStore();
+    const addToast = useToastStore((s) => s.addToast);
     const queryClient = useQueryClient();
     const [search, setSearch] = useState('');
     const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -61,8 +62,8 @@ export function Tenants() {
 
     const deleteMutation = useMutation({
         mutationFn: (id: string) => api.delete(`/tenants/${id}`),
-        onSuccess: () => { toast.success('İcarəçi silindi'); queryClient.invalidateQueries({ queryKey: ['tenants'] }); },
-        onError: (err: any) => toast.error(err?.response?.data?.error || 'Silinmə xətası'),
+        onSuccess: () => { addToast({ message: 'İcarəçi silindi', type: 'success' }); queryClient.invalidateQueries({ queryKey: ['tenants'] }); },
+        onError: (err: any) => addToast({ message: err?.response?.data?.error || 'Silinmə xətası', type: 'error' }),
     });
 
     const rawTenants: any[] = Array.isArray(tenantsData?.data) ? tenantsData.data : [];
@@ -127,8 +128,8 @@ export function Tenants() {
                         key={tab.key}
                         onClick={() => setActiveTab(tab.key)}
                         className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${activeTab === tab.key
-                                ? 'bg-gold text-black border-gold'
-                                : 'bg-surface text-muted border-border hover:border-gold hover:text-text'
+                            ? 'bg-gold text-black border-gold'
+                            : 'bg-surface text-muted border-border hover:border-gold hover:text-text'
                             }`}
                     >
                         {tab.label}

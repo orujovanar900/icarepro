@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-    ArrowLeft, User, Building2, Phone, Mail, MapPin, FileText,
-    AlertTriangle, Pencil, CreditCard, BadgeDollarSign, ClipboardList
+    ArrowLeft, User, Building2, Phone, Mail, FileText,
+    AlertTriangle, Pencil, CreditCard, BadgeDollarSign, ClipboardList, UploadCloud, Trash2, Loader2
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSke
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/store/auth';
+import { useToastStore } from '@/store/toast';
 
 const fmt = (n: number) => new Intl.NumberFormat('az-AZ', { style: 'currency', currency: 'AZN', maximumFractionDigits: 0 }).format(n);
 const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('az-AZ') : '—';
@@ -20,7 +21,7 @@ const contractStatus: Record<string, { label: string; variant: any }> = {
     DRAFT: { label: 'Qaralama', variant: 'draft' },
 };
 
-type Tab = 'info' | 'contracts' | 'payments' | 'debts';
+type Tab = 'info' | 'contracts' | 'payments' | 'debts' | 'documents';
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
     if (!value) return null;
@@ -36,8 +37,11 @@ export function TenantDetail() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { user } = useAuthStore();
+    const queryClient = useQueryClient();
+    const addToast = useToastStore((state) => state.addToast);
     const [tab, setTab] = useState<Tab>('info');
     const canEdit = ['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'].includes(user?.role || '');
+    const [isUploadingDoc, setIsUploadingDoc] = useState(false);
 
     const { data, isLoading, isError } = useQuery({
         queryKey: ['tenant', id],
@@ -53,21 +57,10 @@ export function TenantDetail() {
     const { data: paymentsResp } = useQuery({
         queryKey: ['tenant-payments', id],
         queryFn: async () => {
-            // Get all contracts for this tenant first, then their payments
-            const res = await api.get(`/payments?limit=100`);
+            const res = await api.get(`/tenants/${id}/payments`);
             return res.data;
         },
-        select: (d: any) => {
-            const all: any[] = Array.isArray(d?.data) ? d.data : [];
-            // Filter payments belonging to this tenant's contracts
-            return all.filter((p: any) => {
-                const t = p.contract?.tenant;
-                return t && (
-                    (t.id === id) ||
-                    (p.tenantId === id)
-                );
-            });
-        },
+        select: (d: any) => Array.isArray(d?.data) ? d.data : [],
     });
 
     if (isLoading) return <div className="p-6 max-w-4xl mx-auto"><TableSkeleton rows={8} columns={4} /></div>;
@@ -105,11 +98,40 @@ export function TenantDetail() {
         return { ...c, debt };
     }).filter((c: any) => c.debt > 0);
 
+    const handleUploadDocument = async (e: React.ChangeEvent<HTMLInputElement>, type: string) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('file', file);
+        setIsUploadingDoc(true);
+        try {
+            await api.post(`/tenants/${id}/documents?type=${type}&name=${encodeURIComponent(file.name)}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+            addToast({ message: 'Sənəd yükləndi', type: 'success' });
+            queryClient.invalidateQueries({ queryKey: ['tenant', id] });
+        } catch {
+            addToast({ message: 'Xəta baş verdi', type: 'error' });
+        } finally {
+            setIsUploadingDoc(false);
+        }
+    };
+
+    const handleDeleteDocument = async (docId: string) => {
+        if (!confirm('Sənədi silmək istədiyinizə əminsiniz?')) return;
+        try {
+            await api.delete(`/tenants/${id}/documents/${docId}`);
+            addToast({ message: 'Sənəd silindi', type: 'success' });
+            queryClient.invalidateQueries({ queryKey: ['tenant', id] });
+        } catch {
+            addToast({ message: 'Xəta baş verdi', type: 'error' });
+        }
+    };
+
     const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
         { key: 'info', label: 'Məlumatlar', icon: <ClipboardList className="w-4 h-4" /> },
         { key: 'contracts', label: 'Müqavilələr', icon: <FileText className="w-4 h-4" /> },
         { key: 'payments', label: 'Ödənişlər', icon: <CreditCard className="w-4 h-4" /> },
         { key: 'debts', label: 'Borclar', icon: <BadgeDollarSign className="w-4 h-4" /> },
+        { key: 'documents', label: 'Sənədlər', icon: <FileText className="w-4 h-4" /> },
     ];
 
     return (
@@ -341,6 +363,50 @@ export function TenantDetail() {
                         )}
                     </CardContent>
                 </Card>
+            )}
+            {/* Tab: Sənədlər */}
+            {tab === 'documents' && (
+                <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-lg font-bold text-text">Sənədlər ({tenant.tenantDocuments?.length || 0})</h3>
+                        <label className="cursor-pointer">
+                            <div className="flex items-center gap-2 bg-gold/10 hover:bg-gold/20 text-gold px-4 py-2 rounded-lg transition-colors font-medium text-sm">
+                                {isUploadingDoc ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                                Sənəd Yüklə
+                            </div>
+                            <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleUploadDocument(e, 'PASSPORT')} />
+                        </label>
+                    </div>
+
+                    {tenant.tenantDocuments?.length > 0 ? (
+                        <div className="space-y-3">
+                            {tenant.tenantDocuments.map((doc: any) => (
+                                <div key={doc.id} className="flex items-center justify-between p-4 bg-surface border border-border rounded-xl">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-gold/10 rounded-lg flex items-center justify-center">
+                                            <FileText className="w-5 h-5 text-gold" />
+                                        </div>
+                                        <div>
+                                            <a href={doc.filePath} target="_blank" rel="noopener noreferrer" className="font-medium text-text hover:underline text-sm">
+                                                {doc.name || doc.type}
+                                            </a>
+                                            <p className="text-xs text-muted">{doc.type} • {new Date(doc.uploadedAt || doc.createdAt).toLocaleDateString('az-AZ')}</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => handleDeleteDocument(doc.id)} className="p-2 text-muted hover:text-red transition-colors rounded-md hover:bg-red/10">
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-12 text-muted border border-dashed border-border rounded-xl">
+                            <FileText className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                            <p>Sənəd yüklənməyib.</p>
+                            <p className="text-xs mt-1">Pasport surəti və digər sənədləri buraya əlavə edə bilərsiniz.</p>
+                        </div>
+                    )}
+                </div>
             )}
         </div>
     );
