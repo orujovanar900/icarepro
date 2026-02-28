@@ -7,6 +7,7 @@ import { SupportChat } from './components/SupportChat';
 
 const Landing = React.lazy(() => import('./pages/Landing').then(m => ({ default: m.Landing })));
 const Login = React.lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
+const Register = React.lazy(() => import('./pages/Register').then(m => ({ default: m.Register })));
 const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
 const ResetPassword = React.lazy(() => import('./pages/ResetPassword').then(m => ({ default: m.ResetPassword })));
 const Dashboard = React.lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
@@ -35,6 +36,7 @@ export default function App() {
                     {/* Public Routes */}
                     <Route path="/" element={<Landing />} />
                     <Route path="/login" element={<Login />} />
+                    <Route path="/register" element={<Register />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
 

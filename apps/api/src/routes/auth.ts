@@ -17,6 +17,13 @@ const loginSchema = z.object({
     password: z.string().min(1),
 })
 
+const registerSchema = z.object({
+    name: z.string().min(2),
+    email: z.string().email(),
+    password: z.string().min(6),
+    organizationName: z.string().min(2),
+})
+
 const changePasswordSchema = z.object({
     currentPassword: z.string().min(1),
     newPassword: z.string().min(8),
@@ -37,6 +44,92 @@ const resetPasswordSchema = z.object({
 })
 
 const authRoutes: FastifyPluginAsync = async (fastify) => {
+    // ─────────────────────────────────────────
+    // POST /auth/register — create org + owner account
+    // ─────────────────────────────────────────
+    fastify.post('/register', {
+        config: { rateLimit: { max: 5, timeWindow: '1 hour' } },
+    }, async (req, reply) => {
+        const body = registerSchema.safeParse(req.body)
+        if (!body.success) return sendZodError(reply, body.error)
+
+        const { name, email, password, organizationName } = body.data
+
+        // Check for duplicate email
+        const existing = await fastify.prisma.user.findFirst({ where: { email } })
+        if (existing) {
+            return reply.code(409).send({ success: false, error: 'Bu e-poşt artıq qeydiyyatdan keçib' })
+        }
+
+        const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
+
+        // Generate a URL-safe slug from org name + random suffix for uniqueness
+        const baseSlug = organizationName
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '')
+            .slice(0, 40)
+        const slug = `${baseSlug}-${crypto.randomBytes(4).toString('hex')}`
+
+        // Create Org + Owner User in a transaction
+        const { user, org } = await fastify.prisma.$transaction(async (tx) => {
+            const org = await tx.organization.create({
+                data: {
+                    name: organizationName,
+                    slug,
+                    plan: 'FREE',
+                    isActive: true,
+                },
+            })
+            const user = await tx.user.create({
+                data: {
+                    name,
+                    email,
+                    passwordHash,
+                    role: 'OWNER',
+                    organizationId: org.id,
+                    isActive: true,
+                    jwtVersion: 1,
+                },
+                include: { organization: { select: { id: true, name: true, plan: true, isActive: true } } },
+            })
+            return { user, org }
+        })
+
+        const token = fastify.jwt.sign({
+            sub: user.id,
+            email: user.email,
+            role: user.role,
+            organizationId: org.id,
+            name: user.name,
+            jwtVersion: user.jwtVersion,
+            avatarUrl: user.avatarUrl,
+        })
+
+        reply.setCookie('token', token, {
+            httpOnly: true,
+            secure: process.env['NODE_ENV'] === 'production',
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 60 * 60 * 24 * 7,
+        })
+
+        return reply.code(201).send({
+            success: true,
+            data: {
+                token,
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    name: user.name,
+                    role: user.role,
+                    avatarUrl: user.avatarUrl,
+                    organization: user.organization,
+                },
+            },
+        })
+    })
+
     // ─────────────────────────────────────────
     // POST /auth/login — rate limit: 5/min + account lockout
     // ─────────────────────────────────────────

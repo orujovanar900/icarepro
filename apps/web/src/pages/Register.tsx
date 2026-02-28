@@ -9,60 +9,57 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/Card';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Building2 } from 'lucide-react';
 
-const loginSchema = z.object({
-    email: z.string().email('Geçərli bir e-poçt ünvanı daxil edin.'),
-    password: z.string().min(6, 'Şifrə ən azı 6 simvoldan ibarət olmalıdır.'),
-});
+const registerSchema = z
+    .object({
+        name: z.string().min(2, 'Ad Soyad ən azı 2 simvol olmalıdır.'),
+        email: z.string().email('Düzgün e-poçt ünvanı daxil edin.'),
+        organizationName: z.string().min(2, 'Təşkilat adı ən azı 2 simvol olmalıdır.'),
+        password: z.string().min(6, 'Şifrə ən azı 6 simvoldan ibarət olmalıdır.'),
+        confirmPassword: z.string().min(1, 'Şifrəni təkrarlayın.'),
+    })
+    .refine((d) => d.password === d.confirmPassword, {
+        message: 'Şifrələr uyğun gəlmir.',
+        path: ['confirmPassword'],
+    });
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+type RegisterFormValues = z.infer<typeof registerSchema>;
 
-export function Login() {
+export function Register() {
     const navigate = useNavigate();
     const { login } = useAuthStore();
     const { addToast } = useToastStore();
     const [isLoading, setIsLoading] = React.useState(false);
     const [showPass, setShowPass] = React.useState(false);
-    const [remember, setRemember] = React.useState(true);
+    const [showConfirm, setShowConfirm] = React.useState(false);
 
     const {
         register,
         handleSubmit,
         formState: { errors },
-    } = useForm<LoginFormValues>({
-        resolver: zodResolver(loginSchema),
+    } = useForm<RegisterFormValues>({
+        resolver: zodResolver(registerSchema),
     });
 
-    const onSubmit = async (data: LoginFormValues) => {
+    const onSubmit = async (data: RegisterFormValues) => {
         try {
             setIsLoading(true);
-            const response = await api.post('/auth/login', data);
+            const response = await api.post('/auth/register', {
+                name: data.name,
+                email: data.email,
+                password: data.password,
+                organizationName: data.organizationName,
+            });
 
             const { user, token } = response.data.data;
-
-            if (!remember) {
-                sessionStorage.setItem('auth-session-only', 'true');
-            } else {
-                sessionStorage.removeItem('auth-session-only');
-            }
-
             login({ user, token });
-
-            addToast({ type: 'success', message: 'Uğurla daxil oldunuz!' });
-
-            // Role-based redirect
-            if (user.role === 'OWNER') {
-                navigate('/dashboard');
-            } else if (user.role === 'STAFF') {
-                navigate('/contracts');
-            } else {
-                navigate('/dashboard');
-            }
+            addToast({ type: 'success', message: 'Hesabınız uğurla yaradıldı! Xoş gəlmisiniz 🎉' });
+            navigate('/dashboard');
         } catch (error: any) {
             addToast({
                 type: 'error',
-                message: error.response?.data?.message || 'Giriş uğursuz oldu. Zəhmət olmasa təkrar cəhd edin.',
+                message: error.response?.data?.error || 'Qeydiyyat uğursuz oldu. Zəhmət olmasa təkrar cəhd edin.',
             });
         } finally {
             setIsLoading(false);
@@ -82,21 +79,38 @@ export function Login() {
                     <p style={{ fontStyle: 'italic', color: '#8899B0', fontSize: '13px' }} className="mt-1 mb-2">
                         "Mülkünüzü ağıllı idarə edin"
                     </p>
-                    <p className="mt-2 text-sm text-text">Sistemi idarə etmək üçün daxil olun</p>
+                    <p className="mt-2 text-sm text-text">Yeni hesab yaradın və idarəetməyə başlayın</p>
                 </div>
 
                 <Card variant="elevated" className="border-border/50 bg-surface/50 backdrop-blur-md">
                     <form onSubmit={handleSubmit(onSubmit)}>
                         <CardHeader>
-                            <CardTitle className="text-2xl text-center">Xoş gəlmisiniz!</CardTitle>
+                            <CardTitle className="text-2xl text-center flex items-center justify-center gap-2">
+                                <Building2 className="w-6 h-6 text-gold" />
+                                Qeydiyyat
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                            <Input
+                                label="Ad Soyad"
+                                type="text"
+                                placeholder="Əli Əliyev"
+                                {...register('name')}
+                                error={errors.name?.message}
+                            />
                             <Input
                                 label="E-poçt"
                                 type="email"
                                 placeholder="ad@email.com"
                                 {...register('email')}
                                 error={errors.email?.message}
+                            />
+                            <Input
+                                label="Təşkilat / Şirkət adı"
+                                type="text"
+                                placeholder="Əliyev MMC"
+                                {...register('organizationName')}
+                                error={errors.organizationName?.message}
                             />
                             <Input
                                 label="Şifrə"
@@ -115,32 +129,33 @@ export function Login() {
                                     </button>
                                 }
                             />
-
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }} className="text-sm text-muted cursor-pointer hover:text-text transition-colors w-fit pt-2">
-                                <input
-                                    type="checkbox"
-                                    checked={remember}
-                                    onChange={e => setRemember(e.target.checked)}
-                                    className="accent-gold w-4 h-4 cursor-pointer"
-                                />
-                                <span>Məni xatırla</span>
-                            </label>
+                            <Input
+                                label="Şifrəni təkrarla"
+                                type={showConfirm ? 'text' : 'password'}
+                                placeholder="••••••••"
+                                {...register('confirmPassword')}
+                                error={errors.confirmPassword?.message}
+                                rightElement={
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirm(!showConfirm)}
+                                        style={{ color: '#4A6080' }}
+                                        className="hover:!text-[#C9A84C] transition-colors flex items-center justify-center p-1"
+                                    >
+                                        {showConfirm ? <Eye size={18} /> : <EyeOff size={18} />}
+                                    </button>
+                                }
+                            />
                         </CardContent>
                         <CardFooter className="flex flex-col gap-3">
                             <Button type="submit" variant="primary" className="w-full" size="lg" isLoading={isLoading}>
-                                Daxil ol
+                                Hesab yarat
                             </Button>
                             <Link
-                                to="/forgot-password"
+                                to="/login"
                                 className="text-sm text-muted hover:text-gold transition-colors text-center"
                             >
-                                Şifrəni unutmusunuz?
-                            </Link>
-                            <Link
-                                to="/register"
-                                className="text-sm text-muted hover:text-gold transition-colors text-center"
-                            >
-                                Hesabınız yoxdur? <span className="text-gold font-medium">Qeydiyyat</span>
+                                Hesabınız var? <span className="text-gold font-medium">Daxil olun</span>
                             </Link>
                         </CardFooter>
                     </form>
