@@ -92,8 +92,9 @@ export function Register() {
 
             <div className="w-full max-w-md space-y-8">
                 <div className="text-center">
-                    <h1 className="text-4xl font-extrabold font-heading tracking-tight text-gold">
-                        İcarə <span className="text-white font-light">Pro</span>
+                    <h1 className="text-5xl font-heading tracking-tight flex items-center justify-center gap-2">
+                        <span className="text-gold font-extrabold">İcarə</span>
+                        <span className="text-white font-normal">Pro</span>
                     </h1>
                     <p style={{ fontStyle: 'italic', color: '#8899B0', fontSize: '13px' }} className="mt-1 mb-2">
                         "Mülkünüzü ağıllı idarə edin"

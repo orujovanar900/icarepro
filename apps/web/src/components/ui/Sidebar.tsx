@@ -64,8 +64,9 @@ export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: bool
                 isMobileOpen ? "translate-x-0" : "-translate-x-full"
             )}>
                 <div className="flex h-16 items-center justify-between px-6">
-                    <h1 className="text-2xl font-extrabold font-heading text-gold">
-                        İcarə <span className="text-white font-light">Pro</span>
+                    <h1 className="text-3xl font-heading tracking-tight flex items-center gap-1.5">
+                        <span className="text-gold font-extrabold">İcarə</span>
+                        <span className="text-white font-normal">Pro</span>
                     </h1>
                     {/* Close button for mobile */}
                     <button onClick={onClose} className="md:hidden p-2 text-muted hover:text-text -mr-2">

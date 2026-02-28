@@ -181,7 +181,7 @@ export function Landing() {
 
             {/* NAVBAR */}
             <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000, padding: '0 32px', height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'background .35s', background: sc ? 'rgba(14,17,26,.9)' : 'transparent', backdropFilter: sc ? 'blur(22px)' : 'none', borderBottom: sc ? '1px solid rgba(255,255,255,.06)' : 'none' }}>
-                <Link to="/"><span style={{ fontFamily: C.f, fontWeight: 800, fontSize: 22, letterSpacing: '-.5px' }}><span style={{ color: C.gold }}>İ</span><span style={{ color: C.text }}>carə Pro</span></span></Link>
+                <Link to="/"><span style={{ fontFamily: C.f, fontSize: 28, letterSpacing: '-.5px', display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ color: C.gold, fontWeight: 800 }}>İcarə</span><span style={{ color: C.text, fontWeight: 400 }}>Pro</span></span></Link>
                 <div className="nl" style={{ display: 'flex', gap: 36 }}>
                     {[['Xüsusiyyətlər', '#features'], ['Qiymətlər', '#pricing'], ['Haqqımızda', '#about']].map(([l, h]) => (
                         <a key={h} href={h} style={{ fontFamily: C.f, fontWeight: 500, fontSize: 15, color: C.muted, transition: 'color .2s' }} onMouseEnter={e => e.currentTarget.style.color = C.text} onMouseLeave={e => e.currentTarget.style.color = C.muted}>{l}</a>
@@ -480,7 +480,7 @@ export function Landing() {
                 <div style={{ maxWidth: 1100, margin: '0 auto' }}>
                     <div className="ftc" style={{ display: 'flex', gap: 64, marginBottom: 52 }}>
                         <div style={{ flex: 2 }}>
-                            <div style={{ fontFamily: C.f, fontWeight: 800, fontSize: 22, marginBottom: 14, letterSpacing: '-.5px' }}><span style={{ color: C.gold }}>İ</span><span style={{ color: C.text }}>carə Pro</span></div>
+                            <div style={{ fontFamily: C.f, fontSize: 32, marginBottom: 14, letterSpacing: '-.5px', display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ color: C.gold, fontWeight: 800 }}>İcarə</span><span style={{ color: C.text, fontWeight: 400 }}>Pro</span></div>
                             <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.7, maxWidth: 230, marginBottom: 20 }}>Azərbaycanın əmlak idarəetmə platforması</p>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
                                 <a href="mailto:support@icarepro.az" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: C.muted, transition: 'color .2s' }} onMouseEnter={e => e.currentTarget.style.color = C.text} onMouseLeave={e => e.currentTarget.style.color = C.muted}><Mail size={14} color={C.gold} /> support@icarepro.az</a>
