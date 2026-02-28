@@ -570,6 +570,38 @@ export function ContractDetail() {
                     </div>
                 </div>
             </Modal>
+
+            {/* Penalty Modal */}
+            <Modal isOpen={showPenaltyModal} onClose={() => setShowPenaltyModal(false)} title="Cərimə Tətbiq Et">
+                <div className="space-y-4">
+                    <p className="text-sm text-muted">İcarəçiyə gecikməyə görə cərimə tətbiq edin. Bu məbləğ ödəniş tarixçəsində <strong>LATE_FEE</strong> kimi qeyd olunacaq.</p>
+                    <Input
+                        label="Cərimə Məbləği (₼)"
+                        type="number"
+                        step="0.01"
+                        value={penaltyAmount}
+                        onChange={(e) => setPenaltyAmount(e.target.value)}
+                        placeholder="Məs: 50"
+                    />
+                    <Input
+                        label="Səbəb / Qeyd"
+                        value={penaltyNote}
+                        onChange={(e) => setPenaltyNote(e.target.value)}
+                        placeholder="Məs: 15 günlük gecikmə"
+                    />
+                    <div className="flex gap-3 pt-2">
+                        <Button variant="outline" className="flex-1" onClick={() => setShowPenaltyModal(false)}>Ləğv et</Button>
+                        <Button
+                            className="flex-1 bg-red hover:bg-red/80 text-white"
+                            onClick={handleApplyPenalty}
+                            disabled={isApplyingPenalty || !penaltyAmount}
+                        >
+                            <AlertCircle className="w-4 h-4 mr-2" />
+                            {isApplyingPenalty ? 'Tətbiq edilir...' : 'Cərimə tətbiq et'}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
         </>
     );
 }
