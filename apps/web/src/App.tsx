@@ -5,6 +5,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { PageSkeleton } from './components/ui/PageSkeleton';
 import { SupportChat } from './components/SupportChat';
 
+const Landing = React.lazy(() => import('./pages/Landing').then(m => ({ default: m.Landing })));
 const Login = React.lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
 const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
 const ResetPassword = React.lazy(() => import('./pages/ResetPassword').then(m => ({ default: m.ResetPassword })));
@@ -32,6 +33,7 @@ export default function App() {
             <Suspense fallback={<PageSkeleton />}>
                 <Routes>
                     {/* Public Routes */}
+                    <Route path="/" element={<Landing />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
@@ -44,7 +46,6 @@ export default function App() {
                         </Route>
 
                         <Route element={<AppLayout />}>
-                            <Route path="/" element={<Navigate to="/dashboard" replace />} />
                             <Route path="/dashboard" element={<Dashboard />} />
                             <Route path="/profile" element={<Profile />} />
 
