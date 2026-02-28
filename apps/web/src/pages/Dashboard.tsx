@@ -407,8 +407,8 @@ function DashboardContent() {
                 {/* Cəmi Borc */}
                 <Card
                     variant="elevated"
-                    className="relative overflow-hidden cursor-pointer"
-                    style={{ border: '1px solid rgba(255, 255, 255, 0.12)', height: '140px' }}
+                    className="relative overflow-hidden"
+                    style={{ border: '1px solid rgba(255, 255, 255, 0.12)', height: '140px', cursor: 'pointer' }}
                     onClick={() => {
                         document.getElementById('debtors-list')?.scrollIntoView({ behavior: 'smooth' });
                     }}
@@ -589,7 +589,7 @@ function DashboardContent() {
                 </Card>
 
                 {/* Debtors List */}
-                <Card variant="default" id="debtors-list" className="flex flex-col h-[400px] bg-card/50">
+                <Card variant="default" id="debtors-list" className="flex flex-col bg-card/50" style={{ height: '360px' }}>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
                             <AlertCircle className="w-5 h-5 text-red" />
