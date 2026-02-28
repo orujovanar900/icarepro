@@ -413,7 +413,7 @@ export function Landing() {
                         {[
                             { name: 'BAŞLANĞIC', p: prc(29), popular: false, gold: false, cta: 'Başla', link: '/register', feats: [{ ok: true, t: '10 obyektə qədər' }, { ok: true, t: 'Müqavilə idarəetməsi' }, { ok: true, t: 'Ödəniş izləmə' }, { ok: true, t: 'Email bildirişlər' }, { ok: false, t: 'Vergi hesabatları' }, { ok: false, t: 'API girişi' }] },
                             { name: 'BİZNES', p: prc(69), popular: true, gold: true, cta: 'Başla', link: '/register', feats: [{ ok: true, t: '50 obyektə qədər' }, { ok: true, t: 'Hər şey Başlanğıcda +' }, { ok: true, t: 'Vergi hesabatları' }, { ok: true, t: 'Kirayəçi bazası' }, { ok: true, t: 'Prioritet dəstək' }, { ok: false, t: 'API girişi' }] },
-                            { name: 'KORPORATİV', p: prc(149), popular: false, gold: false, cta: 'Əlaqə', link: '/register', feats: [{ ok: true, t: 'Limitsiz obyekt' }, { ok: true, t: 'Hər şey Biznes-də +' }, { ok: true, t: 'API girişi' }, { ok: true, t: 'Xüsusi inteqrasiyalar' }, { ok: true, t: 'Şəxsi menecer' }] },
+                            { name: 'KORPORATİV', p: prc(149), popular: false, gold: false, cta: 'Əlaqə', link: 'mailto:support@icarepro.az', feats: [{ ok: true, t: 'Limitsiz obyekt' }, { ok: true, t: 'Hər şey Biznes-də +' }, { ok: true, t: 'API girişi' }, { ok: true, t: 'Xüsusi inteqrasiyalar' }, { ok: true, t: 'Şəxsi menecer' }] },
                         ].map((plan, i) => (
                             <div key={i} className="pricc gc fiu" style={{ width: 320, padding: '36px 30px', position: 'relative', border: plan.popular ? `1.5px solid ${C.gold}` : `1px solid rgba(201,168,76,.13)`, transform: plan.popular ? 'scale(1.04)' : 'scale(1)', boxShadow: plan.popular ? `0 0 48px rgba(201,168,76,.18)` : 'none', display: 'flex', flexDirection: 'column', transitionDelay: `${i * .12}s` }}>
                                 {plan.popular && <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: C.gold, color: '#0A0B0F', fontSize: 11, fontWeight: 800, padding: '4px 16px', borderRadius: 50, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>🔥 Ən populyar</div>}
@@ -426,7 +426,11 @@ export function Landing() {
                                         </li>
                                     ))}
                                 </ul>
-                                <Link to={plan.link} className={plan.gold ? 'btn-gold' : 'btn-ghost'} style={{ padding: '13px 0', justifyContent: 'center', fontSize: 15 }}>{plan.cta}</Link>
+                                {plan.link.startsWith('mailto:') ? (
+                                    <a href={plan.link} className={plan.gold ? 'btn-gold' : 'btn-ghost'} style={{ padding: '13px 0', justifyContent: 'center', fontSize: 15 }}>{plan.cta}</a>
+                                ) : (
+                                    <Link to={plan.link} className={plan.gold ? 'btn-gold' : 'btn-ghost'} style={{ padding: '13px 0', justifyContent: 'center', fontSize: 15 }}>{plan.cta}</Link>
+                                )}
                             </div>
                         ))}
                     </div>

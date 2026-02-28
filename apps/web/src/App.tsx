@@ -4,6 +4,7 @@ import { AppLayout } from './layouts/AppLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { PageSkeleton } from './components/ui/PageSkeleton';
 import { SupportChat } from './components/SupportChat';
+import { PublicRoute } from './components/PublicRoute';
 
 const Landing = React.lazy(() => import('./pages/Landing').then(m => ({ default: m.Landing })));
 const Login = React.lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
@@ -33,10 +34,14 @@ export default function App() {
             <SupportChat />
             <Suspense fallback={<PageSkeleton />}>
                 <Routes>
-                    {/* Public Routes */}
-                    <Route path="/" element={<Landing />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
+                    {/* Public Routes — redirect to /dashboard if already logged in */}
+                    <Route element={<PublicRoute />}>
+                        <Route path="/" element={<Landing />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/register" element={<Register />} />
+                    </Route>
+
+                    {/* Always-public auth pages (password reset links, etc.) */}
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
 
