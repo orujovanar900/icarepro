@@ -408,10 +408,7 @@ function DashboardContent() {
                 <Card
                     variant="elevated"
                     className="relative overflow-hidden"
-                    style={{ border: '1px solid rgba(255, 255, 255, 0.12)', height: '140px', cursor: 'pointer' }}
-                    onClick={() => {
-                        document.getElementById('debtors-list')?.scrollIntoView({ behavior: 'smooth' });
-                    }}
+                    style={{ border: '1px solid rgba(255, 255, 255, 0.12)', height: '140px' }}
                 >
                     <div style={{ position: 'absolute', bottom: '-10px', right: '-10px', opacity: 0.07 }}>
                         <AlertTriangle style={{ width: '80px', height: '80px', color: '#f87171' }} />
@@ -489,8 +486,8 @@ function DashboardContent() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <div style={{ display: 'flex', flexDirection: 'row', gap: '16px', alignItems: 'flex-start', padding: '16px' }}>
-                        <div style={{ flex: '3', height: '360px', borderRadius: '12px', flexShrink: 0, overflow: 'hidden', minWidth: 0 }}>
+                    <div style={{ display: 'flex', flexDirection: 'row', gap: '16px', alignItems: 'stretch', padding: '16px', height: '360px' }}>
+                        <div style={{ flex: '1', borderRadius: '12px', flexShrink: 0, overflow: 'hidden', minWidth: 0 }}>
                             <SimpleMap
                                 compact
                                 hidePanel
@@ -517,7 +514,7 @@ function DashboardContent() {
                                 onPropertyClick={(id) => navigate(`/properties/${id}`)}
                             />
                         </div>
-                        <div style={{ flex: '2', height: '360px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '220px' }} className="custom-scrollbar pr-2">
+                        <div style={{ flex: '1', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', minWidth: '220px' }} className="custom-scrollbar pr-2">
                             {mapProperties.map((p: any) => {
                                 const contract = mapContracts.find((c: any) => c.propertyId === p.id);
                                 let status: 'active' | 'expiring' | 'expired' = 'expired';
@@ -526,7 +523,7 @@ function DashboardContent() {
                                     status = days < 0 ? 'expired' : days <= 30 ? 'expiring' : 'active';
                                 }
                                 return (
-                                    <div key={p.id} onClick={() => navigate(`/properties/${p.id}`)} className="p-3 bg-surface rounded-lg cursor-pointer hover:bg-surface/80 transition-colors border border-border/50 flex flex-col gap-1">
+                                    <div key={p.id} onClick={() => navigate(`/properties/${p.id}`)} className="p-4 bg-surface rounded-lg cursor-pointer hover:bg-surface/80 transition-colors border border-border/50 flex flex-col justify-center" style={{ flex: 1 }}>
                                         <div className="flex justify-between items-start">
                                             <p className="font-semibold text-text">{p.name}</p>
                                             <span className={`w-2.5 h-2.5 rounded-full ${status === 'active' ? 'bg-green' : status === 'expiring' ? 'bg-orange' : 'bg-red'}`} />
