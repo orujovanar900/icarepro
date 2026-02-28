@@ -18,10 +18,11 @@ const loginSchema = z.object({
 })
 
 const registerSchema = z.object({
+    entityType: z.enum(['INDIVIDUAL', 'COMPANY']).optional(),
     name: z.string().min(2),
     email: z.string().email(),
     password: z.string().min(6),
-    organizationName: z.string().min(2),
+    organizationName: z.string().optional(),
 })
 
 const changePasswordSchema = z.object({
@@ -53,7 +54,10 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         const body = registerSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
 
-        const { name, email, password, organizationName } = body.data
+        const { name, email, password, organizationName, entityType } = body.data
+
+        // If INDIVIDUAL or organizationName is omitted, use the user's name as their org
+        const finalOrgName = (entityType === 'INDIVIDUAL' || !organizationName) ? name : organizationName;
 
         // Check for duplicate email
         const existing = await fastify.prisma.user.findFirst({ where: { email } })
@@ -64,18 +68,18 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
 
         // Generate a URL-safe slug from org name + random suffix for uniqueness
-        const baseSlug = organizationName
+        const baseSlug = finalOrgName
             .toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-|-$/g, '')
-            .slice(0, 40)
+            .slice(0, 40) || 'org'
         const slug = `${baseSlug}-${crypto.randomBytes(4).toString('hex')}`
 
         // Create Org + Owner User in a transaction
         const { user, org } = await fastify.prisma.$transaction(async (tx) => {
             const org = await tx.organization.create({
                 data: {
-                    name: organizationName,
+                    name: finalOrgName,
                     slug,
                     plan: 'FREE',
                     isActive: true,

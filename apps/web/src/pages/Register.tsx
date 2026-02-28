@@ -13,11 +13,21 @@ import { Eye, EyeOff, Building2 } from 'lucide-react';
 
 const registerSchema = z
     .object({
+        entityType: z.enum(['INDIVIDUAL', 'COMPANY']),
         name: z.string().min(2, 'Ad Soyad ən azı 2 simvol olmalıdır.'),
         email: z.string().email('Düzgün e-poçt ünvanı daxil edin.'),
-        organizationName: z.string().min(2, 'Təşkilat adı ən azı 2 simvol olmalıdır.'),
+        organizationName: z.string().optional(),
         password: z.string().min(6, 'Şifrə ən azı 6 simvoldan ibarət olmalıdır.'),
         confirmPassword: z.string().min(1, 'Şifrəni təkrarlayın.'),
+    })
+    .refine((data) => {
+        if (data.entityType === 'COMPANY' && (!data.organizationName || data.organizationName.length < 2)) {
+            return false;
+        }
+        return true;
+    }, {
+        message: 'Şirkət adı ən azı 2 simvol olmalıdır.',
+        path: ['organizationName'],
     })
     .refine((d) => d.password === d.confirmPassword, {
         message: 'Şifrələr uyğun gəlmir.',
@@ -37,19 +47,28 @@ export function Register() {
     const {
         register,
         handleSubmit,
+        watch,
+        setValue,
         formState: { errors },
     } = useForm<RegisterFormValues>({
         resolver: zodResolver(registerSchema),
+        defaultValues: {
+            entityType: 'INDIVIDUAL',
+        }
     });
+
+    const selectedEntityType = watch('entityType');
 
     const onSubmit = async (data: RegisterFormValues) => {
         try {
             setIsLoading(true);
             const response = await api.post('/auth/register', {
+                entityType: data.entityType,
                 name: data.name,
                 email: data.email,
                 password: data.password,
-                organizationName: data.organizationName,
+                // If individual, use their name as the implicit 'organization' name behind the scenes
+                organizationName: data.entityType === 'COMPANY' ? data.organizationName : data.name,
             });
 
             const { user, token } = response.data.data;
@@ -91,6 +110,33 @@ export function Register() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                            {/* Entity Type Toggle */}
+                            <div className="flex bg-surface border border-border/50 rounded-lg p-1">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setValue('entityType', 'INDIVIDUAL');
+                                        setValue('organizationName', '');
+                                    }}
+                                    className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all ${selectedEntityType === 'INDIVIDUAL'
+                                        ? 'bg-gold text-[#0A0B0F] shadow-sm'
+                                        : 'text-muted hover:text-text hover:bg-white/5'
+                                        }`}
+                                >
+                                    Fiziki Şəxs
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setValue('entityType', 'COMPANY')}
+                                    className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all ${selectedEntityType === 'COMPANY'
+                                        ? 'bg-gold text-[#0A0B0F] shadow-sm'
+                                        : 'text-muted hover:text-text hover:bg-white/5'
+                                        }`}
+                                >
+                                    Hüquqi Şəxs
+                                </button>
+                            </div>
+
                             <Input
                                 label="Ad Soyad"
                                 type="text"
@@ -105,13 +151,17 @@ export function Register() {
                                 {...register('email')}
                                 error={errors.email?.message}
                             />
-                            <Input
-                                label="Təşkilat / Şirkət adı"
-                                type="text"
-                                placeholder="Əliyev MMC"
-                                {...register('organizationName')}
-                                error={errors.organizationName?.message}
-                            />
+
+                            {selectedEntityType === 'COMPANY' && (
+                                <Input
+                                    label="Şirkət adı"
+                                    type="text"
+                                    placeholder="Əliyev MMC"
+                                    {...register('organizationName')}
+                                    error={errors.organizationName?.message}
+                                />
+                            )}
+
                             <Input
                                 label="Şifrə"
                                 type={showPass ? 'text' : 'password'}
