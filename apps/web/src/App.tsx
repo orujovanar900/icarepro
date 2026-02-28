@@ -18,6 +18,7 @@ const Income = React.lazy(() => import('./pages/Income').then(m => ({ default: m
 const Expenses = React.lazy(() => import('./pages/Expenses').then(m => ({ default: m.Expenses })));
 const Tenants = React.lazy(() => import('./pages/Tenants').then(m => ({ default: m.Tenants })));
 const TenantDetail = React.lazy(() => import('./pages/TenantDetail').then(m => ({ default: m.TenantDetail })));
+const TenantForm = React.lazy(() => import('./pages/TenantForm').then(m => ({ default: m.TenantForm })));
 const Documents = React.lazy(() => import('./pages/Documents').then(m => ({ default: m.Documents })));
 const SanadUstasi = React.lazy(() => import('./pages/SanadUstasi').then(m => ({ default: m.SanadUstasi })));
 const Users = React.lazy(() => import('./pages/Users').then(m => ({ default: m.Users })));
@@ -53,7 +54,9 @@ export default function App() {
                                 <Route path="/properties" element={<Properties />} />
                                 <Route path="/properties/:id" element={<PropertyDetail />} />
                                 <Route path="/tenants" element={<Tenants />} />
+                                <Route path="/tenants/new" element={<TenantForm />} />
                                 <Route path="/tenants/:id" element={<TenantDetail />} />
+                                <Route path="/tenants/:id/edit" element={<TenantForm />} />
                                 <Route path="/documents" element={<Documents />} />
                             </Route>
 
