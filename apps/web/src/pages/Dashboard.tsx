@@ -1015,7 +1015,7 @@ function DashboardContent() {
 
             {/* Quick Add Floating Button */}
             <Button
-                className="fixed bottom-6 right-[5.5rem] z-40 w-14 h-14 rounded-full shadow-2xl bg-gold hover:bg-gold-light border border-gold/50 flex items-center justify-center p-0 transition-transform hover:scale-105"
+                className="fixed bottom-40 md:bottom-6 right-4 md:right-28 z-40 w-14 h-14 rounded-full shadow-2xl bg-gold hover:bg-gold-light border border-gold/50 flex items-center justify-center p-0 transition-transform hover:scale-105"
                 onClick={() => setIsAddModalOpen(true)}
             >
                 <Plus className="w-6 h-6 text-black" />

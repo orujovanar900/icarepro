@@ -145,7 +145,7 @@ DİL:
     if (!isOpen) {
         return (
             <div
-                className="fixed bottom-6 right-6 z-50 flex items-center justify-center cursor-pointer"
+                className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 flex items-center justify-center cursor-pointer"
                 style={{
                     width: '60px',
                     height: '60px',
@@ -173,7 +173,7 @@ DİL:
     }
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 w-[380px] h-[500px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
+        <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 w-[380px] max-w-[calc(100vw-2rem)] h-[500px] max-h-[calc(100vh-7rem)] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
             {/* Header */}
             <div className="bg-gradient-to-r from-purple-800 to-purple-600 text-white p-4 flex justify-between items-center z-10">
                 <div className="flex flex-col">
