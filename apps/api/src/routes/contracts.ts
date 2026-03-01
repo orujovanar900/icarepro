@@ -5,6 +5,7 @@ import { requireRole } from '../middleware/requireRole.js'
 import { sendZodError } from '../utils/zodError.js'
 import { withOrg } from '../utils/withOrg.js'
 import { writeAuditLog } from '../utils/audit.js'
+import { calculateContractDebtAndExpected, getNextPaymentDate, getDueDateForPaymentIndex } from '../utils/contractUtils.js'
 
 // Inline tenant creation schema (mirrors the full tenant schemas)
 const newTenantSchema = z.union([
@@ -51,11 +52,14 @@ const createSchema = z.object({
     endDate: z.string().date(),
     taxRate: z.number().min(0).max(100).optional(),
     depositAmount: z.number().min(0).optional(),
+    isDepositReturned: z.boolean().optional(),
     baseRent: z.number().min(0).optional(),
     revenuePercent: z.number().min(0).max(100).optional(),
     dailyRate: z.number().min(0).optional(),
     parentContractId: z.string().optional(),
     notes: z.string().optional(),
+    paymentMode: z.enum(['CALENDAR', 'FIXED_DAY']).optional(),
+    paymentDay: z.number().int().min(1).max(31).optional(),
     // Inline tenant creation
     newTenant: newTenantSchema.optional(),
     // When existing tenant's data was changed in contract form
@@ -140,26 +144,14 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
             const totalPaid = Number(totalPaidAgg._sum.amount ?? 0)
 
             const now = new Date()
-            const start = new Date(c.startDate)
-            const end = c.endDate < now ? new Date(c.endDate) : now
-
-            // Total months effectively elapsed
-            const monthsElapsed = Math.max(0,
-                (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1
-            )
-            const totalExpected = Number(c.monthlyRent) * monthsElapsed
+            const totalExpected = calculateContractDebtAndExpected(c, now)
             const debt = Math.max(0, totalExpected - totalPaid)
 
             let daysOverdue = 0
             if (debt > 0) {
-                // Determine expected payment date for the currently unpaid month
-                // (Using monthsPaid completely to project the *next* expected cycle)
                 const monthsPaidFully = Math.floor(totalPaid / Number(c.monthlyRent))
+                const expectedDate = getDueDateForPaymentIndex(c, monthsPaidFully)
 
-                const expectedDate = new Date(start)
-                expectedDate.setMonth(expectedDate.getMonth() + monthsPaidFully)
-
-                // If the expected payment date is in the past, it's overdue
                 if (expectedDate < now) {
                     const diffTime = Math.abs(now.getTime() - expectedDate.getTime())
                     daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24))

@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { authenticate } from '../middleware/authenticate.js'
 import { sendZodError } from '../utils/zodError.js'
 import { withOrg } from '../utils/withOrg.js'
-
+import { calculateContractDebtAndExpected, getDueDateForPaymentIndex } from '../utils/contractUtils.js'
 const querySchema = z.object({
     month: z.coerce.number().int().min(1).max(12).default(new Date().getMonth() + 1),
     year: z.coerce.number().int().min(2020).default(new Date().getFullYear()),
@@ -110,12 +110,11 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
             // Forecast logic: sum up monthly rent of valid active contracts
             incomeForecast += Number(c.monthlyRent)
 
+            const now = new Date()
             const start = new Date(c.startDate)
             const end = c.endDate < now ? new Date(c.endDate) : now
-            const monthsElapsed = Math.max(0,
-                (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1
-            )
-            const totalExpected = Number(c.monthlyRent) * monthsElapsed
+
+            const totalExpected = calculateContractDebtAndExpected(c, now)
             const totalPaid = c.payments.reduce((s: number, p: any) => s + Number(p.amount), 0)
             const debt = Math.max(0, totalExpected - totalPaid)
             totalDebt += debt
@@ -130,8 +129,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
             if (debt > 0) {
                 let daysOverdue = 0
                 const monthsPaidFully = Math.floor(totalPaid / Number(c.monthlyRent))
-                const expectedDate = new Date(start)
-                expectedDate.setMonth(expectedDate.getMonth() + monthsPaidFully)
+                const expectedDate = getDueDateForPaymentIndex(c, monthsPaidFully)
 
                 if (expectedDate < now) {
                     const diffTime = Math.abs(now.getTime() - expectedDate.getTime())

@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { prisma } from '../lib/prisma.js';
 import { sendDebtAlert, sendExpiringContractAlert } from '../services/email.js';
+import { calculateContractDebtAndExpected } from '../utils/contractUtils.js';
 
 // Run every day at 09:00 Baku time
 cron.schedule('0 9 * * *', async () => {
@@ -30,12 +31,7 @@ cron.schedule('0 9 * * *', async () => {
             const totalPaid = Number(totalPaidAgg._sum.amount ?? 0);
 
             const now = new Date();
-            const start = new Date(contract.startDate);
-            const end = contract.endDate < now ? new Date(contract.endDate) : now;
-            const monthsElapsed = Math.max(0,
-                (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1
-            );
-            const totalExpected = Number(contract.monthlyRent) * monthsElapsed;
+            const totalExpected = calculateContractDebtAndExpected(contract, now);
             const debt = Math.max(0, totalExpected - totalPaid);
 
             if (debt > 0) {

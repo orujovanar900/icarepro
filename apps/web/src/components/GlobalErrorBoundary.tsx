@@ -23,6 +23,18 @@ export class GlobalErrorBoundary extends React.Component<Props, State> {
 
     override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
         console.error('Global Error Caught:', error, errorInfo);
+
+        const isChunkError = error?.message?.toLowerCase().includes('failed to fetch dynamically imported module') ||
+            error?.message?.toLowerCase().includes('dynamically imported module') ||
+            error?.message?.toLowerCase().includes('importing a module script failed');
+
+        if (isChunkError) {
+            const hasReloaded = sessionStorage.getItem('chunk-error-reload');
+            if (!hasReloaded) {
+                sessionStorage.setItem('chunk-error-reload', 'true');
+                window.location.reload();
+            }
+        }
     }
 
     handleReload = () => {
@@ -33,7 +45,8 @@ export class GlobalErrorBoundary extends React.Component<Props, State> {
         if (this.state.hasError) {
             // Check if it's likely a chunk load error
             const isChunkError = this.state.error?.message?.toLowerCase().includes('failed to fetch dynamically imported module') ||
-                this.state.error?.message?.toLowerCase().includes('dynamically imported module');
+                this.state.error?.message?.toLowerCase().includes('dynamically imported module') ||
+                this.state.error?.message?.toLowerCase().includes('importing a module script failed');
 
             return (
                 <div className="min-h-screen bg-bg text-text flex flex-col items-center justify-center p-4">

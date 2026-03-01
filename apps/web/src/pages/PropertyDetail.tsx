@@ -103,7 +103,7 @@ export function PropertyDetail() {
         setIsUploadingPhoto(true);
 
         try {
-            await api.post(`/properties/${id}/photos`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+            await api.post(`/properties/${id}/photos`, formData);
             addToast({ message: 'Şəkil yükləndi', type: 'success' });
             queryClient.invalidateQueries({ queryKey: ['property', id] });
         } catch (error: any) {
@@ -133,7 +133,7 @@ export function PropertyDetail() {
         setIsUploadingDoc(true);
 
         try {
-            await api.post(`/properties/${id}/documents?type=${type}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+            await api.post(`/properties/${id}/documents?type=${type}`, formData);
             addToast({ message: 'Sənəd yükləndi', type: 'success' });
             queryClient.invalidateQueries({ queryKey: ['property', id] });
         } catch (error: any) {
@@ -301,13 +301,16 @@ export function PropertyDetail() {
                 <div className="space-y-4">
                     <div className="flex justify-between items-center">
                         <h3 className="text-lg font-bold text-text">Fotolar ({property.photos?.length || 0}/5)</h3>
-                        <label className={`cursor-pointer ${(property.photos?.length >= 5 || isUploadingPhoto) ? 'opacity-50 pointer-events-none' : ''}`}>
-                            <div className="flex items-center gap-2 bg-gold/10 hover:bg-gold/20 text-gold px-4 py-2 rounded-lg transition-colors font-medium text-sm">
-                                {isUploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-                                Şəkil Yüklə
-                            </div>
-                            <input type="file" className="hidden" accept="image/*" onChange={handleUploadPhoto} />
-                        </label>
+                        <div className="flex flex-col items-end gap-1">
+                            <label className={`cursor-pointer ${(property.photos?.length >= 5 || isUploadingPhoto) ? 'opacity-50 pointer-events-none' : ''}`}>
+                                <div className="flex items-center gap-2 bg-gold/10 hover:bg-gold/20 text-gold px-4 py-2 rounded-lg transition-colors font-medium text-sm">
+                                    {isUploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                                    Şəkil Yüklə
+                                </div>
+                                <input type="file" className="hidden" accept=".jpg,.jpeg,.png" onChange={handleUploadPhoto} />
+                            </label>
+                            <p className="text-[10px] text-muted">max 4MB, (jpg, png)</p>
+                        </div>
                     </div>
 
                     {property.photos?.length > 0 ? (
@@ -341,12 +344,15 @@ export function PropertyDetail() {
                         <Card variant="elevated">
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <CardTitle className="text-base">Mülkiyyət Çıxarışı (Kupça)</CardTitle>
-                                <label className="cursor-pointer">
-                                    <div className="p-2 text-gold bg-gold/10 hover:bg-gold/20 rounded-md transition-colors">
-                                        {isUploadingDoc ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
-                                    </div>
-                                    <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={e => handleUploadDocument(e, 'OWNERSHIP_CERT')} />
-                                </label>
+                                <div className="flex flex-col items-end gap-1">
+                                    <label className="cursor-pointer">
+                                        <div className="p-2 text-gold bg-gold/10 hover:bg-gold/20 rounded-md transition-colors">
+                                            {isUploadingDoc ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                                        </div>
+                                        <input type="file" className="hidden" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={e => handleUploadDocument(e, 'OWNERSHIP_CERT')} />
+                                    </label>
+                                    <p className="text-[10px] text-muted font-normal max-w-[80px] text-right">max 4MB<br />(pdf, jpg, png)</p>
+                                </div>
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 {property.documents?.filter((d: any) => d.type === 'OWNERSHIP_CERT').map((doc: any) => (
@@ -373,12 +379,15 @@ export function PropertyDetail() {
                         <Card variant="elevated">
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <CardTitle className="text-base">Tex-Pasport</CardTitle>
-                                <label className="cursor-pointer">
-                                    <div className="p-2 text-gold bg-gold/10 hover:bg-gold/20 rounded-md transition-colors">
-                                        {isUploadingDoc ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
-                                    </div>
-                                    <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={e => handleUploadDocument(e, 'TEX_PASSPORT')} />
-                                </label>
+                                <div className="flex flex-col items-end gap-1">
+                                    <label className="cursor-pointer">
+                                        <div className="p-2 text-gold bg-gold/10 hover:bg-gold/20 rounded-md transition-colors">
+                                            {isUploadingDoc ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                                        </div>
+                                        <input type="file" className="hidden" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={e => handleUploadDocument(e, 'TEX_PASSPORT')} />
+                                    </label>
+                                    <p className="text-[10px] text-muted font-normal max-w-[80px] text-right">max 4MB<br />(pdf, jpg, png)</p>
+                                </div>
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 {property.documents?.filter((d: any) => d.type === 'TEX_PASSPORT').map((doc: any) => (

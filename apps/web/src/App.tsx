@@ -36,9 +36,11 @@ export default function App() {
                 <SupportChat />
                 <Suspense fallback={<PageSkeleton />}>
                     <Routes>
+                        {/* Always-public landing page */}
+                        <Route path="/" element={<Landing />} />
+
                         {/* Public Routes — redirect to /dashboard if already logged in */}
                         <Route element={<PublicRoute />}>
-                            <Route path="/" element={<Landing />} />
                             <Route path="/login" element={<Login />} />
                             <Route path="/register" element={<Register />} />
                         </Route>

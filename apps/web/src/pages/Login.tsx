@@ -76,10 +76,10 @@ export function Login() {
 
             <div className="w-full max-w-md space-y-8">
                 <div className="text-center">
-                    <h1 className="text-5xl font-heading tracking-tight flex items-center justify-center gap-2">
+                    <Link to="/" className="text-5xl font-heading tracking-tight flex items-center justify-center gap-2 hover:opacity-80 transition-opacity">
                         <span className="text-gold font-extrabold">İcarə</span>
                         <span className="text-white font-normal">Pro</span>
-                    </h1>
+                    </Link>
                     <p style={{ fontStyle: 'italic', color: '#8899B0', fontSize: '13px' }} className="mt-1 mb-2">
                         "Mülkünüzü ağıllı idarə edin"
                     </p>

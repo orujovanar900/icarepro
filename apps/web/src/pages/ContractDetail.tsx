@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, FileText, Download, Plus, Archive, RefreshCw, History, AlertCircle, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, FileText, Download, Plus, Archive, RefreshCw, History, AlertCircle, ShieldCheck, Check, Edit2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSkeleton } from '@/components/ui/Table';
@@ -57,9 +57,21 @@ export function ContractDetail() {
     // Deposit & penalty state
     const [isTogglingDeposit, setIsTogglingDeposit] = useState(false);
     const [showPenaltyModal, setShowPenaltyModal] = useState(false);
+    // Deposit Add state
+    const [showDepositModal, setShowDepositModal] = useState(false);
+    const [depositAmountInput, setDepositAmountInput] = useState('');
+    const [isAddingDeposit, setIsAddingDeposit] = useState(false);
+
     const [penaltyAmount, setPenaltyAmount] = useState('');
     const [penaltyNote, setPenaltyNote] = useState('');
     const [isApplyingPenalty, setIsApplyingPenalty] = useState(false);
+
+    // Payment Mode edit state
+    const [showPaymentModeModal, setShowPaymentModeModal] = useState(false);
+    const [editPaymentMode, setEditPaymentMode] = useState<'CALENDAR' | 'FIXED_DAY'>('CALENDAR');
+    const [editPaymentDay, setEditPaymentDay] = useState(1);
+    const [isUpdatingPaymentMode, setIsUpdatingPaymentMode] = useState(false);
+
     const { user: currentUser } = useAuthStore();
     const canManagePenalties = ['OWNER', 'MANAGER'].includes(currentUser?.role || '');
 
@@ -140,6 +152,23 @@ export function ContractDetail() {
         }
     };
 
+    const handleUpdatePaymentMode = async () => {
+        setIsUpdatingPaymentMode(true);
+        try {
+            await api.patch(`/contracts/${id}`, {
+                paymentMode: editPaymentMode,
+                paymentDay: editPaymentMode === 'FIXED_DAY' ? Number(editPaymentDay) : null
+            });
+            queryClient.invalidateQueries({ queryKey: ['contract', id] });
+            addToast({ message: 'Ödəniş rejimi yeniləndi', type: 'success' });
+            setShowPaymentModeModal(false);
+        } catch (err: any) {
+            addToast({ message: err.response?.data?.error || 'Xəta baş verdi', type: 'error' });
+        } finally {
+            setIsUpdatingPaymentMode(false);
+        }
+    };
+
     const addPaymentMutation = useMutation({
         mutationFn: async (payload: any) => {
             const res = await api.post('/payments', payload);
@@ -207,15 +236,7 @@ export function ContractDetail() {
     const totalPaid = contract.payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0);
     const totalDebt = Math.max(0, totalExpected - totalPaid);
 
-    // calculate gross amount
-    const actualEnd = new Date(contract.endDate);
-    const totalMonths = Math.max(0,
-        (actualEnd.getFullYear() - start.getFullYear()) * 12 + (actualEnd.getMonth() - start.getMonth()) + 1
-    );
-    // User requested 14% withholding tax calculation for gross: Net / 0.86
-    const monthlyGross = Number(contract.monthlyRent) / 0.86;
-    const grossAmount = monthlyGross * totalMonths;
-
+    // Gross amount calculation removed as per user request
     const lastPayment = contract.payments?.length > 0
         ? contract.payments.reduce((latest: any, p: any) => new Date(p.paymentDate) > new Date(latest.paymentDate) ? p : latest)
         : null;
@@ -257,6 +278,12 @@ export function ContractDetail() {
                         </h1>
                     </div>
                     <div className="flex gap-2">
+                        {contract.documents && contract.documents.length > 0 && (
+                            <Button variant="outline" onClick={() => window.open(contract.documents[0].filePath, '_blank')}>
+                                <FileText className="w-4 h-4 mr-2" />
+                                PDF Yüklə
+                            </Button>
+                        )}
                         {(contract.status === 'ACTIVE' || isExpired) && (
                             <Button variant="outline" onClick={() => {
                                 setRenewEndDate(contract.endDate ? new Date(contract.endDate).toISOString().split('T')[0] ?? '' : '');
@@ -282,43 +309,51 @@ export function ContractDetail() {
                             <CardHeader>
                                 <CardTitle>Müqavilə Məlumatları</CardTitle>
                             </CardHeader>
-                            <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                                <div>
-                                    <h3 className="text-sm font-medium text-muted">Obyekt</h3>
-                                    <p className="text-lg font-bold text-text mt-1">{contract.property.name}</p>
-                                </div>
+                            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                                 <div>
                                     <h3 className="text-sm font-medium text-muted">İcarəçi</h3>
-                                    <p className="text-lg font-bold text-text mt-1">{contract.tenant.fullName}</p>
-                                    <p className="text-sm text-text">Tel: {contract.tenant.phone}</p>
-                                    <p className="text-sm text-text">VÖEN: {contract.tenant.taxId || '-'}</p>
+                                    <p className="text-2xl font-bold text-gold mt-1">{contract.tenant.fullName}</p>
+                                    <div className="mt-3 space-y-1">
+                                        <p className="text-sm font-medium text-text">Tel: {contract.tenant.phone}</p>
+                                        <p className="text-sm text-muted">VÖEN: {contract.tenant.taxId || '-'}</p>
+                                    </div>
+                                    <h3 className="text-sm font-medium text-muted mt-6">Obyekt</h3>
+                                    <p className="text-lg font-bold text-text mt-1">{contract.property.name}</p>
                                 </div>
-                                <div className="sm:col-span-2 md:col-span-1 border-t sm:border-t-0 md:border-l border-border pt-4 sm:pt-0 md:pl-6 space-y-4">
+                                <div className="border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-8 space-y-6">
                                     <div>
                                         <h3 className="text-sm font-medium text-muted">Müddət</h3>
-                                        <p className="text-base font-bold text-text mt-1">
+                                        <p className="text-lg font-bold text-text mt-1">
                                             {new Date(contract.startDate).toLocaleDateString('az-AZ')} — {new Date(contract.endDate).toLocaleDateString('az-AZ')}
                                         </p>
                                     </div>
-                                    <div className="flex justify-between items-end border-t border-border/50 pt-3">
-                                        <div>
-                                            <h3 className="text-sm font-medium text-muted">Aylıq İcarə</h3>
-                                            <p className="text-lg font-bold text-gold mt-1">{formatMoney(contract.monthlyRent)}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <h3 className="text-sm font-medium text-muted">Aylıq Brutto (14% vergi)</h3>
-                                            <p className="text-lg font-bold text-text mt-1">{formatMoney(monthlyGross)}</p>
-                                        </div>
+                                    <div className="border-t border-border/50 pt-4">
+                                        <h3 className="text-sm font-medium text-muted">Aylıq İcarə</h3>
+                                        <p className="text-2xl font-bold text-green mt-1">{formatMoney(contract.monthlyRent)}</p>
                                     </div>
-                                    <div className="flex justify-between items-end border-t border-border/50 pt-3">
-                                        <div>
-                                            <h3 className="text-sm font-medium text-muted">Son Ödəniş Tarixi</h3>
-                                            <p className="text-sm font-bold text-text mt-1">{lastPayment ? new Date(lastPayment.paymentDate).toLocaleDateString('az-AZ') : '-'}</p>
+                                </div>
+                                <div className="border-t lg:border-t-0 lg:border-l border-border pt-4 lg:pt-0 lg:pl-8 space-y-6">
+                                    <div>
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-sm font-medium text-muted">Ödəniş rejimi</h3>
+                                            <Button variant="ghost" size="sm" onClick={() => {
+                                                setEditPaymentMode(contract.paymentMode || 'CALENDAR');
+                                                setEditPaymentDay(contract.paymentDay || new Date(contract.startDate).getDate());
+                                                setShowPaymentModeModal(true);
+                                            }} className="h-6 px-2 text-xs text-gold hover:text-gold-light">
+                                                <Edit2 className="w-3" />
+                                            </Button>
                                         </div>
-                                        <div className="text-right">
-                                            <h3 className="text-sm font-medium text-muted">Ümumi məbləğ (vergilər daxil)</h3>
-                                            <p className="text-lg font-bold text-text mt-1">{formatMoney(grossAmount)}</p>
-                                        </div>
+                                        <p className="text-base font-bold text-text mt-1">
+                                            {contract.paymentMode === 'FIXED_DAY' ? `Başlama tarixindən (${contract.paymentDay || new Date(contract.startDate).getDate()}-dan)` : 'Ayın əvvəlindən (1-dən 1-nə)'}
+                                        </p>
+                                        <p className="text-sm font-medium text-muted mt-2">
+                                            Növbəti ödəniş <span className="text-gold break-words px-1 bg-gold/10 rounded">{contract.paymentMode === 'FIXED_DAY' ? new Date(new Date().getFullYear(), new Date().getMonth() + 1, contract.paymentDay || new Date(contract.startDate).getDate()).toLocaleDateString('az-AZ') : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString('az-AZ')}</span> tarixinədək
+                                        </p>
+                                    </div>
+                                    <div className="border-t border-border/50 pt-4">
+                                        <h3 className="text-sm font-medium text-muted">Son Ödəniş</h3>
+                                        <p className="text-base font-bold text-text mt-1">{lastPayment ? new Date(lastPayment.paymentDate).toLocaleDateString('az-AZ') : '-'}</p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -440,17 +475,7 @@ export function ContractDetail() {
                                         </>
                                     ) : (
                                         canManagePenalties && (
-                                            <Button variant="outline" size="sm" onClick={() => {
-                                                const amount = prompt('Depozit məbləğini daxil edin (AZN):');
-                                                if (amount && !isNaN(Number(amount))) {
-                                                    api.patch(`/contracts/${id}`, { depositAmount: Number(amount), isDepositReturned: false })
-                                                        .then(() => {
-                                                            queryClient.invalidateQueries({ queryKey: ['contract', id] });
-                                                            addToast({ message: 'Depozit əlavə edildi', type: 'success' });
-                                                        })
-                                                        .catch(() => addToast({ message: 'Xəta baş verdi', type: 'error' }));
-                                                }
-                                            }}>
+                                            <Button variant="outline" size="sm" onClick={() => setShowDepositModal(true)}>
                                                 <Plus className="w-3 h-3 mr-1" /> Əlavə et
                                             </Button>
                                         )
@@ -620,6 +645,45 @@ export function ContractDetail() {
                 </div>
             </Modal>
 
+            {/* Deposit Add Modal */}
+            <Modal isOpen={showDepositModal} onClose={() => setShowDepositModal(false)} title="Depozit Əlavə Et">
+                <div className="space-y-4">
+                    <p className="text-sm text-muted">İcarəçi tərəfindən ödənilən depozit məbləğini daxil edin:</p>
+                    <Input
+                        label="Depozit Məbləği (₼)"
+                        type="number"
+                        step="0.01"
+                        value={depositAmountInput}
+                        onChange={(e) => setDepositAmountInput(e.target.value)}
+                        placeholder="Məs: 500"
+                    />
+                    <div className="flex gap-3 pt-2">
+                        <Button variant="outline" className="flex-1" onClick={() => setShowDepositModal(false)}>Ləğv et</Button>
+                        <Button
+                            className="flex-1"
+                            onClick={async () => {
+                                if (!depositAmountInput || isNaN(Number(depositAmountInput))) return;
+                                setIsAddingDeposit(true);
+                                try {
+                                    await api.patch(`/contracts/${id}`, { depositAmount: Number(depositAmountInput), isDepositReturned: false });
+                                    await queryClient.invalidateQueries({ queryKey: ['contract', id] });
+                                    addToast({ message: 'Depozit əlavə edildi', type: 'success' });
+                                    setShowDepositModal(false);
+                                    setDepositAmountInput('');
+                                } catch (err: any) {
+                                    addToast({ message: err.response?.data?.error || 'Xəta baş verdi', type: 'error' });
+                                } finally {
+                                    setIsAddingDeposit(false);
+                                }
+                            }}
+                            disabled={isAddingDeposit || !depositAmountInput}
+                        >
+                            {isAddingDeposit ? 'Əlavə edilir...' : 'Əlavə et'}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
             {/* Penalty Modal */}
             <Modal isOpen={showPenaltyModal} onClose={() => setShowPenaltyModal(false)} title="Cərimə Tətbiq Et">
                 <div className="space-y-4">
@@ -647,6 +711,55 @@ export function ContractDetail() {
                         >
                             <AlertCircle className="w-4 h-4 mr-2" />
                             {isApplyingPenalty ? 'Tətbiq edilir...' : 'Cərimə tətbiq et'}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Payment Mode Edit Modal */}
+            <Modal isOpen={showPaymentModeModal} onClose={() => setShowPaymentModeModal(false)} title="Ödəniş rejimini dəyiş">
+                <div className="space-y-4">
+                    <p className="text-sm text-muted">Aylıq ödənişlərin hesablanma və borc yaranma qaydasını seçin:</p>
+                    <div className="flex flex-col gap-3">
+                        <button
+                            type="button"
+                            onClick={() => setEditPaymentMode('CALENDAR')}
+                            className={`p-3 border rounded-lg text-left transition-colors flex items-center justify-between ${editPaymentMode === 'CALENDAR' ? 'border-gold bg-gold/10 text-gold' : 'border-border text-text hover:bg-surface'}`}
+                        >
+                            <span>Ayın əvvəlindən (1-dən 1-nə)</span>
+                            {editPaymentMode === 'CALENDAR' && <Check className="w-4 h-4 ml-2 flex-shrink-0" />}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setEditPaymentMode('FIXED_DAY')}
+                            className={`p-3 border rounded-lg text-left transition-colors flex items-center justify-between ${editPaymentMode === 'FIXED_DAY' ? 'border-gold bg-gold/10 text-gold' : 'border-border text-text hover:bg-surface'}`}
+                        >
+                            <span>Başlama tarixindən ({editPaymentDay}-dan {editPaymentDay}-a)</span>
+                            {editPaymentMode === 'FIXED_DAY' && <Check className="w-4 h-4 ml-2 flex-shrink-0" />}
+                        </button>
+                    </div>
+
+                    {editPaymentMode === 'FIXED_DAY' && (
+                        <div className="mt-4 p-3 bg-surface border border-border rounded-lg space-y-3">
+                            <Input
+                                label="Ödəniş günü (1-31)"
+                                type="number"
+                                min="1"
+                                max="31"
+                                value={editPaymentDay}
+                                onChange={(e) => setEditPaymentDay(Number(e.target.value))}
+                            />
+                            <div className="flex gap-2 items-start text-xs text-gold/80 bg-gold/5 p-2 rounded">
+                                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                                <p>Gözlənilən ödənişlər hər ay bu müqavilənin başlama tarixində yaranacaq.</p>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex gap-4 pt-2">
+                        <Button variant="outline" className="flex-1" onClick={() => setShowPaymentModeModal(false)}>Ləğv et</Button>
+                        <Button className="flex-1" onClick={handleUpdatePaymentMode} disabled={isUpdatingPaymentMode}>
+                            {isUpdatingPaymentMode ? 'Yadda saxlanılır...' : 'Yadda saxla'}
                         </Button>
                     </div>
                 </div>

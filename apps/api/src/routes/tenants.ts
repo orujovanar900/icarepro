@@ -5,6 +5,7 @@ import { authenticate } from '../middleware/authenticate.js'
 import { requireRole } from '../middleware/requireRole.js'
 import { sendZodError } from '../utils/zodError.js'
 import { withOrg } from '../utils/withOrg.js'
+import { calculateContractDebtAndExpected } from '../utils/contractUtils.js'
 
 const commonFields = {
     phone: z.string().regex(/^\+994\d{9}$/, 'Must be in +994XXXXXXXXX format').optional().or(z.literal('')),
@@ -218,12 +219,7 @@ const tenantsRoutes: FastifyPluginAsync = async (fastify) => {
             })
             if (!contractFull) return null
             const now = new Date()
-            const start = new Date(contractFull.startDate)
-            const end = contractFull.endDate < now ? new Date(contractFull.endDate) : now
-            const monthsElapsed = Math.max(0,
-                (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1
-            )
-            const totalExpected = Number(contractFull.monthlyRent) * monthsElapsed
+            const totalExpected = calculateContractDebtAndExpected(contractFull, now)
             const totalPaid = contractFull.payments.reduce((s, p) => s + Number(p.amount), 0)
             const debt = Math.max(0, totalExpected - totalPaid)
             return { contractId: c.id, contractNumber: c.number, totalExpected, totalPaid, debt }
