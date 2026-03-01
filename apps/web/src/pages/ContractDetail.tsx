@@ -367,8 +367,10 @@ export function ContractDetail() {
                                         </p>
                                     </div>
                                     <div className="border-t border-border/50 pt-4">
-                                        <h3 className="text-sm font-medium text-muted">Aylıq İcarə</h3>
-                                        <p className="text-2xl font-bold text-green mt-1">{formatMoney(contract.monthlyRent)}</p>
+                                        <h3 className="text-sm font-medium text-muted">Aylıq İcarə (Netto)</h3>
+                                        <p className="text-2xl font-bold text-green mt-1">{formatMoney(nettoRent)}</p>
+                                        <p className="text-sm text-muted mt-2">Aylıq Brutto (14% vergi): {formatMoney(bruttoRent)}</p>
+                                        <p className="text-sm text-muted">Ümumi Brutto: {formatMoney(totalBrutto)}</p>
                                     </div>
                                 </div>
                                 <div className="border-t lg:border-t-0 lg:border-l border-border pt-4 lg:pt-0 lg:pl-8 space-y-6">
@@ -464,12 +466,8 @@ export function ContractDetail() {
                             <CardContent className="space-y-3">
                                 <div className="bg-surface rounded-lg p-3 space-y-1.5 text-sm border border-border">
                                     <div className="flex justify-between">
-                                        <span className="text-muted">Aylıq icarə (Netto)</span>
+                                        <span className="text-muted">Aylıq icarə</span>
                                         <span className="font-medium">{formatMoney(nettoRent)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-xs opacity-70">
-                                        <span>Aylıq Brutto (14% vergi)</span>
-                                        <span>{formatMoney(bruttoRent)}</span>
                                     </div>
                                     <div className="flex justify-between mt-2 pt-2 border-t border-border/50">
                                         <span className="text-muted">Keçən müddət</span>
@@ -484,14 +482,10 @@ export function ContractDetail() {
                                         </div>
                                     )}
                                     <div className="pt-2 border-t border-border flex justify-between font-bold">
-                                        <span className="text-text">Ümumi Netto məbləğ</span>
+                                        <span className="text-text">Ümumi məbləğ</span>
                                         <span className="text-text">{formatMoney(totalExpected)}</span>
                                     </div>
-                                    <div className="flex justify-between text-xs text-muted mb-2 pb-2">
-                                        <span>Ümumi Brutto (14% vergi)</span>
-                                        <span>{formatMoney(totalBrutto)}</span>
-                                    </div>
-                                    <div className="flex justify-between border-t border-border pt-1.5">
+                                    <div className="flex justify-between border-t border-border pt-1.5 mt-2">
                                         <span className="text-muted">— Ödənilmiş</span>
                                         <span className="font-bold text-green">{formatMoney(totalPaid)}</span>
                                     </div>
