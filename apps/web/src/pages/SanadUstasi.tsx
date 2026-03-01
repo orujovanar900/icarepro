@@ -611,7 +611,7 @@ export function SanadUstasi() {
                 formData.append('file', file);
                 try {
                     // When using fetch instead of axios for FormData, the browser sets the boundary correctly automatically.
-                    const response = await fetch(`${import.meta.env['VITE_API_URL'] || '/api'}/documents/extract-pdf`, {
+                    const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/documents/extract-pdf`, {
                         method: 'POST',
                         body: formData,
                         headers: {
