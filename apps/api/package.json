@@ -28,7 +28,6 @@
         "pdfmake": "^0.2.18",
         "prisma": "^5.22.0",
         "resend": "^6.9.2",
-        "telegraf": "^4.16.3",
         "zod": "^4.3.6"
     },
     "devDependencies": {

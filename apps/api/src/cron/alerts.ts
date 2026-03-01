@@ -1,7 +1,6 @@
 import cron from 'node-cron';
 import { prisma } from '../lib/prisma.js';
 import { sendDebtAlert, sendExpiringContractAlert } from '../services/email.js';
-import { sendTelegramAlert } from '../services/telegram.js';
 
 // Run every day at 09:00 Baku time
 cron.schedule('0 9 * * *', async () => {
@@ -49,15 +48,6 @@ cron.schedule('0 9 * * *', async () => {
                     debtAmount: Number(debt.toFixed(2)),
                     contractNumber: contract.number
                 });
-
-                if (owner.telegramChatId) {
-                    await sendTelegramAlert(
-                        owner.telegramChatId,
-                        `⚠️ <b>Borc xəbərdarlığı</b>\n` +
-                        `İcarəçi: ${tenantName}\n` +
-                        `Məbləğ: <b>${debt.toFixed(2)} ₼</b>`
-                    );
-                }
             }
         }
 

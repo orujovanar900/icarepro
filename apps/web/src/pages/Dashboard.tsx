@@ -631,74 +631,139 @@ function DashboardContent() {
                 </Card>
             </div>
 
-            {/* Map Widget */}
-            <Card variant="elevated" className="overflow-hidden mt-6">
-                <CardHeader className="pb-2">
-                    <CardTitle className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
-                        📍 Obyektlər xəritədə
-                    </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <div className="flex flex-col lg:flex-row gap-4 items-stretch p-4 lg:h-[360px]">
-                        <div className="flex-[3] lg:flex-[1.5] rounded-xl shrink-0 overflow-hidden min-w-0 h-[250px] lg:h-auto">
-                            <SimpleMap
-                                compact
-                                hidePanel
-                                properties={mapProperties.map((p: any) => {
+            {/* Map and Debtors Side by Side Layout */}
+            <div className="grid gap-6 lg:grid-cols-3 mt-6 items-stretch">
+                {/* Map Widget */}
+                <Card variant="elevated" className="overflow-hidden lg:col-span-2 h-full min-h-[400px] flex flex-col">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
+                            📍 Obyektlər xəritədə
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0 flex-1 flex flex-col">
+                        <div className="flex flex-col lg:flex-row gap-4 items-stretch p-4 flex-1">
+                            <div className="flex-[3] lg:flex-[1.5] rounded-xl shrink-0 overflow-hidden min-w-0 h-[250px] lg:h-auto">
+                                <SimpleMap
+                                    compact
+                                    hidePanel
+                                    properties={mapProperties.map((p: any) => {
+                                        const contract = mapContracts.find((c: any) => c.propertyId === p.id);
+                                        let status: 'active' | 'expiring' | 'expired' = 'expired';
+                                        if (contract) {
+                                            const days = Math.floor((new Date(contract.endDate).getTime() - Date.now()) / 86_400_000);
+                                            status = days < 0 ? 'expired' : days <= 30 ? 'expiring' : 'active';
+                                        }
+                                        return {
+                                            id: p.id,
+                                            name: p.name,
+                                            address: p.address,
+                                            tenantName: contract?.tenant
+                                                ? contract.tenant.tenantType === 'fiziki'
+                                                    ? `${contract.tenant.firstName || ''} ${contract.tenant.lastName || ''}`.trim()
+                                                    : contract.tenant.companyName || ''
+                                                : undefined,
+                                            rent: contract ? Number(contract.monthlyRent) : undefined,
+                                            status,
+                                        };
+                                    })}
+                                    onPropertyClick={(id) => navigate(`/properties/${id}`)}
+                                />
+                            </div>
+                            <div className="flex-[2] lg:flex-1 overflow-y-auto flex flex-col gap-3 min-w-0 lg:min-w-[220px] custom-scrollbar pr-2 h-[250px] lg:h-auto">
+                                {mapProperties.map((p: any) => {
                                     const contract = mapContracts.find((c: any) => c.propertyId === p.id);
                                     let status: 'active' | 'expiring' | 'expired' = 'expired';
                                     if (contract) {
                                         const days = Math.floor((new Date(contract.endDate).getTime() - Date.now()) / 86_400_000);
                                         status = days < 0 ? 'expired' : days <= 30 ? 'expiring' : 'active';
                                     }
-                                    return {
-                                        id: p.id,
-                                        name: p.name,
-                                        address: p.address,
-                                        tenantName: contract?.tenant
-                                            ? contract.tenant.tenantType === 'fiziki'
-                                                ? `${contract.tenant.firstName || ''} ${contract.tenant.lastName || ''}`.trim()
-                                                : contract.tenant.companyName || ''
-                                            : undefined,
-                                        rent: contract ? Number(contract.monthlyRent) : undefined,
-                                        status,
-                                    };
-                                })}
-                                onPropertyClick={(id) => navigate(`/properties/${id}`)}
-                            />
-                        </div>
-                        <div className="flex-[2] lg:flex-1 overflow-y-auto flex flex-col gap-3 min-w-0 lg:min-w-[220px] custom-scrollbar pr-2 h-[250px] lg:h-auto">
-                            {mapProperties.map((p: any) => {
-                                const contract = mapContracts.find((c: any) => c.propertyId === p.id);
-                                let status: 'active' | 'expiring' | 'expired' = 'expired';
-                                if (contract) {
-                                    const days = Math.floor((new Date(contract.endDate).getTime() - Date.now()) / 86_400_000);
-                                    status = days < 0 ? 'expired' : days <= 30 ? 'expiring' : 'active';
-                                }
-                                return (
-                                    <div key={p.id} onClick={() => navigate(`/properties/${p.id}`)} className="p-4 bg-surface rounded-lg cursor-pointer hover:bg-surface/80 transition-colors border border-border/50 flex flex-col justify-center" style={{ flex: 1 }}>
-                                        <div className="flex justify-between items-start">
-                                            <p className="font-semibold text-text">{p.name}</p>
-                                            <span className={`w-2.5 h-2.5 rounded-full ${status === 'active' ? 'bg-green' : status === 'expiring' ? 'bg-orange' : 'bg-red'}`} />
-                                        </div>
-                                        <p className="text-xs text-muted truncate">{p.address || 'Ünvan yoxdur'}</p>
-                                        {contract && (
-                                            <div className="flex justify-between items-center mt-1">
-                                                <p className="text-xs text-text/80">
-                                                    {contract.tenant?.tenantType === 'fiziki'
-                                                        ? `${contract.tenant?.firstName || ''} ${contract.tenant?.lastName || ''}`.trim()
-                                                        : contract.tenant?.companyName || ''}
-                                                </p>
-                                                <p className="text-xs font-bold text-gold">{formatMoney(Number(contract.monthlyRent))}</p>
+                                    return (
+                                        <div key={p.id} onClick={() => navigate(`/properties/${p.id}`)} className="p-4 bg-surface rounded-lg cursor-pointer hover:bg-surface/80 transition-colors border border-border/50 flex flex-col justify-center" style={{ flex: 1 }}>
+                                            <div className="flex justify-between items-start">
+                                                <p className="font-semibold text-text">{p.name}</p>
+                                                <span className={`w-2.5 h-2.5 rounded-full ${status === 'active' ? 'bg-green' : status === 'expiring' ? 'bg-orange' : 'bg-red'}`} />
                                             </div>
-                                        )}
-                                    </div>
-                                )
-                            })}
+                                            <p className="text-xs text-muted truncate">{p.address || 'Ünvan yoxdur'}</p>
+                                            {contract && (
+                                                <div className="flex justify-between items-center mt-1">
+                                                    <p className="text-xs text-text/80">
+                                                        {contract.tenant?.tenantType === 'fiziki'
+                                                            ? `${contract.tenant?.firstName || ''} ${contract.tenant?.lastName || ''}`.trim()
+                                                            : contract.tenant?.companyName || ''}
+                                                    </p>
+                                                    <p className="text-xs font-bold text-gold">{formatMoney(Number(contract.monthlyRent))}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                            </div>
                         </div>
-                    </div>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
+
+                {/* Debtors List next to Map */}
+                <Card variant="default" id="debtors-list" className="flex flex-col bg-card/50 h-full min-h-[400px]">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
+                            <AlertCircle className="w-5 h-5 text-red" />
+                            Borclular
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-1 overflow-auto pr-2 custom-scrollbar">
+                        {isDashboardLoading ? (
+                            <div className="space-y-4">
+                                {[1, 2, 3].map(i => (
+                                    <div key={i} className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-surface animate-pulse" />
+                                        <div className="flex-1 space-y-2">
+                                            <div className="h-3 w-24 bg-surface animate-pulse rounded" />
+                                            <div className="h-3 w-16 bg-surface animate-pulse rounded" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : dashboard?.debtors?.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full text-muted py-8">
+                                <Users className="w-12 h-12 mb-2 opacity-20" />
+                                <p>Aktiv borclu yoxdur</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {dashboard?.debtors?.map((debtor: any, i: number) => {
+                                    const isCritical = debtor.contract?.status === 'EXPIRED' || debtor.daysOverdue >= 30;
+                                    return (
+                                        <div
+                                            key={i}
+                                            onClick={() => navigate(`/contracts/${debtor.contractId}`)}
+                                            className="flex items-center gap-3 p-3 rounded-lg bg-surface hover:bg-surface/80 transition-colors border border-[rgba(255,255,255,0.08)] cursor-pointer group"
+                                        >
+                                            <div className="w-10 h-10 rounded-full bg-red/10 flex items-center justify-center shrink-0 group-hover:bg-red/20 transition-colors border border-[rgba(255,255,255,0.05)]">
+                                                <TrendingUp className="w-5 h-5 text-red rotate-180" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium text-text truncate">{debtor.tenantName}</p>
+                                                <p className="text-xs text-muted truncate">№{debtor.contractNumber}</p>
+                                                {debtor.daysOverdue > 0 && (
+                                                    <span className={`inline-flex items-center mt-1 px-1.5 py-0.5 rounded text-[10px] font-medium leading-none whitespace-nowrap ${isCritical ? 'bg-red text-white' : 'bg-orange/20 text-orange'}`}>
+                                                        {debtor.daysOverdue} gün gecikib
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="text-right shrink-0">
+                                                <p className="text-sm font-bold text-red">
+                                                    {formatMoney(debtor.amount)}
+                                                </p>
+                                                <ArrowRight className="w-4 h-4 text-muted mt-1 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
 
             <div className="grid gap-6 lg:grid-cols-3 mt-6 items-stretch">
                 {/* Annual Occupancy Bar Chart (Mock) */}
@@ -1019,7 +1084,7 @@ function DashboardContent() {
 
             {/* Quick Add Floating Button */}
             <Button
-                className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full shadow-2xl bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold border border-gold/50 flex items-center justify-center p-0 transition-transform hover:scale-105"
+                className="fixed bottom-24 right-6 z-40 w-14 h-14 rounded-full shadow-2xl bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold border border-gold/50 flex items-center justify-center p-0 transition-transform hover:scale-105"
                 onClick={() => setIsAddModalOpen(true)}
             >
                 <Plus className="w-6 h-6 text-black" />

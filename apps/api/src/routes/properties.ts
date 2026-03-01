@@ -154,7 +154,15 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
         const data = await req.file()
         if (!data) return reply.code(400).send({ success: false, error: 'No file uploaded' })
 
+        if (!data.mimetype.startsWith('image/')) {
+            return reply.code(400).send({ success: false, error: 'Yalnız şəkil yükləyə bilərsiniz' })
+        }
+
         const fileBuffer = await data.toBuffer()
+        if (fileBuffer.length > 4 * 1024 * 1024) {
+            return reply.code(400).send({ success: false, error: 'Maksimum fayl ölçüsü 4MB olmalıdır' })
+        }
+
         const ext = data.filename.split('.').pop() ?? 'jpg'
         const path = `${req.user.organizationId}/${id}/${Date.now()}.${ext}`
 
@@ -191,12 +199,21 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
         const nameRaw = (req.query as Record<string, string>)['name']
         const docType = (typeRaw && ['OWNERSHIP_CERT', 'TEX_PASSPORT'].includes(typeRaw) ? typeRaw : 'OWNERSHIP_CERT') as any
 
+        const allowedMimes = ['image/jpeg', 'image/png', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+        if (!allowedMimes.includes(data.mimetype)) {
+            return reply.code(400).send({ success: false, error: 'Destəklənməyən fayl formatı (pdf, doc, docx, jpg, png)' })
+        }
+
         const fileBuffer = await data.toBuffer()
+        if (fileBuffer.length > 4 * 1024 * 1024) {
+            return reply.code(400).send({ success: false, error: 'Maksimum fayl ölçüsü 4MB olmalıdır' })
+        }
+
         const ext = data.filename.split('.').pop() ?? 'pdf'
         const path = `properties/${req.user.organizationId}/${id}/${Date.now()}.${ext}`
 
         const { error } = await supabase.storage
-            .from('tenant-documents') // Recycled bucket since it handles private org files
+            .from('property-documents')
             .upload(path, fileBuffer, { contentType: data.mimetype, upsert: false })
 
         if (error) {
@@ -204,7 +221,7 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
             return reply.code(500).send({ success: false, error: 'Upload failed' })
         }
 
-        const { data: { publicUrl } } = supabase.storage.from('tenant-documents').getPublicUrl(path)
+        const { data: { publicUrl } } = supabase.storage.from('property-documents').getPublicUrl(path)
 
         const document = await fastify.prisma.propertyDocument.create({
             data: {
