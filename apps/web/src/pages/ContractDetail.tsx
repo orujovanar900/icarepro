@@ -468,7 +468,7 @@ export function ContractDetail() {
                                         <span className="font-medium">{formatMoney(nettoRent)}</span>
                                     </div>
                                     <div className="flex justify-between text-xs opacity-70">
-                                        <span>Aylıq Brutto</span>
+                                        <span>Aylıq Brutto (14% vergi)</span>
                                         <span>{formatMoney(bruttoRent)}</span>
                                     </div>
                                     <div className="flex justify-between mt-2 pt-2 border-t border-border/50">
@@ -488,7 +488,7 @@ export function ContractDetail() {
                                         <span className="text-text">{formatMoney(totalExpected)}</span>
                                     </div>
                                     <div className="flex justify-between text-xs text-muted mb-2 pb-2">
-                                        <span>Ümumi Brutto məbləğ</span>
+                                        <span>Ümumi Brutto (14% vergi)</span>
                                         <span>{formatMoney(totalBrutto)}</span>
                                     </div>
                                     <div className="flex justify-between border-t border-border pt-1.5">
@@ -531,7 +531,7 @@ export function ContractDetail() {
                                                 <Button
                                                     variant={contract.isDepositReturned ? 'outline' : 'ghost'}
                                                     size="sm"
-                                                    onClick={handleToggleDeposit}
+                                                    onClick={contract.isDepositReturned ? () => setShowDepositModal(true) : handleToggleDeposit}
                                                     disabled={isTogglingDeposit}
                                                 >
                                                     {isTogglingDeposit

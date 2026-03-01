@@ -176,8 +176,6 @@ export function Contracts() {
                                                 </TableCell>
                                                 <TableCell>
                                                     <span className="font-bold text-green block">{formatMoney(contract.monthlyRent)}/ay</span>
-                                                    <span className="text-xs text-muted block mt-1">Brutto: {formatMoney(Number(contract.monthlyRent) / 0.86)} / ay</span>
-                                                    <span className="text-xs text-muted block mt-1">Ümumi: {formatMoney(Number(contract.monthlyRent) * getDurationMonths(contract.startDate, contract.endDate))}</span>
                                                 </TableCell>
                                                 <TableCell className="text-sm text-muted">
                                                     {new Date(contract.startDate).toLocaleDateString('az-AZ')} - <br />
@@ -223,8 +221,6 @@ export function Contracts() {
                                             <div className="flex items-center justify-between text-sm">
                                                 <div>
                                                     <span className="font-bold text-green block">{formatMoney(contract.monthlyRent)}/ay</span>
-                                                    <span className="text-[11px] text-muted block mt-0.5">Brutto: {formatMoney(Number(contract.monthlyRent) / 0.86)}</span>
-                                                    <span className="text-[11px] text-muted block mt-0.5">Ümumi: {formatMoney(Number(contract.monthlyRent) * getDurationMonths(contract.startDate, contract.endDate))}</span>
                                                 </div>
                                                 {contract.debt > 0 && (
                                                     <div className="flex flex-col items-end">
