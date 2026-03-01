@@ -47,7 +47,6 @@ export function Settings() {
     // ── Profile ──────────────────────────────────────────────
     const [name, setName] = useState(user?.name || '');
     const [phone, setPhone] = useState((user as any)?.phone || '');
-    const [telegramChatId, setTelegramChatId] = useState((user as any)?.telegramChatId || '');
     const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
     // ── Change Password ───────────────────────────────────────
@@ -56,10 +55,6 @@ export function Settings() {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
-    // ── Change Email ──────────────────────────────────────────
-    const [emailPassword, setEmailPassword] = useState('');
-    const [newEmail, setNewEmail] = useState('');
-    const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
 
     // ── Session timeout ───────────────────────────────────────
     const [showSessionWarning, setShowSessionWarning] = useState(false);
@@ -78,7 +73,7 @@ export function Settings() {
         if (!user) return;
         setIsUpdatingProfile(true);
         try {
-            const res = await api.patch(`/users/${user.id}`, { name, phone, telegramChatId });
+            const res = await api.patch(`/users/${user.id}`, { name, phone });
             setUser(res.data.data);
             addToast({ message: 'Profil uğurla yeniləndi', type: 'success' });
         } catch (err: any) {
@@ -111,20 +106,6 @@ export function Settings() {
         }
     };
 
-    const handleUpdateEmail = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsUpdatingEmail(true);
-        try {
-            await api.post('/auth/change-email', { currentPassword: emailPassword, newEmail });
-            addToast({ message: 'Email yeniləndi. Yenidən daxil olun.', type: 'success' });
-            logout();
-            navigate('/login');
-        } catch (err: any) {
-            addToast({ message: err.response?.data?.error || 'Xəta baş verdi', type: 'error' });
-        } finally {
-            setIsUpdatingEmail(false);
-        }
-    };
 
     return (
         <div className="flex-1 space-y-6 p-6 max-w-4xl mx-auto pb-24">
@@ -162,13 +143,13 @@ export function Settings() {
                                 />
                             </div>
                             <Input
-                                label="Email (dəyişmək üçün aşağıdakı bölməyə baxın)"
+                                label="E-poçt (dəyişdirilə bilməz)"
                                 value={user?.email || ''}
                                 disabled
                             />
                             <Button
                                 type="submit"
-                                disabled={isUpdatingProfile || (name === user?.name && phone === ((user as any)?.phone || '') && telegramChatId === ((user as any)?.telegramChatId || ''))}
+                                disabled={isUpdatingProfile || (name === user?.name && phone === ((user as any)?.phone || ''))}
                             >
                                 {isUpdatingProfile ? 'Yenilənir...' : 'Yadda Saxla'}
                             </Button>
@@ -217,69 +198,6 @@ export function Settings() {
                     </CardContent>
                 </Card>
 
-                {/* ── Change Email ── */}
-                {user?.role === 'OWNER' && (
-                    <Card variant="default">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Mail className="w-5 h-5 text-gold" /> Email Dəyiş
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <form onSubmit={handleUpdateEmail} className="space-y-4">
-                                <Input
-                                    label="Yeni Email"
-                                    type="email"
-                                    value={newEmail}
-                                    onChange={(e) => setNewEmail(e.target.value)}
-                                    required
-                                />
-                                <Input
-                                    label="Mövcud Şifrə (Təsdiq üçün)"
-                                    type="password"
-                                    value={emailPassword}
-                                    onChange={(e) => setEmailPassword(e.target.value)}
-                                    required
-                                />
-                                <Button
-                                    type="submit"
-                                    variant="outline"
-                                    disabled={isUpdatingEmail || !newEmail || !emailPassword}
-                                >
-                                    {isUpdatingEmail ? 'Yenilənir...' : 'Emaili Dəyiş'}
-                                </Button>
-                            </form>
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* ── Telegram ── */}
-                <Card variant="default" className="md:col-span-2">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <MessageCircle className="w-5 h-5 text-[#2AABEE]" /> Telegram Bildirişləri
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleUpdateProfile} className="space-y-4 max-w-md">
-                            <div className="bg-[#131F30] border border-[#192840] rounded-lg p-4 text-sm text-[#E8F0FE]">
-                                1. Telegram-da <b>@IcareProBot</b> səhifəsini tapın.<br />
-                                2. Bota <code className="text-[#C9A84C]">/start</code> yazın.<br />
-                                3. Bot sizə Chat ID-nizi göndərəcək.<br />
-                                4. Həmin ID-ni daxil edib yadda saxlayın.
-                            </div>
-                            <Input
-                                label="Telegram Chat ID"
-                                value={telegramChatId}
-                                onChange={(e) => setTelegramChatId(e.target.value)}
-                                placeholder="Məsələn: 123456789"
-                            />
-                            <Button type="submit" disabled={isUpdatingProfile || telegramChatId === ((user as any)?.telegramChatId || '')}>
-                                {isUpdatingProfile ? 'Yenilənir...' : 'Yadda Saxla'}
-                            </Button>
-                        </form>
-                    </CardContent>
-                </Card>
 
                 {/* ── Org Info (OWNER only) ── */}
                 {user?.role === 'OWNER' && (

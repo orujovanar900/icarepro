@@ -153,84 +153,130 @@ export function Tenants() {
                             <p>İcarəçi tapılmadı.</p>
                         </div>
                     ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Ad / Şirkət</TableHead>
-                                    <TableHead>FİN / VÖEN</TableHead>
-                                    <TableHead>Telefon</TableHead>
-                                    <TableHead>Aktiv müqavilələr</TableHead>
-                                    <TableHead className="text-right">Ümumi borc</TableHead>
-                                    <TableHead className="text-right">Əməliyyatlar</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
+                        <>
+                            <div className="hidden md:block overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Ad / Şirkət</TableHead>
+                                            <TableHead>FİN / VÖEN</TableHead>
+                                            <TableHead>Telefon</TableHead>
+                                            <TableHead>Aktiv müqavilələr</TableHead>
+                                            <TableHead className="text-right">Ümumi borc</TableHead>
+                                            <TableHead className="text-right">Əməliyyatlar</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filtered.map((t: any) => {
+                                            const activeCount = t.contracts?.length || 0;
+                                            const isFiziki = t.tenantType === 'fiziki';
+
+                                            return (
+                                                <TableRow
+                                                    key={t.id}
+                                                    className="cursor-pointer hover:bg-surface transition-colors"
+                                                    onClick={() => navigate(`/tenants/${t.id}`)}
+                                                >
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-lg" title={isFiziki ? 'Fiziki şəxs' : 'Hüquqi şəxs'}>
+                                                                {isFiziki ? '👤' : '🏢'}
+                                                            </span>
+                                                            <div>
+                                                                <p className="font-bold text-text">{t.fullName}</p>
+                                                                {t.isBlacklisted && (
+                                                                    <Badge variant="danger" className="text-xs">🚫 Qara siyahı</Badge>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-sm text-muted font-mono">
+                                                        {isFiziki ? (t.fin || '—') : (t.voen || '—')}
+                                                    </TableCell>
+                                                    <TableCell className="text-sm text-text">{t.phone || '—'}</TableCell>
+                                                    <TableCell className="text-sm">
+                                                        {activeCount > 0
+                                                            ? <Badge variant="aktiv">{activeCount} müqavilə</Badge>
+                                                            : <span className="text-muted">—</span>}
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        {t.calculatedDebt > 0
+                                                            ? <span className="font-bold text-red">{formatMoney(t.calculatedDebt)}</span>
+                                                            : <span className="text-green font-medium">Yoxdur</span>}
+                                                    </TableCell>
+                                                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                                                        <div className="flex items-center justify-end gap-1">
+                                                            <Button variant="ghost" size="sm" onClick={() => navigate(`/tenants/${t.id}`)}>
+                                                                <Eye className="w-4 h-4" />
+                                                            </Button>
+                                                            {canAdd && (
+                                                                <Button variant="ghost" size="sm" onClick={() => navigate(`/tenants/${t.id}/edit`)}>
+                                                                    <Pencil className="w-4 h-4" />
+                                                                </Button>
+                                                            )}
+                                                            {isOwner && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="text-red hover:text-red"
+                                                                    onClick={() => {
+                                                                        if (confirm(`"${t.fullName}" silinsin?`)) deleteMutation.mutate(t.id);
+                                                                    }}
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </div>
+
+                            {/* Mobile Card List View */}
+                            <div className="md:hidden flex flex-col divide-y divide-border">
                                 {filtered.map((t: any) => {
                                     const activeCount = t.contracts?.length || 0;
                                     const isFiziki = t.tenantType === 'fiziki';
-
                                     return (
-                                        <TableRow
-                                            key={t.id}
-                                            className="cursor-pointer hover:bg-surface transition-colors"
+                                        <div
+                                            key={`mob-${t.id}`}
+                                            className="p-4 cursor-pointer hover:bg-surface transition-colors flex items-center justify-between group"
                                             onClick={() => navigate(`/tenants/${t.id}`)}
                                         >
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-lg" title={isFiziki ? 'Fiziki şəxs' : 'Hüquqi şəxs'}>
-                                                        {isFiziki ? '👤' : '🏢'}
-                                                    </span>
-                                                    <div>
-                                                        <p className="font-bold text-text">{t.fullName}</p>
-                                                        {t.isBlacklisted && (
-                                                            <Badge variant="danger" className="text-xs">🚫 Qara siyahı</Badge>
-                                                        )}
+                                            <div className="flex-1 min-w-0 pr-4">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="flex items-center gap-2 overflow-hidden">
+                                                        <span className="text-base shrink-0" title={isFiziki ? 'Fiziki şəxs' : 'Hüquqi şəxs'}>
+                                                            {isFiziki ? '👤' : '🏢'}
+                                                        </span>
+                                                        <span className="text-sm font-bold text-text truncate group-hover:text-gold transition-colors">{t.fullName}</span>
                                                     </div>
+                                                    {t.isBlacklisted && <Badge variant="danger" className="text-[10px] px-1.5 py-0 h-4 ml-2 shrink-0">🚫</Badge>}
                                                 </div>
-                                            </TableCell>
-                                            <TableCell className="text-sm text-muted font-mono">
-                                                {isFiziki ? (t.fin || '—') : (t.voen || '—')}
-                                            </TableCell>
-                                            <TableCell className="text-sm text-text">{t.phone || '—'}</TableCell>
-                                            <TableCell className="text-sm">
-                                                {activeCount > 0
-                                                    ? <Badge variant="aktiv">{activeCount} müqavilə</Badge>
-                                                    : <span className="text-muted">—</span>}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                {t.calculatedDebt > 0
-                                                    ? <span className="font-bold text-red">{formatMoney(t.calculatedDebt)}</span>
-                                                    : <span className="text-green font-medium">Yoxdur</span>}
-                                            </TableCell>
-                                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                                                <div className="flex items-center justify-end gap-1">
-                                                    <Button variant="ghost" size="sm" onClick={() => navigate(`/tenants/${t.id}`)}>
-                                                        <Eye className="w-4 h-4" />
-                                                    </Button>
-                                                    {canAdd && (
-                                                        <Button variant="ghost" size="sm" onClick={() => navigate(`/tenants/${t.id}/edit`)}>
-                                                            <Pencil className="w-4 h-4" />
-                                                        </Button>
+                                                <div className="text-xs text-muted mb-3 flex flex-col gap-1">
+                                                    <span>{isFiziki ? 'FİN' : 'VÖEN'}: <span className="text-text font-mono">{isFiziki ? (t.fin || '—') : (t.voen || '—')}</span></span>
+                                                    <span>Tel: <span className="text-text">{t.phone || '—'}</span></span>
+                                                </div>
+                                                <div className="flex flex-wrap items-center justify-between gap-y-2">
+                                                    {activeCount > 0 ? (
+                                                        <Badge variant="aktiv" className="text-[10px] py-0 h-5 shrink-0">{activeCount} müqavilə</Badge>
+                                                    ) : (
+                                                        <span className="text-xs text-muted">Aktiv müqavilə yoxdur</span>
                                                     )}
-                                                    {isOwner && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="text-red hover:text-red"
-                                                            onClick={() => {
-                                                                if (confirm(`"${t.fullName}" silinsin?`)) deleteMutation.mutate(t.id);
-                                                            }}
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </Button>
+                                                    {t.calculatedDebt > 0 && (
+                                                        <span className="font-bold text-red text-sm shrink-0">Borc: {formatMoney(t.calculatedDebt)}</span>
                                                     )}
                                                 </div>
-                                            </TableCell>
-                                        </TableRow>
+                                            </div>
+                                            <ChevronRight className="w-5 h-5 text-muted shrink-0 transition-transform group-hover:translate-x-1 group-hover:text-gold" />
+                                        </div>
                                     );
                                 })}
-                            </TableBody>
-                        </Table>
+                            </div>
+                        </>
                     )}
                 </CardContent>
             </Card>

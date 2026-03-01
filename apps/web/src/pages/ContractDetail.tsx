@@ -197,7 +197,7 @@ export function ContractDetail() {
         }
     };
 
-    // calculate total 
+    // calculate total debt
     const start = new Date(contract.startDate);
     const end = contract.endDate < new Date().toISOString() ? new Date(contract.endDate) : new Date();
     const monthsElapsed = Math.max(0,
@@ -206,6 +206,13 @@ export function ContractDetail() {
     const totalExpected = Number(contract.monthlyRent) * monthsElapsed;
     const totalPaid = contract.payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0);
     const totalDebt = Math.max(0, totalExpected - totalPaid);
+
+    // calculate gross amount
+    const actualEnd = new Date(contract.endDate);
+    const totalMonths = Math.max(0,
+        (actualEnd.getFullYear() - start.getFullYear()) * 12 + (actualEnd.getMonth() - start.getMonth()) + 1
+    );
+    const grossAmount = Number(contract.monthlyRent) * totalMonths;
 
     const handleAddPayment = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -269,7 +276,7 @@ export function ContractDetail() {
                             <CardHeader>
                                 <CardTitle>Müqavilə Məlumatları</CardTitle>
                             </CardHeader>
-                            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                            <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                                 <div>
                                     <h3 className="text-sm font-medium text-muted">Obyekt</h3>
                                     <p className="text-lg font-bold text-text mt-1">{contract.property.name}</p>
@@ -280,32 +287,40 @@ export function ContractDetail() {
                                     <p className="text-sm text-text">Tel: {contract.tenant.phone}</p>
                                     <p className="text-sm text-text">VÖEN: {contract.tenant.taxId || '-'}</p>
                                 </div>
-                                <div>
-                                    <h3 className="text-sm font-medium text-muted">Müddət</h3>
-                                    <p className="text-lg font-bold text-text mt-1">
-                                        {new Date(contract.startDate).toLocaleDateString('az-AZ')} — {new Date(contract.endDate).toLocaleDateString('az-AZ')}
-                                    </p>
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-medium text-muted">Aylıq İcarə</h3>
-                                    <p className="text-lg font-bold text-gold mt-1">{formatMoney(contract.monthlyRent)}</p>
+                                <div className="sm:col-span-2 md:col-span-1 border-t sm:border-t-0 md:border-l border-border pt-4 sm:pt-0 md:pl-6 space-y-4">
+                                    <div>
+                                        <h3 className="text-sm font-medium text-muted">Müddət</h3>
+                                        <p className="text-base font-bold text-text mt-1">
+                                            {new Date(contract.startDate).toLocaleDateString('az-AZ')} — {new Date(contract.endDate).toLocaleDateString('az-AZ')}
+                                        </p>
+                                    </div>
+                                    <div className="flex justify-between items-end border-t border-border/50 pt-3">
+                                        <div>
+                                            <h3 className="text-sm font-medium text-muted">Aylıq İcarə</h3>
+                                            <p className="text-lg font-bold text-gold mt-1">{formatMoney(contract.monthlyRent)}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <h3 className="text-sm font-medium text-muted">Ümumi məbləğ (brutto)</h3>
+                                            <p className="text-lg font-bold text-text mt-1">{formatMoney(grossAmount)}</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
 
                         {/* Payments History */}
                         {/* Tabs */}
-                        <div className="flex space-x-1 border-b border-border">
+                        <div className="flex space-x-1 border-b border-border overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                             <button
                                 onClick={() => setActiveTab('payments')}
-                                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'payments' ? 'border-gold text-gold' : 'border-transparent text-muted hover:text-text'
+                                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap shrink-0 ${activeTab === 'payments' ? 'border-gold text-gold' : 'border-transparent text-muted hover:text-text'
                                     }`}
                             >
                                 Ödənişlər
                             </button>
                             <button
                                 onClick={() => setActiveTab('history')}
-                                className={`flex items-center gap-1 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'history' ? 'border-gold text-gold' : 'border-transparent text-muted hover:text-text'
+                                className={`flex items-center gap-1 px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap shrink-0 ${activeTab === 'history' ? 'border-gold text-gold' : 'border-transparent text-muted hover:text-text'
                                     }`}
                             >
                                 <History className="w-3.5 h-3.5" />

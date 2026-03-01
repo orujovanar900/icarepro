@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import {
     Wallet, TrendingUp, AlertCircle, Calendar, ArrowRight, Users, Search,
-    ArrowUpRight, ArrowDownRight, MapPin, Clock,
+    ArrowUpRight, ArrowDownRight, MapPin, Clock, Plus,
     AlertTriangle, CalendarX, Building2, LineChart
 } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -101,6 +101,75 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
     }
 }
 
+function ContractCombobox({ contracts, value, onChange }: { contracts: any[], value: string, onChange: (val: string) => void }) {
+    const [open, setOpen] = useState(false);
+    const [search, setSearch] = useState('');
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (ref.current && !ref.current.contains(event.target as Node)) {
+                setOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const filtered = contracts.filter((c: any) =>
+        c.number.toLowerCase().includes(search.toLowerCase()) ||
+        c.tenant?.fullName?.toLowerCase().includes(search.toLowerCase()) ||
+        c.property?.name?.toLowerCase().includes(search.toLowerCase())
+    );
+
+    const selected = contracts.find(c => c.id === value);
+
+    return (
+        <div className="flex flex-col gap-1 relative" ref={ref}>
+            <label className="text-sm font-medium text-text">
+                Müqavilə Seçin <span className="text-red">*</span>
+            </label>
+            <div
+                className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-sm text-text focus-within:border-gold/50 cursor-pointer min-h-[38px]"
+                onClick={() => setOpen(!open)}
+            >
+                {selected
+                    ? `${selected.tenant?.fullName} — №${selected.number} (${selected.property?.name})`
+                    : <span className="text-muted">Seçin...</span>
+                }
+            </div>
+            {open && (
+                <div className="absolute z-50 mt-[70px] w-full bg-surface border border-border rounded-xl shadow-xl overflow-hidden">
+                    <div className="p-2 border-b border-border relative">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                        <input
+                            autoFocus
+                            className="w-full pl-8 pr-3 py-1.5 text-sm bg-background border border-border rounded-lg focus:outline-none focus:border-gold/50 text-text"
+                            placeholder="Axtarış..."
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                        />
+                    </div>
+                    <div className="max-h-56 overflow-y-auto custom-scrollbar">
+                        {filtered.length === 0 ? (
+                            <div className="px-4 py-6 text-center text-sm text-muted">Tapılmadı</div>
+                        ) : filtered.map((c: any) => (
+                            <div
+                                key={c.id}
+                                className={`px-4 py-2.5 cursor-pointer hover:bg-gold/10 transition-colors border-b border-border/50 last:border-0 ${value === c.id ? 'bg-gold/10' : ''}`}
+                                onClick={() => { onChange(c.id); setOpen(false); setSearch(''); }}
+                            >
+                                <p className="text-sm font-medium text-text truncate">{c.tenant?.fullName} — <span className="text-muted">№{c.number}</span></p>
+                                <p className="text-xs text-muted mt-0.5 truncate">{c.property?.name}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
 function DashboardContent() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -153,6 +222,75 @@ function DashboardContent() {
     const [reportEndDate, setReportEndDate] = useState(new Date().toISOString().split('T')[0]);
     const [reportContracts, setReportContracts] = useState<string[]>([]);
     const [isExporting, setIsExporting] = useState(false);
+
+    // Quick Add Modal State
+    const queryClient = useQueryClient();
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [addType, setAddType] = useState<'income' | 'expense'>('income');
+
+    const [formContractId, setFormContractId] = useState('');
+    const [formAmount, setFormAmount] = useState('');
+    const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0]);
+    const [formPaymentType, setFormPaymentType] = useState('CASH');
+    const [formPeriodMonth, setFormPeriodMonth] = useState(String(currentMonth));
+    const [formPeriodYear, setFormPeriodYear] = useState(String(currentYear));
+
+    const [formExpCategory, setFormExpCategory] = useState('Ümumi');
+    const [formExpDesc, setFormExpDesc] = useState('');
+    const [isAdding, setIsAdding] = useState(false);
+
+    const { data: activeContractsData } = useQuery({
+        queryKey: ['active-contracts-short'],
+        queryFn: async () => {
+            const res = await api.get('/contracts?limit=100');
+            return res.data;
+        }
+    });
+    // Ensure contracts passed to combobox only include active/expiring/expired, or just use what we get
+    const addContracts = Array.isArray(activeContractsData?.data) ? activeContractsData.data : (activeContractsData?.data?.data || []);
+
+    const handleQuickAdd = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsAdding(true);
+        try {
+            if (addType === 'income') {
+                if (!formContractId) {
+                    addToast({ message: 'Müqavilə seçin', type: 'error' });
+                    setIsAdding(false);
+                    return;
+                }
+                await api.post('/payments', {
+                    contractId: formContractId,
+                    amount: Number(formAmount),
+                    paymentDate: formDate,
+                    paymentType: formPaymentType,
+                    periodMonth: Number(formPeriodMonth),
+                    periodYear: Number(formPeriodYear),
+                    note: 'Dashboard sürətli əlavə'
+                });
+                addToast({ message: 'Mədaxil uğurla əlavə edildi', type: 'success' });
+            } else {
+                await api.post('/expenses', {
+                    amount: Number(formAmount),
+                    date: formDate,
+                    category: formExpCategory,
+                    description: formExpDesc || 'Dashboard sürətli əlavə'
+                });
+                addToast({ message: 'Məxaric uğurla əlavə edildi', type: 'success' });
+            }
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+            queryClient.invalidateQueries({ queryKey: ['recentPayments'] });
+
+            setIsAddModalOpen(false);
+            setFormAmount('');
+            setFormContractId('');
+            setFormExpDesc('');
+        } catch (error: any) {
+            addToast({ message: error.response?.data?.error || 'Xəta baş verdi', type: 'error' });
+        } finally {
+            setIsAdding(false);
+        }
+    };
 
     // Fetch contracts for multiselect
     const { data: contractsForReport } = useQuery({
@@ -446,7 +584,7 @@ function DashboardContent() {
             </div>
 
             {/* Stage 3 Metrics: Forecasting & Occupancy */}
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 mt-4">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3 lg:grid-cols-3 mt-4">
                 <Card variant="elevated" style={{ height: '120px', border: '1px solid rgba(255, 255, 255, 0.12)' }} className="flex flex-col justify-center">
                     <CardHeader className="pb-2 flex flex-row items-center justify-between">
                         <CardTitle className="text-sm font-medium text-muted">Doluluq Dərəcəsi</CardTitle>
@@ -472,7 +610,22 @@ function DashboardContent() {
                     <CardContent>
                         <div className="flex flex-col">
                             <span className="text-3xl font-bold" style={{ color: '#a78bfa' }}>{formatMoney(dashboard?.incomeForecast || 0)}</span>
-                            <span className="text-xs text-muted mt-1">Aktiv müqavilələr əsasında mədaxil potensialı</span>
+                            <span className="text-xs text-muted mt-1">Aktiv müqavilələr əsasında</span>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card variant="elevated" style={{ height: '120px', border: '1px solid rgba(255, 255, 255, 0.12)' }} className="flex flex-col justify-center">
+                    <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                        <CardTitle className="text-sm font-medium text-muted">İllik Gəlir Proqnozu</CardTitle>
+                        <div className="h-8 w-8 rounded flex items-center justify-center" style={{ backgroundColor: 'rgba(52, 211, 153, 0.1)' }}>
+                            <TrendingUp className="h-5 w-5" style={{ color: '#34d399' }} />
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-col">
+                            <span className="text-3xl font-bold" style={{ color: '#34d399' }}>{formatMoney((dashboard?.incomeForecast || 0) * 12)}</span>
+                            <span className="text-xs text-muted mt-1">Aylıq proqnozun 12 aylıq ekvivalenti</span>
                         </div>
                     </CardContent>
                 </Card>
@@ -486,8 +639,8 @@ function DashboardContent() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <div style={{ display: 'flex', flexDirection: 'row', gap: '16px', alignItems: 'stretch', padding: '16px', height: '360px' }}>
-                        <div style={{ flex: '1', borderRadius: '12px', flexShrink: 0, overflow: 'hidden', minWidth: 0 }}>
+                    <div className="flex flex-col lg:flex-row gap-4 items-stretch p-4 lg:h-[360px]">
+                        <div className="flex-[3] lg:flex-[1.5] rounded-xl shrink-0 overflow-hidden min-w-0 h-[250px] lg:h-auto">
                             <SimpleMap
                                 compact
                                 hidePanel
@@ -514,7 +667,7 @@ function DashboardContent() {
                                 onPropertyClick={(id) => navigate(`/properties/${id}`)}
                             />
                         </div>
-                        <div style={{ flex: '1', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', minWidth: '220px' }} className="custom-scrollbar pr-2">
+                        <div className="flex-[2] lg:flex-1 overflow-y-auto flex flex-col gap-3 min-w-0 lg:min-w-[220px] custom-scrollbar pr-2 h-[250px] lg:h-auto">
                             {mapProperties.map((p: any) => {
                                 const contract = mapContracts.find((c: any) => c.propertyId === p.id);
                                 let status: 'active' | 'expiring' | 'expired' = 'expired';
@@ -547,17 +700,46 @@ function DashboardContent() {
                 </CardContent>
             </Card>
 
-            <div className="grid gap-6 lg:grid-cols-3 mt-6">
+            <div className="grid gap-6 lg:grid-cols-3 mt-6 items-stretch">
+                {/* Annual Occupancy Bar Chart (Mock) */}
+                <Card variant="elevated" className="flex flex-col h-full min-h-[400px]">
+                    <CardHeader>
+                        <CardTitle style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>İllik Doluluq Dərəcəsi (%)</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-1 flex flex-col">
+                        <div className="flex-1 w-full mt-4 chart-container min-h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={[
+                                    { month: 'Yan', rate: 85 }, { month: 'Fev', rate: 88 }, { month: 'Mar', rate: 90 },
+                                    { month: 'Apr', rate: 92 }, { month: 'May', rate: 95 }, { month: 'İyn', rate: 94 },
+                                    { month: 'İyl', rate: 96 }, { month: 'Avq', rate: 98 }, { month: 'Sen', rate: 95 },
+                                    { month: 'Okt', rate: 92 }, { month: 'Noy', rate: 89 }, { month: 'Dek', rate: 86 }
+                                ]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#192840" vertical={false} />
+                                    <XAxis dataKey="month" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} tickFormatter={(val) => `${val}%`} />
+                                    <Tooltip
+                                        cursor={{ fill: '#0F1929' }}
+                                        contentStyle={{ backgroundColor: '#141E30', borderColor: '#192840', borderRadius: '8px', color: '#E8F0FE' }}
+                                        formatter={(value: any) => [`${value}%`, 'Doluluq']}
+                                    />
+                                    <Bar dataKey="rate" name="Doluluq" fill="#60A5FA" radius={[4, 4, 0, 0]} maxBarSize={40} minPointSize={2} stroke="#334155" strokeWidth={1} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 {/* Bar Chart Header */}
-                <Card variant="elevated" className="lg:col-span-2">
+                <Card variant="elevated" className="lg:col-span-2 flex flex-col h-full min-h-[400px]">
                     <CardHeader>
                         <CardTitle style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>Mədaxil və Məxaric (İllik)</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="flex-1 flex flex-col">
                         {isDashboardLoading ? (
-                            <div className="h-[200px] sm:h-[300px] w-full bg-surface animate-pulse rounded" />
+                            <div className="flex-1 w-full bg-surface animate-pulse rounded" />
                         ) : (
-                            <div className="h-[200px] sm:h-[300px] w-full mt-4 chart-container">
+                            <div className="flex-1 w-full mt-4 chart-container min-h-[300px]">
                                 <style dangerouslySetInnerHTML={{
                                     __html: `
                                     @media (max-width: 768px) {
@@ -586,7 +768,7 @@ function DashboardContent() {
                 </Card>
 
                 {/* Debtors List */}
-                <Card variant="default" id="debtors-list" className="flex flex-col bg-card/50" style={{ height: '360px' }}>
+                <Card variant="default" id="debtors-list" className="flex flex-col bg-card/50 h-full min-h-[400px]">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
                             <AlertCircle className="w-5 h-5 text-red" />
@@ -612,39 +794,45 @@ function DashboardContent() {
                                 <p>Aktiv borclu yoxdur</p>
                             </div>
                         ) : (
-                            <div className="space-y-3">
-                                {dashboard?.debtors?.slice(0, window.innerWidth < 768 ? 3 : undefined).map((debtor: any, idx: number) => {
-                                    const initials = debtor.tenantName.substring(0, 2).toUpperCase();
-                                    return (
-                                        <div key={idx} className="flex justify-between items-start border-b border-border/50 pb-3 last:border-0 last:pb-0 hover:bg-surface rounded-lg transition-colors cursor-pointer group" onClick={() => navigate(`/contracts/${debtor.contractId}`)}>
-                                            <div className="flex items-start gap-3 w-[70%]">
-                                                <div className="w-10 h-10 mt-1 shrink-0 rounded-full bg-red/10 text-red border border-red/20 flex items-center justify-center font-bold text-sm">
-                                                    {initials}
+                            <div className="flex flex-col">
+                                <div className="flex justify-between items-center pb-2 mb-2 px-2" style={{ borderBottom: '2px solid rgba(255,255,255,0.15)' }}>
+                                    <span className="text-xs font-bold text-muted uppercase tracking-wider">İcarəçi məlumatı</span>
+                                    <span className="text-xs font-bold text-muted uppercase tracking-wider text-right">Məbləğ</span>
+                                </div>
+                                <div className="space-y-0">
+                                    {dashboard?.debtors?.slice(0, window.innerWidth < 768 ? 3 : undefined).map((debtor: any, idx: number) => {
+                                        const initials = debtor.tenantName.substring(0, 2).toUpperCase();
+                                        return (
+                                            <div key={idx} className="flex justify-between items-start py-3 px-2 hover:bg-surface transition-colors cursor-pointer group" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }} onClick={() => navigate(`/contracts/${debtor.contractId}`)}>
+                                                <div className="flex items-start gap-3 w-[70%]">
+                                                    <div className="w-10 h-10 mt-1 shrink-0 rounded-full bg-red/10 text-red border border-red/20 flex items-center justify-center font-bold text-sm">
+                                                        {initials}
+                                                    </div>
+                                                    <div className="overflow-hidden">
+                                                        <p className="text-sm font-medium text-text group-hover:text-gold transition-colors truncate">{debtor.tenantName}</p>
+                                                        <p className="text-xs text-muted truncate">{debtor.propertyName} • {debtor.contractNumber}</p>
+                                                        {debtor.daysOverdue > 0 && (
+                                                            <div className="mt-1.5 flex items-center gap-1.5">
+                                                                <span className="inline-flex py-0.5 px-2 bg-red/20 text-red border border-red/30 text-[10px] font-bold uppercase rounded items-center">
+                                                                    <Clock className="w-3 h-3 mr-1" />
+                                                                    {debtor.daysOverdue} gün gecikib
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div className="overflow-hidden">
-                                                    <p className="text-sm font-medium text-text group-hover:text-gold transition-colors truncate">{debtor.tenantName}</p>
-                                                    <p className="text-xs text-muted truncate">{debtor.propertyName} • {debtor.contractNumber}</p>
-                                                    {debtor.daysOverdue > 0 && (
-                                                        <div className="mt-1.5 flex items-center gap-1.5">
-                                                            <span className="inline-flex py-0.5 px-2 bg-red/20 text-red border border-red/30 text-[10px] font-bold uppercase rounded items-center">
-                                                                <Clock className="w-3 h-3 mr-1" />
-                                                                {debtor.daysOverdue} gün gecikib
-                                                            </span>
-                                                        </div>
-                                                    )}
+                                                <div className="text-right shrink-0 mt-2">
+                                                    <p className="text-sm font-bold text-red">{formatMoney(debtor.debtAmount)}</p>
                                                 </div>
                                             </div>
-                                            <div className="text-right shrink-0 mt-2">
-                                                <p className="text-sm font-bold text-red">{formatMoney(debtor.debtAmount)}</p>
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                                {dashboard?.debtors?.length > 3 && window.innerWidth < 768 && (
-                                    <Button variant="ghost" size="sm" onClick={() => navigate('/contracts?tab=debtors')} className="w-full mt-2 text-gold hover:text-gold2 group">
-                                        Hamısına bax <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
-                                    </Button>
-                                )}
+                                        )
+                                    })}
+                                    {dashboard?.debtors?.length > 3 && window.innerWidth < 768 && (
+                                        <Button variant="ghost" size="sm" onClick={() => navigate('/contracts?tab=debtors')} className="w-full mt-2 text-gold hover:text-gold2 group">
+                                            Hamısına bax <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </CardContent>
@@ -827,6 +1015,140 @@ function DashboardContent() {
                         </Button>
                     </div>
                 </div>
+            </Modal>
+
+            {/* Quick Add Floating Button */}
+            <Button
+                className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full shadow-2xl bg-gradient-to-r from-gold to-gold-dark hover:from-gold-light hover:to-gold border border-gold/50 flex items-center justify-center p-0 transition-transform hover:scale-105"
+                onClick={() => setIsAddModalOpen(true)}
+            >
+                <Plus className="w-6 h-6 text-black" />
+            </Button>
+
+            {/* Quick Add Modal */}
+            <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Sürətli Əlavə">
+                <div className="flex gap-2 mb-6">
+                    <Button
+                        variant={addType === 'income' ? 'primary' : 'outline'}
+                        className="flex-1"
+                        onClick={() => setAddType('income')}
+                    >
+                        <TrendingUp className="w-4 h-4 mr-2" />
+                        Mədaxil
+                    </Button>
+                    <Button
+                        variant={addType === 'expense' ? 'danger' : 'outline'}
+                        className="flex-1"
+                        onClick={() => setAddType('expense')}
+                    >
+                        <TrendingUp className="w-4 h-4 mr-2 rotate-180" />
+                        Məxaric
+                    </Button>
+                </div>
+
+                <form onSubmit={handleQuickAdd} className="space-y-4">
+                    {addType === 'income' ? (
+                        <>
+                            <ContractCombobox
+                                contracts={addContracts}
+                                value={formContractId}
+                                onChange={setFormContractId}
+                            />
+                            <div className="grid grid-cols-2 gap-4">
+                                <Input
+                                    label="Məbləğ (₼)"
+                                    type="number"
+                                    step="0.01"
+                                    required
+                                    value={formAmount}
+                                    onChange={(e) => setFormAmount(e.target.value)}
+                                />
+                                <Input
+                                    label="Tarix"
+                                    type="date"
+                                    required
+                                    value={formDate}
+                                    onChange={(e) => setFormDate(e.target.value)}
+                                />
+                            </div>
+                            <Select
+                                label="Ödəniş Növü"
+                                value={formPaymentType}
+                                onChange={(e) => setFormPaymentType(e.target.value)}
+                                options={[
+                                    { label: 'Nağd', value: 'CASH' },
+                                    { label: 'Bank', value: 'BANK' },
+                                    { label: 'Kart', value: 'CARD' }
+                                ]}
+                            />
+                            <div className="grid grid-cols-2 gap-4">
+                                <Select
+                                    label="Dövr (Ay)"
+                                    value={formPeriodMonth}
+                                    onChange={e => setFormPeriodMonth(e.target.value)}
+                                    options={months.map((m, i) => ({ label: m, value: String(i + 1) }))}
+                                />
+                                <Input
+                                    label="Dövr (İl)"
+                                    type="number"
+                                    min="2000"
+                                    required
+                                    value={formPeriodYear}
+                                    onChange={e => setFormPeriodYear(e.target.value)}
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="grid grid-cols-2 gap-4">
+                                <Input
+                                    label="Məbləğ (₼)"
+                                    type="number"
+                                    step="0.01"
+                                    required
+                                    value={formAmount}
+                                    onChange={(e) => setFormAmount(e.target.value)}
+                                />
+                                <Input
+                                    label="Tarix"
+                                    type="date"
+                                    required
+                                    value={formDate}
+                                    onChange={(e) => setFormDate(e.target.value)}
+                                />
+                            </div>
+                            <Select
+                                label="Kateqoriya"
+                                value={formExpCategory}
+                                onChange={(e) => setFormExpCategory(e.target.value)}
+                                options={[
+                                    { label: 'Təmir', value: 'Təmir' },
+                                    { label: 'Kommunal', value: 'Kommunal' },
+                                    { label: 'Vergi', value: 'Vergi' },
+                                    { label: 'Maaş', value: 'Maaş' },
+                                    { label: 'Reklam', value: 'Reklam' },
+                                    { label: 'Sığorta', value: 'Sığorta' },
+                                    { label: 'Ümumi', value: 'Ümumi' },
+                                    { label: 'Digər', value: 'Digər' }
+                                ]}
+                            />
+                            <Input
+                                label="Açıqlama"
+                                value={formExpDesc}
+                                onChange={(e) => setFormExpDesc(e.target.value)}
+                            />
+                        </>
+                    )}
+                    <div className="pt-2">
+                        <Button
+                            type="submit"
+                            className={`w-full text-white ${addType === 'income' ? 'bg-green hover:bg-green/90' : 'bg-red hover:bg-red/90'}`}
+                            disabled={isAdding}
+                        >
+                            {isAdding ? 'Səbr edin...' : 'Yadda Saxla'}
+                        </Button>
+                    </div>
+                </form>
             </Modal>
         </div >
     );

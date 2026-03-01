@@ -2,8 +2,22 @@ import * as React from 'react';
 import { useAuthStore } from '@/store/auth';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { LogOut, User as UserIcon, Menu, Bell } from 'lucide-react';
+import { LogOut, User as UserIcon, Menu, Bell, AlertCircle, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
 import { Button } from './Button';
+
+function timeAgo(dateInput: Date | string) {
+    const diff = new Date(dateInput).getTime() - Date.now();
+    if (diff < 0) {
+        const days = Math.ceil(Math.abs(diff) / (1000 * 60 * 60 * 24));
+        if (days === 0) return 'Bu gün';
+        return `${days} gün sonra`; // wait overdue is in the past! So `diff < 0` means PAST. So "gün əvvəl".
+    } else {
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        if (days === 0) return 'Bu gün';
+        return `${days} gün sonra`;
+    }
+}
+
 import { useLocation, useNavigate } from 'react-router-dom';
 
 export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
@@ -24,7 +38,31 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
     });
 
     const notifications = Array.isArray(notifData?.data) ? notifData.data : [];
-    const unreadCount = notifications.length;
+
+    const [readNotificationIds, setReadNotificationIds] = React.useState<string[]>(() => {
+        try {
+            return JSON.parse(localStorage.getItem('readNotifications') || '[]');
+        } catch {
+            return [];
+        }
+    });
+
+    const markAsRead = (id: string) => {
+        if (!readNotificationIds.includes(id)) {
+            const updated = [...readNotificationIds, id];
+            setReadNotificationIds(updated);
+            localStorage.setItem('readNotifications', JSON.stringify(updated));
+        }
+    };
+
+    const markAllAsRead = () => {
+        const allIds = notifications.map((n: any) => n.id);
+        const updated = Array.from(new Set([...readNotificationIds, ...allIds]));
+        setReadNotificationIds(updated);
+        localStorage.setItem('readNotifications', JSON.stringify(updated));
+    };
+
+    const unreadCount = notifications.filter((n: any) => !readNotificationIds.includes(n.id)).length;
 
     // Mapping English route bases to Azerbaijani titles
     const routeTitles: Record<string, string> = {
@@ -81,28 +119,62 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
                                 className="fixed inset-0 z-40"
                                 onClick={() => setIsNotifOpen(false)}
                             />
-                            <div className="absolute right-0 mt-2 w-80 md:w-96 origin-top-right rounded-lg bg-surface shadow-2xl ring-1 ring-border border border-border z-50">
-                                <div className="p-4 border-b border-border flex justify-between items-center">
+                            <div className="absolute right-0 mt-2 w-80 md:w-96 origin-top-right rounded-lg bg-surface shadow-2xl ring-1 ring-border border border-border z-50 overflow-hidden flex flex-col" style={{ maxHeight: 'calc(100vh - 80px)' }}>
+                                <div className="p-4 border-b border-border flex justify-between items-center bg-surface sticky top-0 z-10 shrink-0">
                                     <h3 className="text-sm font-semibold text-text">Bildirişlər</h3>
-                                    <span className="text-xs bg-gold/20 text-gold px-2 py-1 rounded-full">{unreadCount} bildiriş</span>
+                                    <div className="flex items-center gap-3">
+                                        {unreadCount > 0 && (
+                                            <button onClick={markAllAsRead} className="text-xs text-gold hover:text-gold2 flex items-center gap-1 transition-colors">
+                                                <CheckCircle className="w-3.5 h-3.5" /> Hamısını oxunmuş say
+                                            </button>
+                                        )}
+                                        <span className="text-xs bg-gold/20 text-gold px-2 py-0.5 rounded-full font-medium">{unreadCount}</span>
+                                    </div>
                                 </div>
-                                <div className="max-h-96 overflow-y-auto">
+                                <div className="overflow-y-auto flex-1 custom-scrollbar pb-2">
                                     {notifications.length === 0 ? (
-                                        <div className="p-4 text-center text-sm text-muted">Aktiv bildiriş yoxdur</div>
+                                        <div className="p-6 text-center flex flex-col items-center text-muted">
+                                            <Bell className="w-10 h-10 mb-2 opacity-20" />
+                                            <p className="text-sm">Heç bir bildiriş yoxdur</p>
+                                        </div>
                                     ) : (
-                                        notifications.map((n: any) => (
-                                            <div key={n.id} className="p-4 border-b border-border/50 hover:bg-bg/50 transition-colors">
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <p className={`text-sm font-medium ${n.type === 'PAYMENT_OVERDUE' ? 'text-red' : n.type === 'PAYMENT_DUE' ? 'text-orange' : 'text-gold'}`}>
-                                                        {n.title}
-                                                    </p>
-                                                    <span className="text-xs text-muted whitespace-nowrap">
-                                                        {new Date(n.date).toLocaleDateString('az-AZ')}
-                                                    </span>
+                                        notifications.map((n: any) => {
+                                            const isRead = readNotificationIds.includes(n.id);
+                                            const Icon = n.type === 'PAYMENT_OVERDUE' ? AlertCircle :
+                                                n.type === 'PAYMENT_DUE' ? Bell : AlertTriangle;
+                                            const iconColor = n.type === 'PAYMENT_OVERDUE' ? 'text-red' :
+                                                n.type === 'PAYMENT_DUE' ? 'text-orange' : 'text-gold';
+                                            return (
+                                                <div
+                                                    key={n.id}
+                                                    className={`p-4 border-b border-border/50 hover:bg-surface-hover transition-colors cursor-pointer flex gap-3 ${!isRead ? 'bg-surface/40' : ''}`}
+                                                    onClick={() => {
+                                                        markAsRead(n.id);
+                                                        setIsNotifOpen(false);
+                                                        if (n.metadata?.contractId) {
+                                                            navigate(`/contracts/${n.metadata.contractId}`);
+                                                        }
+                                                    }}
+                                                >
+                                                    <div className={`mt-0.5 shrink-0 ${iconColor}`}>
+                                                        <Icon className="w-5 h-5" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-start justify-between gap-2 mb-1">
+                                                            <p className={`text-sm font-bold text-text truncate ${!isRead ? 'opacity-100' : 'opacity-80'}`}>
+                                                                {n.title}
+                                                            </p>
+                                                            {!isRead && <span className="w-2 h-2 rounded-full bg-gold shrink-0 mt-1" />}
+                                                        </div>
+                                                        <p className={`text-sm leading-relaxed mb-2 ${!isRead ? 'text-text/90' : 'text-muted'}`}>{n.message}</p>
+                                                        <div className="flex items-center text-xs text-muted font-medium">
+                                                            <Clock className="w-3 h-3 mr-1" />
+                                                            {timeAgo(n.date)}
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <p className="text-xs text-muted mt-1 leading-relaxed">{n.message}</p>
-                                            </div>
-                                        ))
+                                            );
+                                        })
                                     )}
                                 </div>
                             </div>

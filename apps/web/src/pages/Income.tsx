@@ -286,57 +286,91 @@ export function Income() {
                             <p>Bu dövr üçün ödəniş tapılmadı.</p>
                         </div>
                     ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Tarix</TableHead>
-                                    <TableHead>Obyekt / İcarəçi</TableHead>
-                                    <TableHead>Müqavilə</TableHead>
-                                    <TableHead>İstifadə Məqsədi</TableHead>
-                                    <TableHead>Dövr</TableHead>
-                                    <TableHead>Növü</TableHead>
-                                    <TableHead className="text-right">Məbləğ</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
+                        <>
+                            <div className="hidden md:block overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Tarix</TableHead>
+                                            <TableHead>Obyekt / İcarəçi</TableHead>
+                                            <TableHead>Müqavilə</TableHead>
+                                            <TableHead>İstifadə Məqsədi</TableHead>
+                                            <TableHead>Dövr</TableHead>
+                                            <TableHead>Növü</TableHead>
+                                            <TableHead className="text-right">Məbləğ</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {payments.map((payment: any) => (
+                                            <TableRow key={payment.id} className="hover:bg-surface transition-colors">
+                                                <TableCell>{new Date(payment.paymentDate).toLocaleDateString('az-AZ')}</TableCell>
+                                                <TableCell>
+                                                    <p className="font-medium text-text">{payment.contract.tenant.fullName}</p>
+                                                    <p className="text-xs text-muted">{payment.contract.property?.name}</p>
+                                                </TableCell>
+                                                <TableCell className="text-sm text-muted">N: {payment.contract.number}</TableCell>
+                                                <TableCell className="text-xs text-muted">
+                                                    {rentalTypeLabel[payment.contract.rentalType] || payment.contract.rentalType}
+                                                </TableCell>
+                                                <TableCell className="text-sm text-muted">
+                                                    {months[(payment.periodMonth || 1) - 1]} {payment.periodYear}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className={`px-2 py-1 flex items-center w-fit justify-center rounded text-xs tracking-wider font-medium 
+                                                        ${payment.paymentType === 'CASH' ? 'bg-green/10 text-green border border-green/20' :
+                                                            payment.paymentType === 'BANK' ? 'bg-blue/10 text-blue border border-blue/20' :
+                                                                'bg-purple-500/10 text-purple-500 border border-purple-500/20'}`}>
+                                                        {payment.paymentType}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="text-right font-bold text-green">
+                                                    +{formatMoney(Number(payment.amount))}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {/* Total Row */}
+                                        <TableRow className="bg-surface/50">
+                                            <TableCell colSpan={6} className="text-right font-bold text-text">
+                                                Yekun Məbləğ (Cari Dövr):
+                                            </TableCell>
+                                            <TableCell className="text-right font-extrabold text-green text-lg">
+                                                {formatMoney(Number(totalAmount))}
+                                            </TableCell>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
+                            </div>
+
+                            {/* Mobile Card List View */}
+                            <div className="md:hidden flex flex-col divide-y divide-border">
                                 {payments.map((payment: any) => (
-                                    <TableRow key={payment.id} className="hover:bg-surface transition-colors">
-                                        <TableCell>{new Date(payment.paymentDate).toLocaleDateString('az-AZ')}</TableCell>
-                                        <TableCell>
-                                            <p className="font-medium text-text">{payment.contract.tenant.fullName}</p>
-                                            <p className="text-xs text-muted">{payment.contract.property?.name}</p>
-                                        </TableCell>
-                                        <TableCell className="text-sm text-muted">N: {payment.contract.number}</TableCell>
-                                        <TableCell className="text-xs text-muted">
-                                            {rentalTypeLabel[payment.contract.rentalType] || payment.contract.rentalType}
-                                        </TableCell>
-                                        <TableCell className="text-sm text-muted">
-                                            {months[(payment.periodMonth || 1) - 1]} {payment.periodYear}
-                                        </TableCell>
-                                        <TableCell>
-                                            <span className={`px-2 py-1 flex items-center w-fit justify-center rounded text-xs tracking-wider font-medium 
-                                                ${payment.paymentType === 'CASH' ? 'bg-green/10 text-green border border-green/20' :
-                                                    payment.paymentType === 'BANK' ? 'bg-blue/10 text-blue border border-blue/20' :
-                                                        'bg-purple-500/10 text-purple-500 border border-purple-500/20'}`}>
-                                                {payment.paymentType}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell className="text-right font-bold text-green">
-                                            +{formatMoney(Number(payment.amount))}
-                                        </TableCell>
-                                    </TableRow>
+                                    <div key={`mob-${payment.id}`} className="p-4 hover:bg-surface transition-colors flex items-center justify-between">
+                                        <div className="flex-1 min-w-0 pr-4">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div className="flex items-center gap-2 overflow-hidden">
+                                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shrink-0 ${payment.paymentType === 'CASH' ? 'bg-green/10 text-green border border-green/20' : payment.paymentType === 'BANK' ? 'bg-blue/10 text-blue border border-blue/20' : 'bg-purple-500/10 text-purple-500 border border-purple-500/20'}`}>
+                                                        {payment.paymentType}
+                                                    </span>
+                                                    <span className="text-xs text-muted truncate">{new Date(payment.paymentDate).toLocaleDateString('az-AZ')}</span>
+                                                </div>
+                                                <span className="font-bold text-green shrink-0 ml-2">+{formatMoney(Number(payment.amount))}</span>
+                                            </div>
+                                            <div className="text-sm font-bold text-text truncate transition-colors">{payment.contract.tenant.fullName}</div>
+                                            <div className="text-xs text-muted mb-2 truncate">{payment.contract.property?.name} • N: {payment.contract.number}</div>
+                                            <div className="flex justify-between items-center mt-1">
+                                                <span className="text-xs text-muted">{rentalTypeLabel[payment.contract.rentalType] || payment.contract.rentalType}</span>
+                                                <span className="text-xs font-medium text-text">{months[(payment.periodMonth || 1) - 1]} {payment.periodYear}</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 ))}
-                                {/* Total Row */}
-                                <TableRow className="bg-surface/50">
-                                    <TableCell colSpan={6} className="text-right font-bold text-text">
-                                        Yekun Məbləğ (Cari Dövr):
-                                    </TableCell>
-                                    <TableCell className="text-right font-extrabold text-green text-lg">
-                                        {formatMoney(Number(totalAmount))}
-                                    </TableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
+                                {/* Total Mobile Row */}
+                                <div className="p-4 bg-surface/30 flex justify-between items-center">
+                                    <span className="font-bold text-text">Yekun:</span>
+                                    <span className="font-extrabold text-green text-lg">{formatMoney(Number(totalAmount))}</span>
+                                </div>
+                            </div>
+                        </>
                     )}
                 </CardContent>
             </Card>

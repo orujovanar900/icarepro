@@ -183,61 +183,111 @@ export function Users() {
                             <p>İstifadəçi tapılmadı.</p>
                         </div>
                     ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Ad Soyad</TableHead>
-                                    <TableHead>Email</TableHead>
-                                    <TableHead>Rol</TableHead>
-                                    <TableHead>Yaradılıb</TableHead>
-                                    <TableHead className="text-right">Status / Əməliyyat</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
+                        <>
+                            <div className="hidden md:block overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Ad Soyad</TableHead>
+                                            <TableHead>Email</TableHead>
+                                            <TableHead>Rol</TableHead>
+                                            <TableHead>Yaradılıb</TableHead>
+                                            <TableHead className="text-right">Status / Əməliyyat</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {users.map((u: any) => (
+                                            <TableRow key={u.id}>
+                                                <TableCell className="font-medium text-text">{u.name}</TableCell>
+                                                <TableCell className="text-sm text-muted">{u.email}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={u.role === 'OWNER' ? 'draft' : u.role === 'TENANT' ? 'arxiv' : 'aktiv'}>
+                                                        {u.role}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-sm text-muted">
+                                                    {new Date(u.createdAt).toLocaleDateString('az-AZ')}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex items-center justify-end gap-3">
+                                                        {u.isActive ? (
+                                                            <span className="text-xs font-semibold text-green">Aktiv</span>
+                                                        ) : (
+                                                            <span className="text-xs font-semibold text-red">Deaktiv</span>
+                                                        )}
+
+                                                        {u.id !== user?.id && (
+                                                            <Button
+                                                                variant={u.isActive ? 'danger' : 'outline'}
+                                                                size="sm"
+                                                                onClick={() => handleToggleActive(u.id, u.isActive)}
+                                                                disabled={toggleActiveMutation.isPending}
+                                                            >
+                                                                {u.isActive ? 'Deaktiv' : 'Aktivləşdir'}
+                                                            </Button>
+                                                        )}
+
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => openEditModal(u)}
+                                                        >
+                                                            Düzəliş Et
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+
+                            {/* Mobile Card List View */}
+                            <div className="md:hidden flex flex-col divide-y divide-border">
                                 {users.map((u: any) => (
-                                    <TableRow key={u.id}>
-                                        <TableCell className="font-medium text-text">{u.name}</TableCell>
-                                        <TableCell className="text-sm text-muted">{u.email}</TableCell>
-                                        <TableCell>
-                                            <Badge variant={u.role === 'OWNER' ? 'draft' : u.role === 'TENANT' ? 'arxiv' : 'aktiv'}>
-                                                {u.role}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="text-sm text-muted">
-                                            {new Date(u.createdAt).toLocaleDateString('az-AZ')}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex items-center justify-end gap-3">
-                                                {u.isActive ? (
-                                                    <span className="text-xs font-semibold text-green">Aktiv</span>
-                                                ) : (
-                                                    <span className="text-xs font-semibold text-red">Deaktiv</span>
-                                                )}
-
-                                                {u.id !== user?.id && (
-                                                    <Button
-                                                        variant={u.isActive ? 'danger' : 'outline'}
-                                                        size="sm"
-                                                        onClick={() => handleToggleActive(u.id, u.isActive)}
-                                                        disabled={toggleActiveMutation.isPending}
-                                                    >
-                                                        {u.isActive ? 'Deaktiv' : 'Aktivləşdir'}
-                                                    </Button>
-                                                )}
-
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => openEditModal(u)}
-                                                >
-                                                    Düzəliş Et
-                                                </Button>
+                                    <div key={`mob-${u.id}`} className="p-4 bg-surface flex flex-col gap-3">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <span className="font-bold text-text">{u.name}</span>
+                                                <p className="text-xs text-muted mb-1">{u.email}</p>
+                                                <span className="text-xs text-muted">Yaradılıb: {new Date(u.createdAt).toLocaleDateString('az-AZ')}</span>
                                             </div>
-                                        </TableCell>
-                                    </TableRow>
+                                            <div className="flex flex-col items-end gap-2">
+                                                <Badge variant={u.role === 'OWNER' ? 'draft' : u.role === 'TENANT' ? 'arxiv' : 'aktiv'}>
+                                                    {u.role}
+                                                </Badge>
+                                                {u.isActive ? (
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-green">AKTİV</span>
+                                                ) : (
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider text-red">DEAKTİV</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2 justify-end mt-2">
+                                            {u.id !== user?.id && (
+                                                <Button
+                                                    variant={u.isActive ? 'danger' : 'outline'}
+                                                    size="sm"
+                                                    onClick={() => handleToggleActive(u.id, u.isActive)}
+                                                    disabled={toggleActiveMutation.isPending}
+                                                    className="flex-1 text-xs py-1 h-8"
+                                                >
+                                                    {u.isActive ? 'Deaktiv' : 'Aktivləşdir'}
+                                                </Button>
+                                            )}
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => openEditModal(u)}
+                                                className="flex-1 text-xs py-1 h-8"
+                                            >
+                                                Düzəliş Et
+                                            </Button>
+                                        </div>
+                                    </div>
                                 ))}
-                            </TableBody>
-                        </Table>
+                            </div>
+                        </>
                     )}
                 </CardContent>
             </Card>

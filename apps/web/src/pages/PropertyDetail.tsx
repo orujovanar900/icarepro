@@ -106,8 +106,8 @@ export function PropertyDetail() {
             await api.post(`/properties/${id}/photos`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
             addToast({ message: 'Şəkil yükləndi', type: 'success' });
             queryClient.invalidateQueries({ queryKey: ['property', id] });
-        } catch (error) {
-            addToast({ message: 'Xəta baş verdi', type: 'error' });
+        } catch (error: any) {
+            addToast({ message: error.response?.data?.error || 'Xəta baş verdi', type: 'error' });
         } finally {
             setIsUploadingPhoto(false);
         }
@@ -136,8 +136,8 @@ export function PropertyDetail() {
             await api.post(`/properties/${id}/documents?type=${type}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
             addToast({ message: 'Sənəd yükləndi', type: 'success' });
             queryClient.invalidateQueries({ queryKey: ['property', id] });
-        } catch (error) {
-            addToast({ message: 'Xəta baş verdi', type: 'error' });
+        } catch (error: any) {
+            addToast({ message: error.response?.data?.error || 'Xəta baş verdi', type: 'error' });
         } finally {
             setIsUploadingDoc(false);
         }
@@ -174,12 +174,12 @@ export function PropertyDetail() {
             </div>
 
             {/* Tabs Navigation */}
-            <div className="flex space-x-1 border-b border-border">
+            <div className="flex space-x-1 border-b border-border overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 {(['details', 'photos', 'documents', 'history'] as const).map(tab => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === tab
+                        className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap shrink-0 ${activeTab === tab
                             ? 'border-gold text-gold'
                             : 'border-transparent text-muted hover:text-text hover:border-border'
                             }`}

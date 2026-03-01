@@ -19,6 +19,13 @@ const formatMoney = (amount: number) => {
     }).format(amount);
 };
 
+const getGrossAmount = (startDate: string, endDate: string, monthlyRent: number) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const months = Math.max(0, (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1);
+    return Number(monthlyRent) * months;
+};
+
 export function Contracts() {
     const navigate = useNavigate();
     const { user } = useAuthStore();
@@ -169,7 +176,8 @@ export function Contracts() {
                                                     </p>
                                                 </TableCell>
                                                 <TableCell>
-                                                    <span className="font-medium text-text">{formatMoney(contract.monthlyRent)}</span>
+                                                    <span className="font-medium text-text">{formatMoney(contract.monthlyRent)}/ay</span>
+                                                    <p className="text-xs text-muted mt-1">Ümumi: {formatMoney(getGrossAmount(contract.startDate, contract.endDate, contract.monthlyRent))}</p>
                                                 </TableCell>
                                                 <TableCell className="text-sm text-muted">
                                                     {new Date(contract.startDate).toLocaleDateString('az-AZ')} - <br />
@@ -213,7 +221,10 @@ export function Contracts() {
                                             <p className="text-sm text-muted truncate mb-3">{contract.property.name}</p>
 
                                             <div className="flex items-center justify-between text-sm">
-                                                <span className="font-bold text-gold">{formatMoney(contract.monthlyRent)}/ay</span>
+                                                <div>
+                                                    <span className="font-bold text-gold block">{formatMoney(contract.monthlyRent)}/ay</span>
+                                                    <span className="text-xs text-muted">Ümumi: {formatMoney(getGrossAmount(contract.startDate, contract.endDate, contract.monthlyRent))}</span>
+                                                </div>
                                                 {contract.debt > 0 && (
                                                     <div className="flex flex-col items-end">
                                                         <span className="font-bold text-red ml-2 block">Borc: {formatMoney(contract.debt)}</span>

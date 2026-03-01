@@ -290,49 +290,84 @@ export function Expenses() {
                             <p>Bu dövr üçün xərc tapılmadı.</p>
                         </div>
                     ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Tarix</TableHead>
-                                    <TableHead>Kateqoriya</TableHead>
-                                    <TableHead>Açıqlama</TableHead>
-                                    <TableHead>Əlavə edən</TableHead>
-                                    <TableHead className="text-right">Məbləğ</TableHead>
-                                    <TableHead></TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
+                        <>
+                            <div className="hidden md:block overflow-x-auto">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Tarix</TableHead>
+                                            <TableHead>Kateqoriya</TableHead>
+                                            <TableHead>Açıqlama</TableHead>
+                                            <TableHead>Əlavə edən</TableHead>
+                                            <TableHead className="text-right">Məbləğ</TableHead>
+                                            <TableHead></TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {expenses.map((expense: any) => (
+                                            <TableRow key={expense.id} className="hover:bg-surface transition-colors">
+                                                <TableCell>{new Date(expense.date).toLocaleDateString('az-AZ')}</TableCell>
+                                                <TableCell>
+                                                    <span className="px-2 py-1 flex items-center w-fit justify-center rounded text-xs tracking-wider font-medium bg-red/10 text-red border border-red/20">
+                                                        {expense.category}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="text-sm text-text max-w-[200px] truncate">{expense.description || '-'}</TableCell>
+                                                <TableCell className="text-sm text-muted">{expense.createdByUser?.name || 'Sistem'}</TableCell>
+                                                <TableCell className="text-right font-bold text-red">
+                                                    -{formatMoney(expense.amount)}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setDeleteId(expense.id); }}>
+                                                        <Trash2 className="w-4 h-4 text-red/60 hover:text-red" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {/* Total Row */}
+                                        <TableRow className="bg-surface/50">
+                                            <TableCell colSpan={5} className="text-right font-bold text-text">
+                                                Yekun Xərc (Cari Dövr):
+                                            </TableCell>
+                                            <TableCell className="text-right font-extrabold text-red text-lg">
+                                                -{formatMoney(totalAmount)}
+                                            </TableCell>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
+                            </div>
+
+                            {/* Mobile Card List View */}
+                            <div className="md:hidden flex flex-col divide-y divide-border">
                                 {expenses.map((expense: any) => (
-                                    <TableRow key={expense.id} className="hover:bg-surface transition-colors">
-                                        <TableCell>{new Date(expense.date).toLocaleDateString('az-AZ')}</TableCell>
-                                        <TableCell>
-                                            <span className="px-2 py-1 flex items-center w-fit justify-center rounded text-xs tracking-wider font-medium bg-red/10 text-red border border-red/20">
-                                                {expense.category}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell className="text-sm text-text max-w-[200px] truncate">{expense.description || '-'}</TableCell>
-                                        <TableCell className="text-sm text-muted">{expense.createdByUser?.name || 'Sistem'}</TableCell>
-                                        <TableCell className="text-right font-bold text-red">
-                                            -{formatMoney(expense.amount)}
-                                        </TableCell>
-                                        <TableCell>
-                                            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setDeleteId(expense.id); }}>
-                                                <Trash2 className="w-4 h-4 text-red/60 hover:text-red" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
+                                    <div key={`mob-${expense.id}`} className="p-4 hover:bg-surface transition-colors flex items-center justify-between">
+                                        <div className="flex-1 min-w-0 pr-2">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div className="flex items-center gap-2 overflow-hidden">
+                                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shrink-0 bg-red/10 text-red border border-red/20">
+                                                        {expense.category}
+                                                    </span>
+                                                    <span className="text-xs text-muted truncate">{new Date(expense.date).toLocaleDateString('az-AZ')}</span>
+                                                </div>
+                                                <span className="font-bold text-red shrink-0 ml-2">-{formatMoney(expense.amount)}</span>
+                                            </div>
+                                            <div className="text-sm font-medium text-text truncate mb-1">{expense.description || '-'}</div>
+                                            <div className="text-xs text-muted truncate flex justify-between">
+                                                <span>Əlavə edən: {expense.createdByUser?.name || 'Sistem'}</span>
+                                            </div>
+                                        </div>
+                                        <Button variant="ghost" size="sm" className="shrink-0 h-8 w-8 p-0" onClick={(e) => { e.stopPropagation(); setDeleteId(expense.id); }}>
+                                            <Trash2 className="w-4 h-4 text-red/60 hover:text-red" />
+                                        </Button>
+                                    </div>
                                 ))}
-                                {/* Total Row */}
-                                <TableRow className="bg-surface/50">
-                                    <TableCell colSpan={5} className="text-right font-bold text-text">
-                                        Yekun Xərc (Cari Dövr):
-                                    </TableCell>
-                                    <TableCell className="text-right font-extrabold text-red text-lg">
-                                        -{formatMoney(totalAmount)}
-                                    </TableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
+                                {/* Total Mobile Row */}
+                                <div className="p-4 bg-surface/30 flex justify-between items-center">
+                                    <span className="font-bold text-text">Yekun:</span>
+                                    <span className="font-extrabold text-red text-lg">-{formatMoney(totalAmount)}</span>
+                                </div>
+                            </div>
+                        </>
                     )}
                 </CardContent>
             </Card>
