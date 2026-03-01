@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, FileText, Download, Plus, Archive, RefreshCw, History, AlertCircle, ShieldCheck, Check, Edit2 } from 'lucide-react';
+import { ArrowLeft, FileText, Download, Plus, Archive, RefreshCw, History, AlertCircle, ShieldCheck, Check, Edit2, FileDown } from 'lucide-react';
+import { generateContractPdf } from '@/lib/pdfGenerator';
 import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableSkeleton } from '@/components/ui/Table';
@@ -65,6 +66,7 @@ export function ContractDetail() {
     const [penaltyAmount, setPenaltyAmount] = useState('');
     const [penaltyNote, setPenaltyNote] = useState('');
     const [isApplyingPenalty, setIsApplyingPenalty] = useState(false);
+    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
     // Payment Mode edit state
     const [showPaymentModeModal, setShowPaymentModeModal] = useState(false);
@@ -236,7 +238,14 @@ export function ContractDetail() {
     const totalPaid = contract.payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0);
     const totalDebt = Math.max(0, totalExpected - totalPaid);
 
-    // Gross amount calculation removed as per user request
+    // Calculate Brutto / Netto displays
+    const nettoRent = Number(contract.monthlyRent);
+    const bruttoRent = nettoRent / 0.86;
+    const taxAmount = bruttoRent - nettoRent;
+
+    const totalNetto = nettoRent * monthsElapsed;
+    const totalBrutto = bruttoRent * monthsElapsed;
+
     const lastPayment = contract.payments?.length > 0
         ? contract.payments.reduce((latest: any, p: any) => new Date(p.paymentDate) > new Date(latest.paymentDate) ? p : latest)
         : null;
@@ -260,6 +269,15 @@ export function ContractDetail() {
         'İyul', 'Avqust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'
     ];
 
+    let tenantFullName = '-';
+    if (contract.tenant) {
+        if (contract.tenant.tenantType === 'fiziki') {
+            tenantFullName = [contract.tenant.lastName, contract.tenant.firstName, contract.tenant.fatherName].filter(Boolean).join(' ');
+        } else {
+            tenantFullName = contract.tenant.companyName || '';
+        }
+    }
+
     return (
         <>
             <div className="flex-1 space-y-6 p-6 max-w-7xl mx-auto pb-24">
@@ -276,14 +294,35 @@ export function ContractDetail() {
                                 {getStatusText(computedStatus)}
                             </Badge>
                         </h1>
+                        <p className="text-muted mt-2 text-lg">
+                            Kirayəçi: <span className="font-semibold text-text">{tenantFullName}</span>
+                        </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-start mt-2 sm:mt-0">
                         {contract.documents && contract.documents.length > 0 && (
                             <Button variant="outline" onClick={() => window.open(contract.documents[0].filePath, '_blank')}>
                                 <FileText className="w-4 h-4 mr-2" />
-                                PDF Yüklə
+                                Sistemin PDF-i
                             </Button>
                         )}
+                        <Button
+                            variant="outline"
+                            onClick={async () => {
+                                setIsGeneratingPdf(true);
+                                try {
+                                    await generateContractPdf(contract);
+                                    addToast({ message: 'PDF uğurla yaradıldı və yükləndi', type: 'success' });
+                                } catch (e) {
+                                    addToast({ message: 'PDF yaradılarkən xəta baş verdi', type: 'error' });
+                                } finally {
+                                    setIsGeneratingPdf(false);
+                                }
+                            }}
+                            disabled={isGeneratingPdf}
+                        >
+                            <FileDown className="w-4 h-4 mr-2" />
+                            {isGeneratingPdf ? 'Yüklənir...' : 'PDF Yüklə'}
+                        </Button>
                         {(contract.status === 'ACTIVE' || isExpired) && (
                             <Button variant="outline" onClick={() => {
                                 setRenewEndDate(contract.endDate ? new Date(contract.endDate).toISOString().split('T')[0] ?? '' : '');
@@ -423,21 +462,36 @@ export function ContractDetail() {
                                 <CardTitle>Maliyyə Xülasəsi</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-3">
-                                {/* Partial payment breakdown */}
                                 <div className="bg-surface rounded-lg p-3 space-y-1.5 text-sm border border-border">
                                     <div className="flex justify-between">
-                                        <span className="text-muted">Aylıq icarə</span>
-                                        <span className="font-medium">{formatMoney(contract.monthlyRent)}</span>
+                                        <span className="text-muted">Aylıq icarə (Netto)</span>
+                                        <span className="font-medium">{formatMoney(nettoRent)}</span>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-muted">× Keçən aylar</span>
+                                    <div className="flex justify-between text-xs opacity-70">
+                                        <span>Aylıq Brutto</span>
+                                        <span>{formatMoney(bruttoRent)}</span>
+                                    </div>
+                                    <div className="flex justify-between mt-2 pt-2 border-t border-border/50">
+                                        <span className="text-muted">Keçən müddət</span>
                                         <span className="font-medium">{monthsElapsed} ay</span>
                                     </div>
-                                    <div className="flex justify-between border-t border-border pt-1.5">
-                                        <span className="text-muted">Hesablanmış cəmi</span>
-                                        <span className="font-bold">{formatMoney(totalExpected)}</span>
+                                    {contract.payments.some((p: any) => p.paymentType === 'PRO_RATA') && (
+                                        <div className="flex justify-between text-gold">
+                                            <span className="text-sm">Birinci ödəniş (Pro-rata)</span>
+                                            <span className="font-medium">
+                                                {formatMoney(Number(contract.payments.find((p: any) => p.paymentType === 'PRO_RATA')?.amount || 0))}
+                                            </span>
+                                        </div>
+                                    )}
+                                    <div className="pt-2 border-t border-border flex justify-between font-bold">
+                                        <span className="text-text">Ümumi Netto məbləğ</span>
+                                        <span className="text-text">{formatMoney(totalExpected)}</span>
                                     </div>
-                                    <div className="flex justify-between">
+                                    <div className="flex justify-between text-xs text-muted mb-2 pb-2">
+                                        <span>Ümumi Brutto məbləğ</span>
+                                        <span>{formatMoney(totalBrutto)}</span>
+                                    </div>
+                                    <div className="flex justify-between border-t border-border pt-1.5">
                                         <span className="text-muted">— Ödənilmiş</span>
                                         <span className="font-bold text-green">{formatMoney(totalPaid)}</span>
                                     </div>
@@ -458,18 +512,33 @@ export function ContractDetail() {
                                     <ShieldCheck className={`w-8 h-8 ${contract.isDepositReturned && Number(contract.depositAmount) > 0 ? 'text-green' : 'text-gold'}`} />
                                     <div>
                                         <p className="text-sm font-medium text-text">Depozit</p>
-                                        <p className="text-xs text-muted">{Number(contract.depositAmount) > 0 ? formatMoney(Number(contract.depositAmount)) : 'Təyin edilməyib'}</p>
+                                        <p className={`text-xs ${contract.isDepositReturned && Number(contract.depositAmount) > 0 ? 'text-green font-medium' : 'text-muted'}`}>
+                                            {Number(contract.depositAmount) > 0
+                                                ? (contract.isDepositReturned ? 'Depozit qaytarılıb ✓' : formatMoney(Number(contract.depositAmount)))
+                                                : 'Təyin edilməyib'}
+                                        </p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     {Number(contract.depositAmount) > 0 ? (
                                         <>
-                                            <Badge variant={contract.isDepositReturned ? 'aktiv' : 'draft'}>
-                                                {contract.isDepositReturned ? 'Qaytarıldı' : 'Saxlanılır'}
-                                            </Badge>
+                                            {!contract.isDepositReturned && (
+                                                <Badge variant="draft">
+                                                    Saxlanılır
+                                                </Badge>
+                                            )}
                                             {canManagePenalties && (
-                                                <Button variant="ghost" size="sm" onClick={handleToggleDeposit} disabled={isTogglingDeposit}>
-                                                    {isTogglingDeposit ? '...' : contract.isDepositReturned ? 'Geri al (Saxlanılır et)' : 'Qaytarıldı et'}
+                                                <Button
+                                                    variant={contract.isDepositReturned ? 'outline' : 'ghost'}
+                                                    size="sm"
+                                                    onClick={handleToggleDeposit}
+                                                    disabled={isTogglingDeposit}
+                                                >
+                                                    {isTogglingDeposit
+                                                        ? '...'
+                                                        : contract.isDepositReturned
+                                                            ? <><Plus className="w-3 h-3 mr-1" /> Əlavə et</>
+                                                            : 'Qaytarıldı et'}
                                                 </Button>
                                             )}
                                         </>

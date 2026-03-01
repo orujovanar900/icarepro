@@ -323,8 +323,15 @@ export function Income() {
                                                         {payment.paymentType}
                                                     </span>
                                                 </TableCell>
-                                                <TableCell className="text-right font-bold text-green">
-                                                    +{formatMoney(Number(payment.amount))}
+                                                <TableCell className="text-right">
+                                                    <span className="font-bold text-green block">
+                                                        +{formatMoney(Number(payment.amount))}
+                                                    </span>
+                                                    {payment.note && (
+                                                        <span className="text-xs text-muted italic block mt-1 break-words max-w-[150px] ml-auto">
+                                                            {payment.note}
+                                                        </span>
+                                                    )}
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -353,7 +360,12 @@ export function Income() {
                                                     </span>
                                                     <span className="text-xs text-muted truncate">{new Date(payment.paymentDate).toLocaleDateString('az-AZ')}</span>
                                                 </div>
-                                                <span className="font-bold text-green shrink-0 ml-2">+{formatMoney(Number(payment.amount))}</span>
+                                                <div className="text-right shrink-0 ml-2">
+                                                    <span className="font-bold text-green block">+{formatMoney(Number(payment.amount))}</span>
+                                                    {payment.note && (
+                                                        <span className="text-[10px] text-muted italic block mt-0.5 max-w-[120px] truncate">{payment.note}</span>
+                                                    )}
+                                                </div>
                                             </div>
                                             <div className="text-sm font-bold text-text truncate transition-colors">{payment.contract.tenant.fullName}</div>
                                             <div className="text-xs text-muted mb-2 truncate">{payment.contract.property?.name} • N: {payment.contract.number}</div>

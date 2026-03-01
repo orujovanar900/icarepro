@@ -234,6 +234,7 @@ function DashboardContent() {
     const [formPaymentType, setFormPaymentType] = useState('CASH');
     const [formPeriodMonth, setFormPeriodMonth] = useState(String(currentMonth));
     const [formPeriodYear, setFormPeriodYear] = useState(String(currentYear));
+    const [formNote, setFormNote] = useState('');
 
     const [formExpCategory, setFormExpCategory] = useState('Ümumi');
     const [formExpDesc, setFormExpDesc] = useState('');
@@ -266,7 +267,7 @@ function DashboardContent() {
                     paymentType: formPaymentType,
                     periodMonth: Number(formPeriodMonth),
                     periodYear: Number(formPeriodYear),
-                    note: 'Dashboard sürətli əlavə'
+                    note: formNote || 'Dashboard sürətli əlavə'
                 });
                 addToast({ message: 'Mədaxil uğurla əlavə edildi', type: 'success' });
             } else {
@@ -284,6 +285,7 @@ function DashboardContent() {
             setIsAddModalOpen(false);
             setFormAmount('');
             setFormContractId('');
+            setFormNote('');
             setFormExpDesc('');
         } catch (error: any) {
             addToast({ message: error.response?.data?.error || 'Xəta baş verdi', type: 'error' });
@@ -1091,6 +1093,11 @@ function DashboardContent() {
                                     onChange={e => setFormPeriodYear(e.target.value)}
                                 />
                             </div>
+                            <Input
+                                label="Qeyd (İxtiyari)"
+                                value={formNote}
+                                onChange={(e) => setFormNote(e.target.value)}
+                            />
                         </>
                     ) : (
                         <>
