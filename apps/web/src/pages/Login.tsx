@@ -70,7 +70,7 @@ export function Login() {
     };
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-bg p-4 inset-0 fixed w-full isolate overflow-hidden">
+        <div className="flex min-h-screen flex-col items-center justify-center bg-bg p-4 relative isolate w-full">
             {/* Background decoration */}
             <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gold/10 via-bg to-bg" />
 

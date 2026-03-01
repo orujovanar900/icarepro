@@ -18,7 +18,7 @@ function timeAgo(dateInput: Date | string) {
     }
 }
 
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 
 export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
     const { user, logout } = useAuthStore();
@@ -89,9 +89,12 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
                 <button onClick={onMenuClick} className="p-2 text-muted hover:text-text">
                     <Menu className="h-6 w-6" />
                 </button>
-                <h1 className="text-xl font-extrabold font-heading text-gold">
-                    İcarə <span className="text-white font-light">Pro</span>
-                </h1>
+                <div className="flex flex-col justify-center mt-1">
+                    <Link to="/" className="text-xl font-extrabold font-heading text-gold hover:opacity-80 transition-opacity leading-tight">
+                        İcarə <span className="text-white font-light">Pro</span>
+                    </Link>
+                    <span className="text-[10px] text-gold/70 italic leading-none">"Mülkünüzü ağıllı idarə edin"</span>
+                </div>
             </div>
 
             {/* Desktop Page Title */}

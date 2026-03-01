@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
 import {
     LayoutDashboard,
@@ -63,11 +63,14 @@ export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: bool
                 "fixed inset-y-0 left-0 z-50 flex h-screen w-64 flex-col border-r border-border bg-surface shadow-2xl transition-transform duration-300 ease-in-out md:static md:translate-x-0 md:w-60 md:shadow-none",
                 isMobileOpen ? "translate-x-0" : "-translate-x-full"
             )}>
-                <div className="flex h-16 items-center justify-between px-6">
-                    <h1 className="text-3xl font-heading tracking-tight flex items-center gap-1.5">
-                        <span className="text-gold font-extrabold">İcarə</span>
-                        <span className="text-white font-normal">Pro</span>
-                    </h1>
+                <div className="flex h-[72px] items-center justify-between px-6">
+                    <div className="flex flex-col justify-center">
+                        <Link to="/" className="text-3xl font-heading tracking-tight flex items-center gap-1.5 hover:opacity-80 transition-opacity">
+                            <span className="text-gold font-extrabold">İcarə</span>
+                            <span className="text-white font-normal">Pro</span>
+                        </Link>
+                        <span className="text-[11px] text-gold/70 italic mt-0.5">"Mülkünüzü ağıllı idarə edin"</span>
+                    </div>
                     {/* Close button for mobile */}
                     <button onClick={onClose} className="md:hidden p-2 text-muted hover:text-text -mr-2">
                         <X className="h-5 w-5" />
