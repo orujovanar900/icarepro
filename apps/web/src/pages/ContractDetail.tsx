@@ -212,7 +212,13 @@ export function ContractDetail() {
     const totalMonths = Math.max(0,
         (actualEnd.getFullYear() - start.getFullYear()) * 12 + (actualEnd.getMonth() - start.getMonth()) + 1
     );
-    const grossAmount = Number(contract.monthlyRent) * totalMonths;
+    // User requested 14% withholding tax calculation for gross: Net / 0.86
+    const monthlyGross = Number(contract.monthlyRent) / 0.86;
+    const grossAmount = monthlyGross * totalMonths;
+
+    const lastPayment = contract.payments?.length > 0
+        ? contract.payments.reduce((latest: any, p: any) => new Date(p.paymentDate) > new Date(latest.paymentDate) ? p : latest)
+        : null;
 
     const handleAddPayment = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -300,7 +306,17 @@ export function ContractDetail() {
                                             <p className="text-lg font-bold text-gold mt-1">{formatMoney(contract.monthlyRent)}</p>
                                         </div>
                                         <div className="text-right">
-                                            <h3 className="text-sm font-medium text-muted">Ümumi məbləğ (brutto)</h3>
+                                            <h3 className="text-sm font-medium text-muted">Aylıq Brutto (14% vergi)</h3>
+                                            <p className="text-lg font-bold text-text mt-1">{formatMoney(monthlyGross)}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between items-end border-t border-border/50 pt-3">
+                                        <div>
+                                            <h3 className="text-sm font-medium text-muted">Son Ödəniş Tarixi</h3>
+                                            <p className="text-sm font-bold text-text mt-1">{lastPayment ? new Date(lastPayment.paymentDate).toLocaleDateString('az-AZ') : '-'}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <h3 className="text-sm font-medium text-muted">Ümumi məbləğ (vergilər daxil)</h3>
                                             <p className="text-lg font-bold text-text mt-1">{formatMoney(grossAmount)}</p>
                                         </div>
                                     </div>
@@ -401,29 +417,47 @@ export function ContractDetail() {
                         </Card>
 
                         {/* Deposit Card */}
-                        {Number(contract.depositAmount) > 0 && (
-                            <Card variant="elevated">
-                                <CardContent className="p-4 flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <ShieldCheck className={`w-8 h-8 ${contract.isDepositReturned ? 'text-green' : 'text-gold'}`} />
-                                        <div>
-                                            <p className="text-sm font-medium text-text">Depozit</p>
-                                            <p className="text-xs text-muted">{formatMoney(Number(contract.depositAmount))}</p>
-                                        </div>
+                        <Card variant="elevated">
+                            <CardContent className="p-4 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <ShieldCheck className={`w-8 h-8 ${contract.isDepositReturned && Number(contract.depositAmount) > 0 ? 'text-green' : 'text-gold'}`} />
+                                    <div>
+                                        <p className="text-sm font-medium text-text">Depozit</p>
+                                        <p className="text-xs text-muted">{Number(contract.depositAmount) > 0 ? formatMoney(Number(contract.depositAmount)) : 'Təyin edilməyib'}</p>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <Badge variant={contract.isDepositReturned ? 'aktiv' : 'draft'}>
-                                            {contract.isDepositReturned ? 'Qaytarildı' : 'Saxlanılır'}
-                                        </Badge>
-                                        {canManagePenalties && (
-                                            <Button variant="ghost" size="sm" onClick={handleToggleDeposit} disabled={isTogglingDeposit}>
-                                                {isTogglingDeposit ? '...' : contract.isDepositReturned ? 'Geri al' : 'Qaytarilıb'}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {Number(contract.depositAmount) > 0 ? (
+                                        <>
+                                            <Badge variant={contract.isDepositReturned ? 'aktiv' : 'draft'}>
+                                                {contract.isDepositReturned ? 'Qaytarıldı' : 'Saxlanılır'}
+                                            </Badge>
+                                            {canManagePenalties && (
+                                                <Button variant="ghost" size="sm" onClick={handleToggleDeposit} disabled={isTogglingDeposit}>
+                                                    {isTogglingDeposit ? '...' : contract.isDepositReturned ? 'Geri al (Saxlanılır et)' : 'Qaytarıldı et'}
+                                                </Button>
+                                            )}
+                                        </>
+                                    ) : (
+                                        canManagePenalties && (
+                                            <Button variant="outline" size="sm" onClick={() => {
+                                                const amount = prompt('Depozit məbləğini daxil edin (AZN):');
+                                                if (amount && !isNaN(Number(amount))) {
+                                                    api.patch(`/contracts/${id}`, { depositAmount: Number(amount), isDepositReturned: false })
+                                                        .then(() => {
+                                                            queryClient.invalidateQueries({ queryKey: ['contract', id] });
+                                                            addToast({ message: 'Depozit əlavə edildi', type: 'success' });
+                                                        })
+                                                        .catch(() => addToast({ message: 'Xəta baş verdi', type: 'error' }));
+                                                }
+                                            }}>
+                                                <Plus className="w-3 h-3 mr-1" /> Əlavə et
                                             </Button>
-                                        )}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
+                                        )
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
 
                         {/* Penalty Button */}
                         {canManagePenalties && computedStatus === 'ACTIVE' && (
