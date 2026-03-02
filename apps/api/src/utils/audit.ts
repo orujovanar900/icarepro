@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client'
+import { logger } from '../logger.js'
 
 interface AuditParams {
     organizationId: string
@@ -25,6 +26,6 @@ export async function writeAuditLog(prisma: PrismaClient, params: AuditParams): 
             },
         })
     } catch (err) {
-        console.error('[AuditLog] Failed to write audit log:', err)
+        logger.error(`[AuditLog] Failed to write audit log: ${err instanceof Error ? err.message : String(err)}`, { err })
     }
 }

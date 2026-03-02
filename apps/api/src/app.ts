@@ -12,6 +12,7 @@ import contractsRoutes from './routes/contracts.js'
 import dashboardRoutes from './routes/dashboard.js'
 import paymentsRoutes from './routes/payments.js'
 import propertiesRoutes from './routes/properties.js'
+import { logger } from './logger.js'
 import tenantsRoutes from './routes/tenants.js'
 import expensesRoutes from './routes/expenses.js'
 import usersRoutes from './routes/users.js'
@@ -25,6 +26,15 @@ import './cron/alerts.js'
 
 export async function buildApp() {
     const app = Fastify({ logger: { level: process.env['LOG_LEVEL'] ?? 'info' } })
+
+    // ── Logging ────────────────────────────────────────────
+    app.addHook('onRequest', (request, reply, done) => {
+        logger.info(`${request.method} ${request.url}`, {
+            ip: request.ip,
+            userAgent: request.headers['user-agent']
+        })
+        done()
+    })
 
     // ── Security ───────────────────────────────────────────
     await app.register(helmet, { global: true })
@@ -64,8 +74,13 @@ export async function buildApp() {
     await app.register(prismaPlugin)
 
     // ── Global error handler ───────────────────────────────
-    app.setErrorHandler((error, _req, reply) => {
-        app.log.error(error)
+    app.setErrorHandler((error, request, reply) => {
+        const logErr = error as any;
+        logger.error(`Error: ${logErr.message}`, {
+            path: request.url,
+            method: request.method,
+            stack: logErr.stack
+        })
         const err = error as { statusCode?: number; message?: string }
         const status = err.statusCode ?? 500
         return reply.code(status).send({

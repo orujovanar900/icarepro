@@ -2,10 +2,11 @@ import cron from 'node-cron';
 import { prisma } from '../lib/prisma.js';
 import { sendDebtAlert, sendExpiringContractAlert } from '../services/email.js';
 import { calculateContractDebtAndExpected } from '../utils/contractUtils.js';
+import { logger } from '../logger.js';
 
 // Run every day at 09:00 Baku time
 cron.schedule('0 9 * * *', async () => {
-    console.log('[CRON] Running daily alerts...');
+    logger.info('[CRON] Running daily alerts...');
 
     // 1. Find all organizations with their owner email
     const orgs = await prisma.organization.findMany({
