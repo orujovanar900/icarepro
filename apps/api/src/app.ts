@@ -31,10 +31,8 @@ export async function buildApp() {
 
     await app.register(cors, {
         origin: [
-            'http://localhost:5173',
             'https://icarepro.pages.dev',
-            /https:\/\/.*\.icarepro\.pages\.dev/,
-            process.env['FRONTEND_URL'] ?? 'https://icare-pro-afd3bf.netlify.app'
+            'http://localhost:5173'
         ],
         credentials: true,
     })
@@ -44,7 +42,7 @@ export async function buildApp() {
         timeWindow: '1 minute',
         errorResponseBuilder: () => ({
             success: false,
-            error: 'Too many requests, please try again later.',
+            error: 'Çox sayda sorğu. Bir dəqiqə gözləyin.',
         }),
     })
 

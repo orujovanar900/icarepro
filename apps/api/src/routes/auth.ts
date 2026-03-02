@@ -49,7 +49,16 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     // POST /auth/register — create org + owner account
     // ─────────────────────────────────────────
     fastify.post('/register', {
-        config: { rateLimit: { max: 5, timeWindow: '1 hour' } },
+        config: {
+            rateLimit: {
+                max: 3,
+                timeWindow: '1 hour',
+                errorResponseBuilder: () => ({
+                    success: false,
+                    error: 'Qeydiyyat limiti aşıldı. 1 saat gözləyin.',
+                }),
+            }
+        },
     }, async (req, reply) => {
         const body = registerSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
@@ -138,7 +147,16 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     // POST /auth/login — rate limit: 5/min + account lockout
     // ─────────────────────────────────────────
     fastify.post('/login', {
-        config: { rateLimit: { max: 5, timeWindow: '1 minute' } },
+        config: {
+            rateLimit: {
+                max: 5,
+                timeWindow: '15 minutes',
+                errorResponseBuilder: () => ({
+                    success: false,
+                    error: 'Çox sayda giriş cəhdi. 15 dəqiqə gözləyin.',
+                }),
+            }
+        },
     }, async (req, reply) => {
         const body = loginSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
