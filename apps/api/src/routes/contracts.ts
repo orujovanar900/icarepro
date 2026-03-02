@@ -124,24 +124,35 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
             fastify.prisma.contract.count({ where }),
         ])
 
+        const contractIds = contracts.map(c => c.id);
+
+        const paymentsAgg = await fastify.prisma.payment.groupBy({
+            by: ['contractId'],
+            where: { contractId: { in: contractIds } },
+            _sum: { amount: true }
+        });
+
+        const paidMap = new Map<string, number>();
+        paymentsAgg.forEach(agg => {
+            paidMap.set(agg.contractId, Number(agg._sum.amount ?? 0));
+        });
+
         // Calculate computed debt, expectedPaymentDate, and daysOverdue
-        const contractsWithDebt = await Promise.all(contracts.map(async (c: any) => {
+        const contractsWithDebt = contracts.map((c: any) => {
             const tenantFullName = c.tenant.tenantType === 'fiziki'
                 ? `${c.tenant.firstName || ''} ${c.tenant.lastName || ''}`.trim()
                 : c.tenant.companyName || ''
 
+            const tenantWithFullName = { ...c.tenant, fullName: tenantFullName }
+
             if (c.status !== 'ACTIVE') return {
                 ...c,
-                tenant: { ...c.tenant, fullName: tenantFullName },
+                tenant: tenantWithFullName,
                 debt: 0,
                 daysOverdue: 0
             }
 
-            const totalPaidAgg = await fastify.prisma.payment.aggregate({
-                _sum: { amount: true },
-                where: { contractId: c.id },
-            })
-            const totalPaid = Number(totalPaidAgg._sum.amount ?? 0)
+            const totalPaid = paidMap.get(c.id) || 0;
 
             const now = new Date()
             const totalExpected = calculateContractDebtAndExpected(c, now)
@@ -160,10 +171,11 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
 
             return {
                 ...c,
+                tenant: tenantWithFullName,
                 debt,
                 daysOverdue
             }
-        }))
+        })
 
         return reply.send({
             success: true,
