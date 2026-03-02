@@ -13,6 +13,7 @@ const listQuerySchema = z.object({
     paymentType: z.enum(['CASH', 'BANK', 'CARD', 'ONLINE']).optional(),
     limit: z.coerce.number().int().min(1).max(100).default(50),
     offset: z.coerce.number().int().min(0).default(0),
+    deleted: z.enum(['true', 'false']).optional(),
 })
 
 const createSchema = z.object({
@@ -35,11 +36,13 @@ const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
         const q = listQuerySchema.safeParse(req.query)
         if (!q.success) return sendZodError(reply, q.error)
 
-        const { contractId, month, year, paymentType, limit, offset } = q.data
+        const { contractId, month, year, paymentType, limit, offset, deleted } = q.data
         const org = withOrg(req)
+        const isDeleted = deleted === 'true'
 
         const where = {
             ...org,
+            deletedAt: isDeleted ? { not: null } : null,
             ...(contractId ? { contractId } : {}),
             ...(paymentType ? { paymentType } : {}),
             ...(month ? { periodMonth: month } : {}),
@@ -140,7 +143,7 @@ const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.code(201).send({ success: true, data: payment })
     })
 
-    // DELETE /payments/:id — OWNER & MANAGER
+    // DELETE /payments/:id — OWNER & MANAGER (Soft delete)
     fastify.delete('/:id', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
         const payment = await fastify.prisma.payment.findFirst({
@@ -148,7 +151,10 @@ const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
         })
         if (!payment) return reply.code(404).send({ success: false, error: 'Payment not found' })
 
-        await fastify.prisma.payment.delete({ where: { id } })
+        await fastify.prisma.payment.update({
+            where: { id },
+            data: { deletedAt: new Date() }
+        })
 
         await writeAuditLog(fastify.prisma, {
             organizationId: req.user.organizationId,
@@ -160,6 +166,30 @@ const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
         })
 
         return reply.code(204).send()
+    })
+
+    // PATCH /payments/:id/restore (Restore)
+    fastify.patch('/:id/restore', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER'])] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const payment = await fastify.prisma.payment.findFirst({
+            where: { id, ...withOrg(req) },
+        })
+        if (!payment) return reply.code(404).send({ success: false, error: 'Payment not found' })
+
+        await fastify.prisma.payment.update({
+            where: { id },
+            data: { deletedAt: null }
+        })
+
+        await writeAuditLog(fastify.prisma, {
+            organizationId: req.user.organizationId,
+            userId: req.user.sub,
+            action: 'RESTORE_PAYMENT',
+            entityType: 'Payment',
+            entityId: id,
+        })
+
+        return reply.send({ success: true })
     })
 }
 

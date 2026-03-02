@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Search, Building, Plus, MapPin, Maximize, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Building, Plus, MapPin, Maximize, ChevronLeft, ChevronRight, ArchiveRestore, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -28,6 +28,7 @@ export function Properties() {
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [page, setPage] = useState(1);
+    const [showDeleted, setShowDeleted] = useState(false);
     const limit = 20;
 
     // Report Modal State
@@ -40,23 +41,39 @@ export function Properties() {
     const [emailAddress, setEmailAddress] = useState(user?.email || '');
     const addToast = useToastStore((state) => state.addToast);
 
+    // Add QueryClient to invalidate queries after restore
+    const queryClient = useQueryClient();
+
     React.useEffect(() => {
         const timer = setTimeout(() => setDebouncedSearch(search), 500);
         return () => clearTimeout(timer);
     }, [search]);
 
     const { data: propertiesData, isLoading: propsLoading, isError: propsError, refetch } = useQuery({
-        queryKey: ['properties', debouncedSearch, page],
+        queryKey: ['properties', debouncedSearch, page, showDeleted],
         queryFn: async () => {
             const params = new URLSearchParams({
                 limit: String(limit),
                 offset: String((page - 1) * limit)
             });
             if (debouncedSearch) params.append('search', debouncedSearch);
+            if (showDeleted) params.append('deleted', 'true');
+
             const res = await api.get(`/properties?${params.toString()}`);
             console.log('Properties API response:', res.data);
             return res.data;
         },
+    });
+
+    const restoreMutation = useMutation({
+        mutationFn: (id: string) => api.patch(`/properties/${id}/restore`),
+        onSuccess: () => {
+            addToast({ message: 'Obyekt bərpa edildi', type: 'success' });
+            queryClient.invalidateQueries({ queryKey: ['properties'] });
+        },
+        onError: () => {
+            addToast({ message: 'Bərpa zamanı xəta baş verdi', type: 'error' });
+        }
     });
 
     const { data: contractsData, isLoading: contractsLoading } = useQuery({
@@ -192,7 +209,7 @@ export function Properties() {
 
             {/* Filters */}
             <Card variant="elevated">
-                <CardContent className="p-4">
+                <CardContent className="p-4 flex flex-col sm:flex-row gap-4 items-center justify-between">
                     <div className="relative w-full max-w-md">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
                         <Input
@@ -202,6 +219,17 @@ export function Properties() {
                             className="pl-9"
                         />
                     </div>
+                    <Button
+                        variant={showDeleted ? undefined : 'outline'}
+                        onClick={() => {
+                            setShowDeleted(!showDeleted);
+                            setPage(1);
+                        }}
+                        className={showDeleted ? 'bg-red/10 text-red border-red/20 hover:bg-red/20' : ''}
+                    >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        {showDeleted ? 'Aktivləri Göstər' : 'Silinmişləri Göstər'}
+                    </Button>
                 </CardContent>
             </Card>
 
@@ -244,15 +272,21 @@ export function Properties() {
                                             <p className="text-sm text-muted mt-1">Nömrə: {property.number}</p>
                                         </div>
                                         <div className="flex flex-col items-end gap-1">
-                                            <Badge variant={
-                                                property.status === 'OCCUPIED' ? 'draft' :
-                                                    property.status === 'UNDER_REPAIR' ? 'arxiv' : 'aktiv'
-                                            }>
-                                                {property.status === 'OCCUPIED' ? 'Tutulub' :
-                                                    property.status === 'UNDER_REPAIR' ? 'Təmirdə' : 'Boş'}
-                                            </Badge>
-                                            {contract && contract.debt > 0 && (
-                                                <Badge variant="borclu">Borc: {formatMoney(contract.debt)}</Badge>
+                                            {showDeleted ? (
+                                                <Badge variant="arxiv" className="bg-red/10 text-red border-red/20">Silinib</Badge>
+                                            ) : (
+                                                <>
+                                                    <Badge variant={
+                                                        property.status === 'OCCUPIED' ? 'draft' :
+                                                            property.status === 'UNDER_REPAIR' ? 'arxiv' : 'aktiv'
+                                                    }>
+                                                        {property.status === 'OCCUPIED' ? 'Tutulub' :
+                                                            property.status === 'UNDER_REPAIR' ? 'Təmirdə' : 'Boş'}
+                                                    </Badge>
+                                                    {contract && contract.debt > 0 && (
+                                                        <Badge variant="borclu">Borc: {formatMoney(contract.debt)}</Badge>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -274,10 +308,28 @@ export function Properties() {
                                                 </p>
                                             </div>
                                             <div className="text-right">
-                                                <p className="text-xs text-muted">Aylıq İcarə</p>
-                                                <p className="font-bold text-gold">
-                                                    {contract ? formatMoney(contract.monthlyRent) : '-'}
-                                                </p>
+                                                {showDeleted ? (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="border-green/50 text-green hover:bg-green/10"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            restoreMutation.mutate(property.id);
+                                                        }}
+                                                        disabled={restoreMutation.isPending}
+                                                    >
+                                                        <ArchiveRestore className="w-4 h-4 mr-2" />
+                                                        Bərpa et
+                                                    </Button>
+                                                ) : (
+                                                    <>
+                                                        <p className="text-xs text-muted">Aylıq İcarə</p>
+                                                        <p className="font-bold text-gold">
+                                                            {contract ? formatMoney(contract.monthlyRent) : '-'}
+                                                        </p>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

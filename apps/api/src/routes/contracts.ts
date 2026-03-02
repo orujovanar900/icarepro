@@ -77,6 +77,7 @@ const listQuerySchema = z.object({
     offset: z.coerce.number().int().min(0).default(0),
     sortBy: z.enum(['startDate', 'endDate', 'monthlyRent', 'number']).default('startDate'),
     sortOrder: z.enum(['asc', 'desc']).default('desc'),
+    deleted: z.enum(['true', 'false']).optional(),
 })
 
 const contractsRoutes: FastifyPluginAsync = async (fastify) => {
@@ -85,11 +86,13 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
         const q = listQuerySchema.safeParse(req.query)
         if (!q.success) return sendZodError(reply, q.error)
 
-        const { status, rentalType, search, limit, offset, sortBy, sortOrder } = q.data
+        const { status, rentalType, search, limit, offset, sortBy, sortOrder, deleted } = q.data
         const org = withOrg(req)
+        const isDeleted = deleted === 'true'
 
-        const where = {
+        const where: any = {
             ...org,
+            deletedAt: isDeleted ? { not: null } : null,
             ...(status ? { status } : {}),
             ...(rentalType ? { rentalType } : {}),
             ...(search ? {
@@ -347,6 +350,50 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
         })
 
         return reply.send({ success: true, data: contract })
+    })
+
+    // DELETE /contracts/:id
+    fastify.delete('/:id', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ADMINISTRATOR'])] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const exists = await fastify.prisma.contract.findFirst({ where: { id, ...withOrg(req) } })
+        if (!exists) return reply.code(404).send({ success: false, error: 'Contract not found' })
+
+        await fastify.prisma.contract.update({
+            where: { id },
+            data: { deletedAt: new Date() }
+        })
+
+        await writeAuditLog(fastify.prisma, {
+            organizationId: req.user.organizationId,
+            userId: req.user.sub,
+            action: 'DELETE_CONTRACT',
+            entityType: 'Contract',
+            entityId: id,
+        })
+
+        return reply.code(204).send()
+    })
+
+    // PATCH /contracts/:id/restore
+    fastify.patch('/:id/restore', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ADMINISTRATOR'])] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const exists = await fastify.prisma.contract.findFirst({ where: { id, ...withOrg(req) } })
+        if (!exists) return reply.code(404).send({ success: false, error: 'Contract not found' })
+
+        await fastify.prisma.contract.update({
+            where: { id },
+            data: { deletedAt: null }
+        })
+
+        await writeAuditLog(fastify.prisma, {
+            organizationId: req.user.organizationId,
+            userId: req.user.sub,
+            action: 'RESTORE_CONTRACT',
+            entityType: 'Contract',
+            entityId: id,
+        })
+
+        return reply.send({ success: true })
     })
 }
 

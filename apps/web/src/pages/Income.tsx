@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowDownLeft, Plus, Filter, Search } from 'lucide-react';
+import { ArrowDownLeft, Plus, Filter, Search, Trash2, ArchiveRestore } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { useToastStore } from '@/store/toast';
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
+import { Badge } from '@/components/ui/Badge';
 
 const rentalTypeLabel: Record<string, string> = {
     RESIDENTIAL_LONG: 'Yaşayış (uzunmüddətli)',
@@ -121,6 +122,7 @@ export function Income() {
     const year = parseInt(searchParams.get('year') || String(currentYear), 10);
     const paymentType = searchParams.get('paymentType') || '';
     const [page, setPage] = useState(1);
+    const [showDeleted, setShowDeleted] = useState(false);
     const limit = 20;
 
     const handleFilterChange = (key: string, value: string) => {
@@ -135,7 +137,7 @@ export function Income() {
 
     // Main fetch
     const { data: paymentsData, isLoading, isError, refetch } = useQuery({
-        queryKey: ['payments', month, year, paymentType],
+        queryKey: ['payments', month, year, paymentType, showDeleted],
         queryFn: async () => {
             const params = new URLSearchParams({
                 month: String(month),
@@ -143,10 +145,22 @@ export function Income() {
                 limit: '100'
             });
             if (paymentType) params.append('paymentType', paymentType);
+            if (showDeleted) params.append('deleted', 'true');
 
             const res = await api.get(`/payments?${params.toString()}`);
             return res.data;
         },
+    });
+
+    const restoreMutation = useMutation({
+        mutationFn: (id: string) => api.patch(`/payments/${id}/restore`),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['payments'] });
+            addToast({ message: 'Ödəniş uğurla bərpa edildi', type: 'success' });
+        },
+        onError: () => {
+            addToast({ message: 'Bərpa xətası baş verdi', type: 'error' });
+        }
     });
 
     // Contracts for dropdown
@@ -267,6 +281,16 @@ export function Income() {
                             ]}
                         />
                     </div>
+                    <div className="w-full sm:w-auto flex items-end">
+                        <Button
+                            variant={showDeleted ? undefined : 'outline'}
+                            onClick={() => setShowDeleted(!showDeleted)}
+                            className={`w-full ${showDeleted ? 'bg-red/10 text-red border-red/20 hover:bg-red/20' : ''}`}
+                        >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            {showDeleted ? 'Aktivləri Göstər' : 'Silinmişləri Göstər'}
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -298,6 +322,7 @@ export function Income() {
                                             <TableHead>Dövr</TableHead>
                                             <TableHead>Növü</TableHead>
                                             <TableHead className="text-right">Məbləğ</TableHead>
+                                            {showDeleted && <TableHead className="text-right">Əməliyyatlar</TableHead>}
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -333,6 +358,23 @@ export function Income() {
                                                         </span>
                                                     )}
                                                 </TableCell>
+                                                {showDeleted && (
+                                                    <TableCell className="text-right">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="border-green/50 text-green hover:bg-green/10 m-0"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                restoreMutation.mutate(payment.id);
+                                                            }}
+                                                            disabled={restoreMutation.isPending}
+                                                        >
+                                                            <ArchiveRestore className="w-4 h-4 mr-2" />
+                                                            Bərpa et
+                                                        </Button>
+                                                    </TableCell>
+                                                )}
                                             </TableRow>
                                         ))}
                                         {/* Total Row */}
@@ -373,6 +415,22 @@ export function Income() {
                                                 <span className="text-xs text-muted">{rentalTypeLabel[payment.contract.rentalType] || payment.contract.rentalType}</span>
                                                 <span className="text-xs font-medium text-text">{months[(payment.periodMonth || 1) - 1]} {payment.periodYear}</span>
                                             </div>
+
+                                            {showDeleted && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="border-green/50 text-green hover:bg-green/10 mt-4 w-full"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        restoreMutation.mutate(payment.id);
+                                                    }}
+                                                    disabled={restoreMutation.isPending}
+                                                >
+                                                    <ArchiveRestore className="w-4 h-4 mr-2" />
+                                                    Bərpa et
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}

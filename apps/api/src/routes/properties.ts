@@ -30,9 +30,11 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
         const limit = Number(q['limit'] ?? 50)
         const offset = Number(q['offset'] ?? 0)
 
+        const deleted = q['deleted'] === 'true'
+
         const where = {
             ...withOrg(req),
-            isActive: true,
+            deletedAt: deleted ? { not: null } : null,
             ...(search ? {
                 OR: [
                     { name: { contains: search, mode: 'insensitive' } },
@@ -141,8 +143,21 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
         const { id } = req.params as { id: string }
         const exists = await fastify.prisma.property.findFirst({ where: { id, ...withOrg(req) } })
         if (!exists) return reply.code(404).send({ success: false, error: 'Property not found' })
-        await fastify.prisma.property.update({ where: { id }, data: { isActive: false } })
+        await fastify.prisma.property.update({ where: { id }, data: { deletedAt: new Date() } })
         return reply.code(204).send()
+    })
+
+    // PATCH /properties/:id/restore
+    fastify.patch('/:id/restore', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER'])] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const exists = await fastify.prisma.property.findFirst({ where: { id, ...withOrg(req) } })
+        if (!exists) return reply.code(404).send({ success: false, error: 'Property not found' })
+
+        await fastify.prisma.property.update({
+            where: { id },
+            data: { deletedAt: null }
+        })
+        return reply.send({ success: true })
     })
 
     // POST /properties/:id/photos — multipart upload → Supabase Storage

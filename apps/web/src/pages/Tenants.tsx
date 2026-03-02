@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Search, Users, Plus, ChevronLeft, ChevronRight, Trash2, Eye, Pencil, Building2, User } from 'lucide-react';
+import { Search, Users, Plus, ChevronLeft, ChevronRight, Trash2, Eye, Pencil, Building2, User, ArchiveRestore } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -38,6 +38,7 @@ export function Tenants() {
     const [debouncedSearch, setDebouncedSearch] = useState('');
     const [activeTab, setActiveTab] = useState<TabKey>('all');
     const [page, setPage] = useState(1);
+    const [showDeleted, setShowDeleted] = useState(false);
     const limit = 20;
 
     React.useEffect(() => {
@@ -46,10 +47,11 @@ export function Tenants() {
     }, [search]);
 
     const { data: tenantsData, isLoading, isError, refetch } = useQuery({
-        queryKey: ['tenants', debouncedSearch, page],
+        queryKey: ['tenants', debouncedSearch, page, showDeleted],
         queryFn: async () => {
             const params = new URLSearchParams({ limit: String(limit), offset: String((page - 1) * limit) });
             if (debouncedSearch) params.append('search', debouncedSearch);
+            if (showDeleted) params.append('deleted', 'true');
             const res = await api.get(`/tenants?${params}`);
             return res.data;
         },
@@ -64,6 +66,12 @@ export function Tenants() {
         mutationFn: (id: string) => api.delete(`/tenants/${id}`),
         onSuccess: () => { addToast({ message: 'İcarəçi silindi', type: 'success' }); queryClient.invalidateQueries({ queryKey: ['tenants'] }); },
         onError: (err: any) => addToast({ message: err?.response?.data?.error || 'Silinmə xətası', type: 'error' }),
+    });
+
+    const restoreMutation = useMutation({
+        mutationFn: (id: string) => api.patch(`/tenants/${id}/restore`),
+        onSuccess: () => { addToast({ message: 'İcarəçi bərpa edildi', type: 'success' }); queryClient.invalidateQueries({ queryKey: ['tenants'] }); },
+        onError: (err: any) => addToast({ message: 'Bərpa xətası', type: 'error' }),
     });
 
     const rawTenants: any[] = Array.isArray(tenantsData?.data) ? tenantsData.data : [];
@@ -109,14 +117,27 @@ export function Tenants() {
             {/* Search */}
             <Card variant="elevated">
                 <CardContent className="p-4">
-                    <div className="relative w-full max-w-md">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                        <Input
-                            placeholder="Ad, FİN, VÖEN, telefon ilə axtarış..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="pl-9"
-                        />
+                    <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                        <div className="relative w-full max-w-md">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                            <Input
+                                placeholder="Ad, FİN, VÖEN, telefon ilə axtarış..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="pl-9"
+                            />
+                        </div>
+                        <Button
+                            variant={showDeleted ? undefined : 'outline'}
+                            onClick={() => {
+                                setShowDeleted(!showDeleted);
+                                setPage(1);
+                            }}
+                            className={showDeleted ? 'bg-red/10 text-red border-red/20 hover:bg-red/20' : ''}
+                        >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            {showDeleted ? 'Aktivləri Göstər' : 'Silinmişləri Göstər'}
+                        </Button>
                     </div>
                 </CardContent>
             </Card>
@@ -187,6 +208,9 @@ export function Tenants() {
                                                                 {t.isBlacklisted && (
                                                                     <Badge variant="danger" className="text-xs">🚫 Qara siyahı</Badge>
                                                                 )}
+                                                                {showDeleted && (
+                                                                    <Badge variant="arxiv" className="text-xs ml-1 bg-red/10 text-red border-red/20">Silinib</Badge>
+                                                                )}
                                                             </div>
                                                         </div>
                                                     </TableCell>
@@ -206,25 +230,43 @@ export function Tenants() {
                                                     </TableCell>
                                                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                                                         <div className="flex items-center justify-end gap-1">
-                                                            <Button variant="ghost" size="sm" onClick={() => navigate(`/tenants/${t.id}`)}>
-                                                                <Eye className="w-4 h-4" />
-                                                            </Button>
-                                                            {canAdd && (
-                                                                <Button variant="ghost" size="sm" onClick={() => navigate(`/tenants/${t.id}/edit`)}>
-                                                                    <Pencil className="w-4 h-4" />
-                                                                </Button>
-                                                            )}
-                                                            {isOwner && (
+                                                            {showDeleted ? (
                                                                 <Button
-                                                                    variant="ghost"
                                                                     size="sm"
-                                                                    className="text-red hover:text-red"
-                                                                    onClick={() => {
-                                                                        if (confirm(`"${t.fullName}" silinsin?`)) deleteMutation.mutate(t.id);
+                                                                    variant="outline"
+                                                                    className="border-green/50 text-green hover:bg-green/10"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        restoreMutation.mutate(t.id);
                                                                     }}
+                                                                    disabled={restoreMutation.isPending}
                                                                 >
-                                                                    <Trash2 className="w-4 h-4" />
+                                                                    <ArchiveRestore className="w-4 h-4 mr-2" />
+                                                                    Bərpa et
                                                                 </Button>
+                                                            ) : (
+                                                                <>
+                                                                    <Button variant="ghost" size="sm" onClick={() => navigate(`/tenants/${t.id}`)}>
+                                                                        <Eye className="w-4 h-4" />
+                                                                    </Button>
+                                                                    {canAdd && (
+                                                                        <Button variant="ghost" size="sm" onClick={() => navigate(`/tenants/${t.id}/edit`)}>
+                                                                            <Pencil className="w-4 h-4" />
+                                                                        </Button>
+                                                                    )}
+                                                                    {isOwner && (
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            className="text-red hover:text-red"
+                                                                            onClick={() => {
+                                                                                if (confirm(`"${t.fullName}" silinsin?`)) deleteMutation.mutate(t.id);
+                                                                            }}
+                                                                        >
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </Button>
+                                                                    )}
+                                                                </>
                                                             )}
                                                         </div>
                                                     </TableCell>
@@ -255,6 +297,7 @@ export function Tenants() {
                                                         <span className="text-sm font-bold text-text truncate group-hover:text-gold transition-colors">{t.fullName}</span>
                                                     </div>
                                                     {t.isBlacklisted && <Badge variant="danger" className="text-[10px] px-1.5 py-0 h-4 ml-2 shrink-0">🚫</Badge>}
+                                                    {showDeleted && <Badge variant="arxiv" className="text-[10px] px-1.5 py-0 h-4 ml-2 shrink-0 bg-red/10 text-red border-red/20">Silinib</Badge>}
                                                 </div>
                                                 <div className="text-xs text-muted mb-3 flex flex-col gap-1">
                                                     <span>{isFiziki ? 'FİN' : 'VÖEN'}: <span className="text-text font-mono">{isFiziki ? (t.fin || '—') : (t.voen || '—')}</span></span>
@@ -270,8 +313,24 @@ export function Tenants() {
                                                         <span className="font-bold text-red text-sm shrink-0">Borc: {formatMoney(t.calculatedDebt)}</span>
                                                     )}
                                                 </div>
+                                                {showDeleted ? (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="border-green/50 text-green hover:bg-green/10 mt-2 w-full"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            restoreMutation.mutate(t.id);
+                                                        }}
+                                                        disabled={restoreMutation.isPending}
+                                                    >
+                                                        <ArchiveRestore className="w-4 h-4 mr-2" />
+                                                        Bərpa et
+                                                    </Button>
+                                                ) : (
+                                                    <ChevronRight className="w-5 h-5 text-muted shrink-0 transition-transform group-hover:translate-x-1 group-hover:text-gold" />
+                                                )}
                                             </div>
-                                            <ChevronRight className="w-5 h-5 text-muted shrink-0 transition-transform group-hover:translate-x-1 group-hover:text-gold" />
                                         </div>
                                     );
                                 })}

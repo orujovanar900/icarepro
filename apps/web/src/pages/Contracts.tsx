@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, FileText, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { Plus, Search, FileText, ChevronLeft, ChevronRight, Sparkles, Trash2, ArchiveRestore } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { useToastStore } from '@/store/toast';
 
 const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('az-AZ', {
@@ -32,7 +33,11 @@ export function Contracts() {
     const [search, setSearch] = useState('');
     const [status, setStatus] = useState('');
     const [page, setPage] = useState(1);
+    const [showDeleted, setShowDeleted] = useState(false);
     const limit = 20;
+
+    const queryClient = useQueryClient();
+    const addToast = useToastStore((state) => state.addToast);
 
     // We keep a debounced search value to prevent fetching on every keystroke, or just fetch on enter/blur.
     // For simplicity, we fetch every time search state changes but we could use a useDebounce hook.
@@ -45,7 +50,7 @@ export function Contracts() {
     }, [search]);
 
     const { data, isLoading, isError, refetch } = useQuery({
-        queryKey: ['contracts', status, debouncedSearch, page],
+        queryKey: ['contracts', status, debouncedSearch, page, showDeleted],
         queryFn: async () => {
             const params = new URLSearchParams({
                 limit: String(limit),
@@ -53,11 +58,23 @@ export function Contracts() {
             });
             if (status) params.append('status', status);
             if (debouncedSearch) params.append('search', debouncedSearch);
+            if (showDeleted) params.append('deleted', 'true');
 
             const res = await api.get(`/contracts?${params.toString()}`);
             console.log('Contracts page API response:', res.data);
             return res.data;
         },
+    });
+
+    const restoreMutation = useMutation({
+        mutationFn: (id: string) => api.patch(`/contracts/${id}/restore`),
+        onSuccess: () => {
+            addToast({ message: 'Müqavilə bərpa edildi', type: 'success' });
+            queryClient.invalidateQueries({ queryKey: ['contracts'] });
+        },
+        onError: () => {
+            addToast({ message: 'Bərpa zamanı xəta baş verdi', type: 'error' });
+        }
     });
 
     const contracts = Array.isArray(data?.data) ? data.data : (data?.data?.data || []);
@@ -112,17 +129,30 @@ export function Contracts() {
                             className="pl-9"
                         />
                     </div>
-                    <div className="w-full sm:w-48">
-                        <Select
-                            value={status}
-                            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-                            options={[
-                                { label: 'Bütün statuslar', value: '' },
-                                { label: 'Aktiv', value: 'ACTIVE' },
-                                { label: 'Qaralama', value: 'DRAFT' },
-                                { label: 'Arxiv', value: 'ARCHIVED' },
-                            ]}
-                        />
+                    <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-4">
+                        <div className="w-full sm:w-48">
+                            <Select
+                                value={status}
+                                onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+                                options={[
+                                    { label: 'Bütün statuslar', value: '' },
+                                    { label: 'Aktiv', value: 'ACTIVE' },
+                                    { label: 'Qaralama', value: 'DRAFT' },
+                                    { label: 'Arxiv', value: 'ARCHIVED' },
+                                ]}
+                            />
+                        </div>
+                        <Button
+                            variant={showDeleted ? undefined : 'outline'}
+                            onClick={() => {
+                                setShowDeleted(!showDeleted);
+                                setPage(1);
+                            }}
+                            className={`w-full sm:w-auto whitespace-nowrap ${showDeleted ? 'bg-red/10 text-red border-red/20 hover:bg-red/20' : ''}`}
+                        >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            {showDeleted ? 'Aktivləri Göstər' : 'Silinmişləri Göstər'}
+                        </Button>
                     </div>
                 </CardContent>
             </Card>
@@ -154,6 +184,7 @@ export function Contracts() {
                                             <TableHead>Məbləğ (Aylıq)</TableHead>
                                             <TableHead>Müddət</TableHead>
                                             <TableHead className="text-right">Borc</TableHead>
+                                            {showDeleted && <TableHead className="text-right">Əməliyyatlar</TableHead>}
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -164,9 +195,13 @@ export function Contracts() {
                                                 onClick={() => navigate(`/contracts/${contract.id}`)}
                                             >
                                                 <TableCell>
-                                                    <Badge variant={getStatusBadgeVariant(contract.status)}>
-                                                        {getStatusText(contract.status)}
-                                                    </Badge>
+                                                    {showDeleted ? (
+                                                        <Badge variant="arxiv" className="bg-red/10 text-red border-red/20">Silinib</Badge>
+                                                    ) : (
+                                                        <Badge variant={getStatusBadgeVariant(contract.status)}>
+                                                            {getStatusText(contract.status)}
+                                                        </Badge>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell>
                                                     <p className="font-medium text-text group-hover:text-gold transition-colors">{contract.property.name}</p>
@@ -195,6 +230,20 @@ export function Contracts() {
                                                         <span className="text-muted">Yoxdur</span>
                                                     )}
                                                 </TableCell>
+                                                {showDeleted && (
+                                                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="border-green/50 text-green hover:bg-green/10"
+                                                            onClick={() => restoreMutation.mutate(contract.id)}
+                                                            disabled={restoreMutation.isPending}
+                                                        >
+                                                            <ArchiveRestore className="w-4 h-4 mr-2" />
+                                                            Bərpa et
+                                                        </Button>
+                                                    </TableCell>
+                                                )}
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -211,9 +260,13 @@ export function Contracts() {
                                         <div className="flex-1 min-w-0 pr-4">
                                             <div className="flex justify-between items-start mb-2">
                                                 <span className="text-xs text-muted font-medium">N: {contract.number}</span>
-                                                <Badge variant={getStatusBadgeVariant(contract.status)} className="text-[10px] px-1.5 py-0 h-4">
-                                                    {getStatusText(contract.status)}
-                                                </Badge>
+                                                {showDeleted ? (
+                                                    <Badge variant="arxiv" className="text-[10px] px-1.5 py-0 h-4 bg-red/10 text-red border-red/20">Silinib</Badge>
+                                                ) : (
+                                                    <Badge variant={getStatusBadgeVariant(contract.status)} className="text-[10px] px-1.5 py-0 h-4">
+                                                        {getStatusText(contract.status)}
+                                                    </Badge>
+                                                )}
                                             </div>
                                             <p className="font-bold text-text truncate">{contract.tenant.fullName}</p>
                                             <p className="text-sm text-muted truncate mb-3">{contract.property.name}</p>
@@ -233,40 +286,58 @@ export function Contracts() {
                                                     </div>
                                                 )}
                                             </div>
+
+                                            {showDeleted && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="border-green/50 text-green hover:bg-green/10 mt-4 w-full"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        restoreMutation.mutate(contract.id);
+                                                    }}
+                                                    disabled={restoreMutation.isPending}
+                                                >
+                                                    <ArchiveRestore className="w-4 h-4 mr-2" />
+                                                    Bərpa et
+                                                </Button>
+                                            )}
                                         </div>
-                                        <ChevronRight className="w-5 h-5 text-muted shrink-0" />
+                                        {!showDeleted && <ChevronRight className="w-5 h-5 text-muted shrink-0" />}
                                     </div>
                                 ))}
                             </div>
                         </>
                     )}
                 </CardContent>
-            </Card>
+            </Card >
 
             {/* Pagination */}
-            {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-4 mt-6">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={page === 1}
-                        onClick={() => setPage(p => p - 1)}
-                    >
-                        <ChevronLeft className="w-4 h-4 mr-1" /> Əvvəlki
-                    </Button>
-                    <span className="text-sm text-muted">
-                        Səhifə {page} / {totalPages}
-                    </span>
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={page === totalPages}
-                        onClick={() => setPage(p => p + 1)}
-                    >
-                        Sonrakı <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                </div>
-            )}
-        </div>
+            {
+                totalPages > 1 && (
+                    <div className="flex justify-center items-center gap-4 mt-6">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={page === 1}
+                            onClick={() => setPage(p => p - 1)}
+                        >
+                            <ChevronLeft className="w-4 h-4 mr-1" /> Əvvəlki
+                        </Button>
+                        <span className="text-sm text-muted">
+                            Səhifə {page} / {totalPages}
+                        </span>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={page === totalPages}
+                            onClick={() => setPage(p => p + 1)}
+                        >
+                            Sonrakı <ChevronRight className="w-4 h-4 ml-1" />
+                        </Button>
+                    </div>
+                )
+            }
+        </div >
     );
 }

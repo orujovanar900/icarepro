@@ -150,6 +150,7 @@ model Property {
   status         PropertyStatus @default(VACANT)
   lat            Decimal? @db.Decimal(10, 8)
   lng            Decimal? @db.Decimal(11, 8)
+  deletedAt      DateTime?
 
   organization  Organization    @relation(fields: [organizationId], references: [id])
   contracts     Contract[]
@@ -200,6 +201,7 @@ model Tenant {
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
   
   userId          String?  @unique
 
@@ -223,6 +225,7 @@ model Contract {
   startDate      DateTime       @db.Date
   endDate        DateTime       @db.Date
   status         ContractStatus @default(DRAFT)
+  deletedAt      DateTime?
 
   // Дополнительные поля по типу аренды
   taxRate          Decimal? @db.Decimal(5, 2) // % НДС (информационно)
@@ -270,6 +273,7 @@ model Payment {
   penaltyNote    String?
   note           String?
   createdBy      String
+  deletedAt      DateTime?
 
   organization  Organization @relation(fields: [organizationId], references: [id])
   contract      Contract     @relation(fields: [contractId], references: [id])

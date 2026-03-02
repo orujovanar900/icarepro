@@ -55,9 +55,11 @@ const tenantsRoutes: FastifyPluginAsync = async (fastify) => {
     // GET /tenants
     fastify.get('/', { preHandler: [authenticate] }, async (req, reply) => {
         const search = (req.query as Record<string, string>)['search']
+        const deleted = (req.query as Record<string, string>)['deleted'] === 'true'
         const tenants = await fastify.prisma.tenant.findMany({
             where: {
                 ...withOrg(req),
+                deletedAt: deleted ? { not: null } : null,
                 ...(search ? {
                     OR: [
                         { firstName: { contains: search, mode: 'insensitive' } },
@@ -142,8 +144,24 @@ const tenantsRoutes: FastifyPluginAsync = async (fastify) => {
         if (activeContracts > 0) {
             return reply.code(409).send({ success: false, error: 'Cannot delete tenant with active contracts' })
         }
-        await fastify.prisma.tenant.delete({ where: { id } })
+        await fastify.prisma.tenant.update({
+            where: { id },
+            data: { deletedAt: new Date() }
+        })
         return reply.code(204).send()
+    })
+
+    // PATCH /tenants/:id/restore
+    fastify.patch('/:id/restore', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER'])] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const exists = await fastify.prisma.tenant.findFirst({ where: { id, ...withOrg(req) } })
+        if (!exists) return reply.code(404).send({ success: false, error: 'Tenant not found' })
+
+        await fastify.prisma.tenant.update({
+            where: { id },
+            data: { deletedAt: null }
+        })
+        return reply.send({ success: true })
     })
 
     // POST /tenants/:id/documents — multipart → Supabase Storage
