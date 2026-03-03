@@ -13,6 +13,7 @@ export function AdminOrganizations() {
     const queryClient = useQueryClient();
     const addToast = useToastStore((s) => s.addToast);
     const [search, setSearch] = React.useState('');
+    const [filter, setFilter] = React.useState<'all' | 'active' | 'inactive'>('all');
 
     const { data: orgsData, isLoading } = useQuery({
         queryKey: ['admin-organizations'],
@@ -41,10 +42,11 @@ export function AdminOrganizations() {
     });
 
     const orgs = Array.isArray(orgsData?.data) ? orgsData.data : [];
-    const filteredOrgs = orgs.filter((o: any) =>
-        o.name.toLowerCase().includes(search.toLowerCase()) ||
-        o.ownerEmail.toLowerCase().includes(search.toLowerCase())
-    );
+    const filteredOrgs = orgs.filter((o: any) => {
+        const matchesSearch = o.name.toLowerCase().includes(search.toLowerCase()) || o.ownerEmail.toLowerCase().includes(search.toLowerCase());
+        const matchesFilter = filter === 'all' ? true : filter === 'active' ? o.isActive : !o.isActive;
+        return matchesSearch && matchesFilter;
+    });
 
     if (isLoading) return <div className="p-6">Yüklənir...</div>;
 
@@ -66,6 +68,27 @@ export function AdminOrganizations() {
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
+            </div>
+
+            <div className="flex bg-surface p-1 rounded-lg border border-border w-fit">
+                <button
+                    onClick={() => setFilter('all')}
+                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${filter === 'all' ? 'bg-gold text-bg' : 'text-muted hover:text-text'}`}
+                >
+                    Bütün ({orgs.length})
+                </button>
+                <button
+                    onClick={() => setFilter('active')}
+                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${filter === 'active' ? 'bg-gold text-bg' : 'text-muted hover:text-text'}`}
+                >
+                    Aktiv ({orgs.filter((o: any) => o.isActive).length})
+                </button>
+                <button
+                    onClick={() => setFilter('inactive')}
+                    className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${filter === 'inactive' ? 'bg-gold text-bg' : 'text-muted hover:text-text'}`}
+                >
+                    Deaktiv ({orgs.filter((o: any) => !o.isActive).length})
+                </button>
             </div>
 
             <div className="grid gap-4">
@@ -90,6 +113,7 @@ export function AdminOrganizations() {
                                     </p>
                                     <div className="flex items-center gap-4 text-xs text-muted mt-2">
                                         <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {org.usersCount} İstif.</span>
+                                        <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5 text-gold" /> {org.tenantsCount} Kirayəçi</span>
                                         <span className="flex items-center gap-1"><Building2 className="w-3.5 h-3.5" /> {org.propertiesCount} Obyekt</span>
                                         <span className="flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> {org.contractsCount} Müqavilə</span>
                                         <span>Yaradılıb: {new Date(org.createdAt).toLocaleDateString('az-AZ')}</span>

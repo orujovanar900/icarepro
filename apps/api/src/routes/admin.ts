@@ -54,7 +54,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
                     select: { email: true, name: true }
                 },
                 _count: {
-                    select: { users: true, properties: true, contracts: true }
+                    select: { users: true, properties: true, contracts: true, tenants: true }
                 }
             },
             orderBy: { createdAt: 'desc' }
@@ -67,6 +67,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
             usersCount: org._count.users,
             propertiesCount: org._count.properties,
             contractsCount: org._count.contracts,
+            tenantsCount: org._count.tenants,
             createdAt: org.createdAt,
             plan: org.plan,
             isActive: org.isActive
@@ -86,6 +87,9 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
                 },
                 properties: {
                     select: { id: true, name: true, address: true, status: true }
+                },
+                tenants: {
+                    select: { id: true, tenantType: true, firstName: true, lastName: true, companyName: true, phone: true, isBlacklisted: true }
                 }
             }
         })

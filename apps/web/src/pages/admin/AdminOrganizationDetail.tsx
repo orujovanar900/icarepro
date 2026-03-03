@@ -2,7 +2,7 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { Building2, Mail, Users, Home, ArrowLeft, Activity, CalendarDays, KeyRound } from 'lucide-react';
+import { Building2, Mail, Users, Home, ArrowLeft, Activity, CalendarDays, KeyRound, UserCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 
@@ -99,6 +99,40 @@ export function AdminOrganizationDetail() {
                         ))}
                         {(!org.properties || org.properties.length === 0) && (
                             <p className="text-sm text-muted text-center py-4">Obyekt yoxdur.</p>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card className="md:col-span-2">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <UserCheck className="w-5 h-5 text-gold" />
+                            İcarəçilər ({org.tenants?.length || 0})
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {org.tenants?.map((t: any) => (
+                                <div key={t.id} className="flex flex-col p-3 border border-border rounded-lg bg-surface hover:border-gold/30 transition-colors">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 bg-purple-500/10 text-purple-500 rounded-full flex items-center justify-center">
+                                                <UserCheck className="w-4 h-4" />
+                                            </div>
+                                            <span className="font-semibold text-text text-sm">
+                                                {t.tenantType === 'HÜQUQİ' ? t.companyName : `${t.firstName} ${t.lastName}`}
+                                            </span>
+                                        </div>
+                                        {t.isBlacklisted && <Badge variant="danger" className="text-[10px]">Qara Siyahı</Badge>}
+                                    </div>
+                                    <p className="text-xs text-muted flex items-center gap-1 mt-auto pt-2 border-t border-border/50">
+                                        {t.phone || 'Nömrə yoxdur'} &bull; {t.tenantType === 'HÜQUQİ' ? 'Hüquqi şəxs' : 'Fiziki şəxs'}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                        {(!org.tenants || org.tenants.length === 0) && (
+                            <p className="text-sm text-muted text-center py-4">İcarəçi yoxdur.</p>
                         )}
                     </CardContent>
                 </Card>
