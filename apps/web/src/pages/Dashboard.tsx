@@ -769,7 +769,7 @@ function DashboardContent() {
 
             <div className="grid gap-6 lg:grid-cols-3 mt-6 items-stretch">
                 {/* Annual Occupancy Bar Chart (Mock) */}
-                <Card variant="elevated" className="flex flex-col h-full min-h-[400px]">
+                <Card variant="elevated" className="flex flex-col h-[450px]">
                     <CardHeader>
                         <CardTitle style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>İllik Doluluq Dərəcəsi (%)</CardTitle>
                     </CardHeader>
@@ -798,7 +798,7 @@ function DashboardContent() {
                 </Card>
 
                 {/* Bar Chart Header */}
-                <Card variant="elevated" className="lg:col-span-2 flex flex-col h-full min-h-[400px]">
+                <Card variant="elevated" className="lg:col-span-2 flex flex-col h-[450px]">
                     <CardHeader>
                         <CardTitle style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>Mədaxil və Məxaric (İllik)</CardTitle>
                     </CardHeader>
@@ -836,14 +836,14 @@ function DashboardContent() {
             </div>
 
             {/* Recent Payments */}
-            <Card variant="elevated" className="mt-6">
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>Son Ödənişlər</CardTitle>
+            <Card variant="elevated" className="mt-6 flex flex-col h-[450px]">
+                <CardHeader className="flex flex-row items-center justify-between shrink-0">
+                    <CardTitle style={{ fontSize: '18px', fontWeight: 600, marginBottom: '0' }}>Son Ödənişlər</CardTitle>
                     <Button variant="ghost" size="sm" onClick={() => navigate('/income')} className="text-gold hover:text-gold2 group">
                         Hamısına bax <ArrowRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
                     </Button>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1 overflow-auto custom-scrollbar">
                     {isPaymentsLoading ? (
                         <TableSkeleton rows={4} columns={5} />
                     ) : recentPayments?.length === 0 ? (
