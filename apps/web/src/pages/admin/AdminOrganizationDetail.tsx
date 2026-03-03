@@ -1,0 +1,108 @@
+import React from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { Building2, Mail, Users, Home, ArrowLeft, Activity, CalendarDays, KeyRound } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+
+export function AdminOrganizationDetail() {
+    const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
+
+    const { data: orgData, isLoading } = useQuery({
+        queryKey: ['admin-organization', id],
+        queryFn: async () => {
+            const res = await api.get(`/admin/organizations/${id}`);
+            return res.data;
+        }
+    });
+
+    if (isLoading) return <div className="p-6">Yüklənir...</div>;
+
+    const org = orgData?.data;
+    if (!org) return <div className="p-6">Təşkilat tapılmadı.</div>;
+
+    return (
+        <div className="p-6 max-w-7xl mx-auto space-y-6">
+            <button onClick={() => navigate(-1)} className="flex items-center text-sm text-muted hover:text-text transition-colors">
+                <ArrowLeft className="w-4 h-4 mr-2" /> Geriyə
+            </button>
+
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-gold/10 rounded-2xl flex items-center justify-center">
+                        <Building2 className="w-8 h-8 text-gold" />
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-extrabold text-text font-heading">{org.name}</h1>
+                        <div className="flex items-center gap-2 mt-2">
+                            <Badge variant={org.isActive ? 'aktiv' : 'danger'} className="text-xs">
+                                {org.isActive ? 'Aktiv' : 'Deaktiv edilib'}
+                            </Badge>
+                            <Badge className="bg-surface border-border text-muted text-xs">Plan: {org.plan}</Badge>
+                            <span className="text-sm text-muted ml-2">ID: {org.id}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Users className="w-5 h-5 text-gold" />
+                            İstifadəçilər ({org.users?.length || 0})
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {org.users?.map((u: any) => (
+                            <div key={u.id} className="flex justify-between items-center p-3 border border-border rounded-lg bg-surface hover:bg-surface-hover hover:border-gold/30 transition-colors">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-gold/10 text-gold rounded-full flex items-center justify-center">
+                                        {u.role === 'OWNER' ? <KeyRound className="w-5 h-5" /> : <Users className="w-5 h-5" />}
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-text">{u.name}</p>
+                                        <p className="text-xs text-muted flex items-center gap-1"><Mail className="w-3 h-3" /> {u.email}</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <Badge className="bg-bg text-muted border-border">{u.role}</Badge>
+                                </div>
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Home className="w-5 h-5 text-gold" />
+                            Obyektlər ({org.properties?.length || 0})
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {org.properties?.map((p: any) => (
+                            <div key={p.id} className="flex justify-between items-center p-3 border border-border rounded-lg bg-surface">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-blue-500/10 text-blue-500 rounded-lg flex items-center justify-center">
+                                        <Home className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-text">{p.name}</p>
+                                        <p className="text-xs text-muted">{p.address}</p>
+                                    </div>
+                                </div>
+                                <Badge className="bg-bg text-muted border-border">{p.status}</Badge>
+                            </div>
+                        ))}
+                        {(!org.properties || org.properties.length === 0) && (
+                            <p className="text-sm text-muted text-center py-4">Obyekt yoxdur.</p>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
+    );
+}

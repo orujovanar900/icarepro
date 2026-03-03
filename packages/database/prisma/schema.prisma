@@ -16,6 +16,7 @@ datasource db {
 // ─────────────────────────────────────────
 
 enum UserRole {
+  SUPERADMIN
   OWNER
   MANAGER
   CASHIER

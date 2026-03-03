@@ -30,6 +30,11 @@ const Settings = React.lazy(() => import('./pages/Settings').then(m => ({ defaul
 const NotFound = React.lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 const BrandBook = React.lazy(() => import('./pages/BrandBook'));
 
+// Superadmin Pages
+const AdminOrganizations = React.lazy(() => import('./pages/admin/AdminOrganizations').then(m => ({ default: m.AdminOrganizations })));
+const AdminStats = React.lazy(() => import('./pages/admin/AdminStats').then(m => ({ default: m.AdminStats })));
+const AdminOrganizationDetail = React.lazy(() => import('./pages/admin/AdminOrganizationDetail').then(m => ({ default: m.AdminOrganizationDetail })));
+
 export default function App() {
     return (
         <GlobalErrorBoundary>
@@ -52,9 +57,9 @@ export default function App() {
                         <Route path="/reset-password" element={<ResetPassword />} />
 
                         {/* Protected Routes directly hitting the AppLayout */}
-                        <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
+                        <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
                             {/* Full Screen AI Chat Interface */}
-                            <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
+                            <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
                                 <Route path="/sanad-ustasi" element={<SanadUstasi />} />
                             </Route>
 
@@ -62,7 +67,7 @@ export default function App() {
                                 <Route path="/dashboard" element={<Dashboard />} />
                                 <Route path="/profile" element={<Profile />} />
 
-                                <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
+                                <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
                                     <Route path="/contracts" element={<Contracts />} />
                                     <Route path="/contracts/:id" element={<ContractDetail />} />
                                     <Route path="/properties" element={<Properties />} />
@@ -74,15 +79,22 @@ export default function App() {
                                     <Route path="/documents" element={<Documents />} />
                                 </Route>
 
-                                <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER', 'CASHIER']} />}>
+                                <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'MANAGER', 'CASHIER']} />}>
                                     <Route path="/income" element={<Income />} />
                                     <Route path="/expenses" element={<Expenses />} />
                                 </Route>
 
                                 {/* OWNER & MANAGER only routes */}
-                                <Route element={<ProtectedRoute allowedRoles={['OWNER', 'MANAGER']} />}>
+                                <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'MANAGER']} />}>
                                     <Route path="/users" element={<Users />} />
                                     <Route path="/settings" element={<Settings />} />
+                                </Route>
+
+                                {/* SUPERADMIN ONLY routes */}
+                                <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN']} />}>
+                                    <Route path="/admin/stats" element={<AdminStats />} />
+                                    <Route path="/admin/users" element={<AdminOrganizations />} />
+                                    <Route path="/admin/organizations/:id" element={<AdminOrganizationDetail />} />
                                 </Route>
                             </Route>
                         </Route>

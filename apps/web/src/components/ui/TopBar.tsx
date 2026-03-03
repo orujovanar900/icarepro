@@ -77,6 +77,7 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
         'users': 'İstifadəçilər',
         'settings': 'Parametrlər',
         'profile': 'Profil',
+        'admin': 'Superadmin Paneli',
     };
 
     const pathBase = location.pathname.split('/')[1] || 'dashboard';
