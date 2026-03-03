@@ -636,7 +636,7 @@ function DashboardContent() {
             {/* Map and Debtors Side by Side Layout */}
             <div className="grid gap-6 lg:grid-cols-3 mt-6 items-stretch">
                 {/* Map Widget */}
-                <Card variant="elevated" className="overflow-hidden lg:col-span-2 h-full min-h-[400px] flex flex-col">
+                <Card variant="elevated" className="overflow-hidden lg:col-span-2 h-[450px] flex flex-col">
                     <CardHeader className="pb-2">
                         <CardTitle className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
                             📍 Obyektlər xəritədə
@@ -705,7 +705,7 @@ function DashboardContent() {
                 </Card>
 
                 {/* Debtors List next to Map */}
-                <Card variant="default" id="debtors-list" className="flex flex-col bg-card/50 h-full min-h-[400px]">
+                <Card variant="default" id="debtors-list" className="flex flex-col bg-card/50 h-[450px]">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
                             <AlertCircle className="w-5 h-5 text-red" />
