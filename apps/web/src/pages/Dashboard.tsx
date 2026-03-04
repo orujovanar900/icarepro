@@ -688,17 +688,17 @@ function DashboardContent() {
             </div>
 
             {/* Map and Debtors Side by Side Layout */}
-            <div className="grid gap-6 lg:grid-cols-3 mt-6 items-stretch">
+            <div className="grid gap-6 grid-cols-1 lg:grid-cols-3 mt-6 items-start">
                 {/* Map Widget */}
-                <Card variant="elevated" className="overflow-hidden lg:col-span-2 h-[450px] flex flex-col">
+                <Card variant="elevated" className="overflow-hidden lg:col-span-2 flex flex-col">
                     <CardHeader className="pb-2">
                         <CardTitle className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
                             📍 Obyektlər xəritədə
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0 flex-1 flex flex-col">
-                        <div className="flex flex-col lg:flex-row gap-4 items-stretch p-4 flex-1">
-                            <div className="flex-[3] lg:flex-[1.5] rounded-xl shrink-0 overflow-hidden min-w-0 h-[250px] lg:h-auto">
+                        <div className="flex flex-col lg:flex-row gap-4 items-stretch p-4 lg:flex-1">
+                            <div className="flex-[3] lg:flex-[1.5] rounded-xl shrink-0 overflow-hidden min-w-0 h-[220px] lg:h-[320px]">
                                 <SimpleMap
                                     compact
                                     hidePanel
@@ -725,7 +725,7 @@ function DashboardContent() {
                                     onPropertyClick={(id) => navigate(`/properties/${id}`)}
                                 />
                             </div>
-                            <div className="flex-[2] lg:flex-1 overflow-y-auto flex flex-col gap-3 min-w-0 lg:min-w-[220px] custom-scrollbar pr-2 h-[250px] lg:h-auto">
+                            <div className="overflow-y-auto flex flex-col gap-3 min-w-0 lg:min-w-[220px] custom-scrollbar pr-2 h-[220px] lg:flex-1 lg:h-0 lg:min-h-0">
                                 {mapProperties.map((p: any) => {
                                     const contract = mapContracts.find((c: any) => c.propertyId === p.id);
                                     let status: 'active' | 'expiring' | 'expired' = 'expired';
@@ -759,7 +759,7 @@ function DashboardContent() {
                 </Card>
 
                 {/* Debtors List next to Map */}
-                <Card variant="default" id="debtors-list" className="flex flex-col bg-card/50 h-[450px]">
+                <Card variant="default" id="debtors-list" className="flex flex-col bg-card/50 min-h-[320px] lg:h-[450px]">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
                             <AlertCircle className="w-5 h-5 text-red" />
