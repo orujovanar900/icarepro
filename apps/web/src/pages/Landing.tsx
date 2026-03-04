@@ -4,7 +4,7 @@ import {
     Building2, FileText, CreditCard, Users, BarChart3, Bell,
     Menu, X, ChevronDown, CheckCircle2, XCircle, ArrowRight,
     TrendingUp, Home, Briefcase, ArrowUp, Instagram, Linkedin,
-    MapPin, Mail, ChevronLeft, ChevronRight,
+    MapPin, Mail, ChevronLeft, ChevronRight, Calculator, Receipt
 } from 'lucide-react';
 
 const C = {
@@ -66,6 +66,15 @@ a{text-decoration:none;}
   .hero-h1 { font-size: clamp(2rem, 8vw, 4rem) !important; }
   .pc { flex: 0 0 240px !important; min-width: 240px !important; }
 }
+
+  .thv { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%) translateY(10px); background: #1A1D26; border: 1px solid rgba(201,168,76,0.3); border-radius: 12px; padding: 16px; width: max-content; min-width: 260px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); opacity: 0; visibility: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 50; isolation: isolate; }
+  .gc:hover .thv { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(-10px); }
+  .thv::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border-width: 8px; border-style: solid; border-color: rgba(201,168,76,0.3) transparent transparent transparent; }
+  .thv-grid { display: grid; gap: 12px; font-size: 13px; color: #fff; text-align: left; }
+  .thv-row { display: flex; flex-direction: column; gap: 4px; border-bottom: 1px dashed rgba(255,255,255,0.1); padding-bottom: 8px; }
+  .thv-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .thv-title { color: #8899B0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .thv-sub { color: #facc15; font-weight: 600; font-size: 13px; margin-top: 2px; }
 
 `;
 
@@ -341,11 +350,37 @@ export function Landing() {
                             { Icon: Users, color: '#60a5fa', title: 'Kirayəçi Bazası', desc: 'FİN, VÖEN, müqavilələr — kirayəçilərinizin bütün detalları tək ekranda' },
                             { Icon: BarChart3, color: C.orange, title: 'Analitika və Proqnoz', desc: 'Gəlir/Xərc hesabatları, illik P&L və maliyyə proqnozları çıxarın' },
                             { Icon: Bell, color: '#f472b6', title: 'Avtomatik Xatırlatmalar', desc: 'Müqavilə bitməsi və ödəniş gecikmələri haqqında bildirişləri sadəcə izləyin' },
-                        ].map(({ Icon, color, title, desc }, i) => (
-                            <div key={i} className="gc fc fiu" style={{ padding: '32px 28px', transitionDelay: `${(i % 3) * .12}s` }}>
+                            {
+                                Icon: Calculator, color: C.gold, title: 'Avtomatik Vergi Hesablaması', badge: 'Yeni',
+                                desc: 'Əmlak növünə və sahibin statusuna görə vergi avtomatik hesablanır', hoverData: true
+                            },
+                        ].map(({ Icon, color, title, desc, badge, hoverData }, i) => (
+                            <div key={i} className="gc fc fiu group" style={{ padding: '32px 28px', transitionDelay: `${(i % 3) * .12}s`, position: 'relative' }}>
+                                {badge && <div style={{ position: 'absolute', top: 16, right: 16, background: color, color: '#000', fontSize: 10, fontWeight: 800, padding: '3px 10px', borderRadius: 12 }}>{badge}</div>}
                                 <div style={{ width: 52, height: 52, borderRadius: 14, background: `${color}22`, border: `1px solid ${color}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}><Icon size={24} color={color} /></div>
                                 <h3 style={{ fontFamily: C.f, fontWeight: 700, fontSize: 17, marginBottom: 10 }}>{title}</h3>
                                 <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.65 }}>{desc}</p>
+                                {hoverData && (
+                                    <div className="thv">
+                                        <div className="thv-grid">
+                                            <div className="thv-row">
+                                                <div className="thv-title">Fiziki Şəxs (qeydiyyatsız)</div>
+                                                <div style={{ fontSize: 13, color: '#D1D5DB' }}>Yaşayış sahəsi (fiziki kirayəçi)</div>
+                                                <div className="thv-sub">→ 10% ÖMV</div>
+                                            </div>
+                                            <div className="thv-row">
+                                                <div className="thv-title">Fiziki Şəxs (VÖEN-li)</div>
+                                                <div style={{ fontSize: 13, color: '#D1D5DB' }}>Qeyri-yaşayış sahəsi</div>
+                                                <div className="thv-sub">→ 14% ÖMV</div>
+                                            </div>
+                                            <div className="thv-row" style={{ borderBottom: 'none', paddingBottom: 0 }}>
+                                                <div className="thv-title">Hüquqi Şəxs</div>
+                                                <div style={{ fontSize: 13, color: '#D1D5DB' }}>ƏDV ödəyicisi / Qeyri-ƏDV</div>
+                                                <div className="thv-sub">→ Avtomatik hesablama</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
