@@ -490,6 +490,24 @@ function DashboardContent() {
                 </div>
             </div>
 
+            {/* Grace Period Banner */}
+            {user?.organization?.subscriptionStatus === 'GRACE_PERIOD' && user?.organization?.gracePeriodStartedAt && (
+                <div className="bg-orange/10 border border-orange/50 text-orange p-4 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between no-print gap-4">
+                    <div className="flex items-center gap-3">
+                        <AlertTriangle className="w-6 h-6 shrink-0" />
+                        <div>
+                            <p className="font-bold">⚠️ Diqqət: Abunəlik müddətiniz bitib!</p>
+                            <p className="text-sm bg-transparent">
+                                Hesabınız möhlət dövründədir və tezliklə dayandırılacaq. Xidmətlərdən fasiləsiz istifadə üçün ödəniş edin.
+                            </p>
+                        </div>
+                    </div>
+                    <Button onClick={() => navigate('/settings')} className="bg-orange hover:bg-orange/80 text-white whitespace-nowrap shrink-0">
+                        Ödəniş et →
+                    </Button>
+                </div>
+            )}
+
             {/* KPIs */}
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 {/* Cari Ay Balans */}

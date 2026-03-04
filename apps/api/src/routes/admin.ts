@@ -70,6 +70,10 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
             tenantsCount: org._count.tenants,
             createdAt: org.createdAt,
             plan: org.plan,
+            subscriptionPlan: org.subscriptionPlan,
+            subscriptionStatus: org.subscriptionStatus,
+            planExpiresAt: org.planExpiresAt,
+            gracePeriodStartedAt: org.gracePeriodStartedAt,
             isActive: org.isActive
         }))
 
@@ -113,6 +117,33 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
         const updatedOrg = await fastify.prisma.organization.update({
             where: { id },
             data: { isActive: !org.isActive }
+        })
+
+        return reply.send({ success: true, data: updatedOrg })
+    })
+
+    // PATCH /admin/organizations/:id/subscription
+    fastify.patch('/organizations/:id/subscription', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const { status, expiresAt, additionalDays } = req.body as { status: string, expiresAt?: string, additionalDays?: number }
+
+        const org = await fastify.prisma.organization.findUnique({ where: { id } })
+        if (!org) return reply.code(404).send({ success: false, error: 'Təşkilat tapılmadı' })
+
+        let planExp = expiresAt ? new Date(expiresAt) : org.planExpiresAt
+        if (additionalDays && planExp) {
+            planExp = new Date(planExp.getTime() + additionalDays * 24 * 60 * 60 * 1000)
+        } else if (additionalDays && !planExp) {
+            planExp = new Date(Date.now() + additionalDays * 24 * 60 * 60 * 1000)
+        }
+
+        const updatedOrg = await fastify.prisma.organization.update({
+            where: { id },
+            data: {
+                subscriptionStatus: status as any,
+                planExpiresAt: planExp,
+                ...(status === 'GRACE_PERIOD' && org.subscriptionStatus !== 'GRACE_PERIOD' ? { gracePeriodStartedAt: new Date() } : {})
+            }
         })
 
         return reply.send({ success: true, data: updatedOrg })

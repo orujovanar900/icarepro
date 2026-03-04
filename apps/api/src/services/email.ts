@@ -70,3 +70,60 @@ export async function sendPasswordReset(to: string, resetUrl: string) {
     `
   });
 }
+
+export async function sendPlanExpiryWarning(to: string, orgName: string) {
+  await resend.emails.send({
+    from: 'icare@icarepro.az',
+    to,
+    subject: `⚠️ İcarəPro — Abunəliyiniz bu gün bitir`,
+    html: `
+      <h2>Abunəlik Xəbərdarlığı</h2>
+      <p>Hörmətli <b>${orgName}</b>,</p>
+      <p>Abunəliyiniz bu gün bitir. Xidmətlərimizdən fasiləsiz istifadə etmək üçün, zəhmət olmasa ödəniş edin.</p>
+      <a href="\${process.env['FRONTEND_URL'] || 'https://icarepro.az'}/settings">Ödəniş et →</a>
+    `
+  });
+}
+
+export async function sendGracePeriodReminder(to: string, orgName: string, daysLeft: number) {
+  await resend.emails.send({
+    from: 'icare@icarepro.az',
+    to,
+    subject: `⚠️ İcarəPro — Hesabınızın dayandırılmasına ${daysLeft} gün qalıb`,
+    html: `
+      <h2>Möhlət Vaxtı</h2>
+      <p>Hörmətli <b>${orgName}</b>,</p>
+      <p>Hesabınızın dayandırılmasına <b>${daysLeft} gün</b> qalıb. Xahiş edirik, ən qısa zamanda ödəniş edin.</p>
+      <a href="\${process.env['FRONTEND_URL'] || 'https://icarepro.az'}/settings">Ödəniş et →</a>
+    `
+  });
+}
+
+export async function sendSuspensionNotice(to: string, orgName: string) {
+  await resend.emails.send({
+    from: 'icare@icarepro.az',
+    to,
+    subject: `⛔ İcarəPro — Hesabınız dayandırılıb`,
+    html: `
+      <h2>Hesab Dayandırıldı</h2>
+      <p>Hörmətli <b>${orgName}</b>,</p>
+      <p>Abunəlik müddətiniz bitdiyinə görə hesabınız dayandırılmışdır. Davam etmək üçün ödəniş etməyiniz xahiş olunur.</p>
+      <p>Məlumatlarınız 90 gün ərzində saxlanılacaq.</p>
+      <a href="\${process.env['FRONTEND_URL'] || 'https://icarepro.az'}/settings">Ödəniş et →</a>
+    `
+  });
+}
+
+export async function sendFinalDeletionWarning(to: string, orgName: string) {
+  await resend.emails.send({
+    from: 'icare@icarepro.az',
+    to,
+    subject: `🚨 İcarəPro — Məlumatlarınız 7 gün sonra SİLİNƏCƏK`,
+    html: `
+      <h2>Son Xəbərdarlıq</h2>
+      <p>Hörmətli <b>${orgName}</b>,</p>
+      <p>Abunəliyiniz uzun müddətdir ki dayandırılıb. Məlumatlarınız <b>7 gün sonra birdəfəlik silinəcək</b>.</p>
+      <a href="\${process.env['FRONTEND_URL'] || 'https://icarepro.az'}/settings">Hesabı Bərpa Et →</a>
+    `
+  });
+}

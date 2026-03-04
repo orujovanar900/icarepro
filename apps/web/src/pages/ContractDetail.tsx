@@ -23,6 +23,15 @@ const formatMoney = (amount: number) => {
     }).format(amount);
 };
 
+const formatMoneyExact = (amount: number) => {
+    return new Intl.NumberFormat('az-AZ', {
+        style: 'currency',
+        currency: 'AZN',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(amount);
+};
+
 export function ContractDetail() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -348,53 +357,87 @@ export function ContractDetail() {
                             <CardHeader>
                                 <CardTitle>Müqavilə Məlumatları</CardTitle>
                             </CardHeader>
-                            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                <div>
-                                    <h3 className="text-sm font-medium text-muted">İcarəçi</h3>
-                                    <p className="text-2xl font-bold text-gold mt-1">{contract.tenant.fullName}</p>
-                                    <div className="mt-3 space-y-1">
-                                        <p className="text-sm font-medium text-text">Tel: {contract.tenant.phone}</p>
-                                        <p className="text-sm text-muted">VÖEN: {contract.tenant.taxId || '-'}</p>
-                                    </div>
-                                    <h3 className="text-sm font-medium text-muted mt-6">Obyekt</h3>
-                                    <p className="text-lg font-bold text-text mt-1">{contract.property.name}</p>
-                                </div>
-                                <div className="border-t md:border-t-0 md:border-l border-border pt-4 md:pt-0 md:pl-8 space-y-6">
-                                    <div>
-                                        <h3 className="text-sm font-medium text-muted">Müddət</h3>
-                                        <p className="text-lg font-bold text-text mt-1">
-                                            {new Date(contract.startDate).toLocaleDateString('az-AZ')} — {new Date(contract.endDate).toLocaleDateString('az-AZ')}
-                                        </p>
-                                    </div>
-                                    <div className="border-t border-border/50 pt-4">
-                                        <h3 className="text-sm font-medium text-muted">Aylıq İcarə (Netto)</h3>
-                                        <p className="text-2xl font-bold text-green mt-1">{formatMoney(nettoRent)}</p>
-                                        <p className="text-sm text-muted mt-2">Aylıq Brutto (14% vergi): {formatMoney(bruttoRent)}</p>
-                                        <p className="text-sm text-muted">Ümumi Brutto: {formatMoney(totalBrutto)}</p>
-                                    </div>
-                                </div>
-                                <div className="border-t lg:border-t-0 lg:border-l border-border pt-4 lg:pt-0 lg:pl-8 space-y-6">
-                                    <div>
-                                        <div className="flex items-center justify-between">
-                                            <h3 className="text-sm font-medium text-muted">Ödəniş rejimi</h3>
-                                            <Button variant="ghost" size="sm" onClick={() => {
-                                                setEditPaymentMode(contract.paymentMode || 'CALENDAR');
-                                                setEditPaymentDay(contract.paymentDay || new Date(contract.startDate).getDate());
-                                                setShowPaymentModeModal(true);
-                                            }} className="h-6 px-2 text-xs text-gold hover:text-gold-light">
-                                                <Edit2 className="w-3" />
-                                            </Button>
+                            <CardContent className="p-0">
+                                <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
+                                    {/* Column 1 */}
+                                    <div className="p-6 space-y-6">
+                                        <div>
+                                            <h3 className="text-[11px] font-semibold text-muted uppercase tracking-[0.5px]">Kirayəçi</h3>
+                                            <p className="text-base font-bold text-text mt-1">{contract.tenant.fullName}</p>
+                                            <div className="mt-2 space-y-1">
+                                                <p className="text-sm font-medium text-text">Tel: {contract.tenant.phone?.replace(/(\d{3})(\d{2})(\d{3})(\d{2})(\d{2})/, '+$1 $2 $3 $4 $5') || contract.tenant.phone}</p>
+                                                <p className="text-sm text-muted">VÖEN: {contract.tenant.taxId || '-'}</p>
+                                            </div>
                                         </div>
-                                        <p className="text-base font-bold text-text mt-1">
-                                            {contract.paymentMode === 'FIXED_DAY' ? `Başlama tarixindən (${contract.paymentDay || new Date(contract.startDate).getDate()}-dan)` : 'Ayın əvvəlindən (1-dən 1-nə)'}
-                                        </p>
-                                        <p className="text-sm font-medium text-muted mt-2">
-                                            Növbəti ödəniş <span className="text-gold break-words px-1 bg-gold/10 rounded">{contract.paymentMode === 'FIXED_DAY' ? new Date(new Date().getFullYear(), new Date().getMonth() + 1, contract.paymentDay || new Date(contract.startDate).getDate()).toLocaleDateString('az-AZ') : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString('az-AZ')}</span> tarixinədək
-                                        </p>
+                                        <div>
+                                            <h3 className="text-[11px] font-semibold text-muted uppercase tracking-[0.5px]">Obyekt</h3>
+                                            <p className="text-base font-bold text-text mt-1">{contract.property.name}</p>
+                                        </div>
                                     </div>
-                                    <div className="border-t border-border/50 pt-4">
-                                        <h3 className="text-sm font-medium text-muted">Son Ödəniş</h3>
-                                        <p className="text-base font-bold text-text mt-1">{lastPayment ? new Date(lastPayment.paymentDate).toLocaleDateString('az-AZ') : '-'}</p>
+
+                                    {/* Column 2 */}
+                                    <div className="p-6 space-y-6">
+                                        <div>
+                                            <h3 className="text-[11px] font-semibold text-muted uppercase tracking-[0.5px]">Müddət</h3>
+                                            <p className="text-base font-bold text-text mt-1">
+                                                {new Date(contract.startDate).toLocaleDateString('az-AZ')} — {new Date(contract.endDate).toLocaleDateString('az-AZ')}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <div className="bg-surface rounded-xl p-4 border border-border mt-2">
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="text-sm text-text">Aylıq İcarə (Netto)</span>
+                                                    <span className="text-sm font-medium text-text">{formatMoneyExact(nettoRent)}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <span className="text-sm font-bold text-gold">Aylıq Brutto (÷0.86)</span>
+                                                    <span className="text-sm font-bold text-gold">{formatMoneyExact(bruttoRent)}</span>
+                                                </div>
+                                                <div className="border-t border-border/60 pt-3">
+                                                    <div
+                                                        className="flex justify-between items-center cursor-help"
+                                                        title="Bu məbləğ vergi orqanına ödənilir"
+                                                    >
+                                                        <div>
+                                                            <span className="text-[13px] text-orange/80 block">ÖMV (14%)</span>
+                                                            <span className="text-[10px] text-muted block">(Vergi ödəniləcək məbləğ)</span>
+                                                        </div>
+                                                        <span className="text-[13px] font-medium text-orange/80">{formatMoneyExact(taxAmount)}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Column 3 */}
+                                    <div className="p-6 space-y-6">
+                                        <div>
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="text-[11px] font-semibold text-muted uppercase tracking-[0.5px]">Ödəniş rejimi</h3>
+                                                <Button variant="ghost" size="sm" onClick={() => {
+                                                    setEditPaymentMode(contract.paymentMode || 'CALENDAR');
+                                                    setEditPaymentDay(contract.paymentDay || new Date(contract.startDate).getDate());
+                                                    setShowPaymentModeModal(true);
+                                                }} className="h-6 px-2 text-xs text-gold hover:text-gold-light -mt-1 -mr-2">
+                                                    <Edit2 className="w-3" />
+                                                </Button>
+                                            </div>
+                                            <p className="text-base font-bold text-text mt-1">
+                                                {contract.paymentMode === 'FIXED_DAY' ? `Başlama tarixindən (${contract.paymentDay || new Date(contract.startDate).getDate()}-dan)` : 'Ayın əvvəlindən (1-dən 1-nə)'}
+                                            </p>
+                                        </div>
+                                        <div className="space-y-4 pt-2">
+                                            <div>
+                                                <h3 className="text-[11px] font-semibold text-muted uppercase tracking-[0.5px]">Növbəti Ödəniş</h3>
+                                                <p className="text-base font-bold text-text mt-1">
+                                                    {contract.paymentMode === 'FIXED_DAY' ? new Date(new Date().getFullYear(), new Date().getMonth() + 1, contract.paymentDay || new Date(contract.startDate).getDate()).toLocaleDateString('az-AZ') : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString('az-AZ')} tarixinədək
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <h3 className="text-[11px] font-semibold text-muted uppercase tracking-[0.5px]">Son Ödəniş</h3>
+                                                <p className="text-base font-bold text-text mt-1">{lastPayment ? new Date(lastPayment.paymentDate).toLocaleDateString('az-AZ') : '-'}</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </CardContent>
@@ -532,7 +575,7 @@ export function ContractDetail() {
                                                         ? '...'
                                                         : contract.isDepositReturned
                                                             ? <><Plus className="w-3 h-3 mr-1" /> Əlavə et</>
-                                                            : 'Qaytarıldı et'}
+                                                            : 'Qaytar'}
                                                 </Button>
                                             )}
                                         </>

@@ -24,6 +24,7 @@ import adminRoutes from './routes/admin.js'
 
 import './types.js'
 import './cron/alerts.js'
+import './cron/subscriptions.js'
 
 export async function buildApp() {
     const app = Fastify({ logger: { level: process.env['LOG_LEVEL'] ?? 'info' } })

@@ -41,6 +41,14 @@ api.interceptors.response.use(
             useAuthStore.getState().logout();
             window.location.href = '/login';
         }
+
+        if (error.response?.status === 403 && error.response?.data?.code === 'SUBSCRIPTION_SUSPENDED') {
+            const currentPath = window.location.pathname;
+            if (!currentPath.includes('/settings') && !currentPath.includes('/billing') && !currentPath.includes('/suspended')) {
+                window.location.href = '/suspended';
+            }
+        }
+
         return Promise.reject(error);
     }
 );

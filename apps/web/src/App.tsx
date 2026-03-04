@@ -28,6 +28,7 @@ const SanadUstasi = React.lazy(() => import('./pages/SanadUstasi').then(m => ({ 
 const Users = React.lazy(() => import('./pages/Users').then(m => ({ default: m.Users })));
 const Settings = React.lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 const NotFound = React.lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
+const Suspended = React.lazy(() => import('./pages/Suspended').then(m => ({ default: m.Suspended })));
 
 // Superadmin Pages
 const AdminOrganizations = React.lazy(() => import('./pages/admin/AdminOrganizations').then(m => ({ default: m.AdminOrganizations })));
@@ -56,6 +57,8 @@ export default function App() {
 
                         {/* Protected Routes directly hitting the AppLayout */}
                         <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
+                            <Route path="/suspended" element={<Suspended />} />
+
                             {/* Full Screen AI Chat Interface */}
                             <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
                                 <Route path="/sanad-ustasi" element={<SanadUstasi />} />

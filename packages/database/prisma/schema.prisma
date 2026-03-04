@@ -86,6 +86,20 @@ enum PropertyStatus {
   UNDER_REPAIR
 }
 
+enum SubscriptionStatus {
+  ACTIVE
+  GRACE_PERIOD
+  SUSPENDED
+  CANCELLED
+}
+
+enum SubscriptionPlan {
+  FREE_TRIAL
+  BASHLANQIC
+  BIZNES
+  KORPORATIV
+}
+
 // ─────────────────────────────────────────
 // Models
 // ─────────────────────────────────────────
@@ -97,6 +111,11 @@ model Organization {
   plan      OrgPlan  @default(FREE)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+
+  subscriptionStatus   SubscriptionStatus @default(ACTIVE)
+  subscriptionPlan     SubscriptionPlan   @default(FREE_TRIAL)
+  planExpiresAt        DateTime?
+  gracePeriodStartedAt DateTime?
 
   users         User[]
   properties    Property[]

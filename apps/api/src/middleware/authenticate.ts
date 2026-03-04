@@ -18,7 +18,10 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply) {
                 organizationId: payload.organizationId,
                 isActive: true,
             },
-            select: { id: true, email: true, role: true, organizationId: true, name: true, jwtVersion: true, avatarUrl: true },
+            select: {
+                id: true, email: true, role: true, organizationId: true, name: true, jwtVersion: true, avatarUrl: true,
+                organization: { select: { subscriptionStatus: true } }
+            },
         })
 
         // Only invalidate if the DB has a jwtVersion AND it doesn't match the token.
@@ -28,6 +31,18 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply) {
         }
         if (user.jwtVersion !== null && user.jwtVersion !== (payload.jwtVersion ?? null)) {
             return reply.code(401).send({ success: false, error: 'Session expired. Please log in again.' })
+        }
+
+        if (user.organization?.subscriptionStatus === 'SUSPENDED' && user.role !== 'SUPERADMIN') {
+            const rawPath = req.url.split('?')[0] || '';
+            // Exclude /auth and /billing related routes so users can log out / pay while suspended
+            if (!rawPath.includes('/auth/') && !rawPath.includes('/billing/')) {
+                return reply.code(403).send({
+                    success: false,
+                    error: "Abunəlik dayandırılıb",
+                    code: "SUBSCRIPTION_SUSPENDED"
+                });
+            }
         }
 
         // Нормализуем req.user

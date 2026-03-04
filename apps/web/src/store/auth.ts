@@ -10,6 +10,12 @@ interface User {
     role: Role;
     organizationId: string;
     telegramChatId?: string;
+    organization?: {
+        subscriptionStatus: string;
+        planExpiresAt: string | null;
+        gracePeriodStartedAt: string | null;
+        subscriptionPlan: string;
+    };
 }
 
 interface AuthState {
