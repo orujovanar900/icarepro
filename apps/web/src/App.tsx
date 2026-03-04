@@ -28,7 +28,6 @@ const SanadUstasi = React.lazy(() => import('./pages/SanadUstasi').then(m => ({ 
 const Users = React.lazy(() => import('./pages/Users').then(m => ({ default: m.Users })));
 const Settings = React.lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 const NotFound = React.lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
-const BrandBook = React.lazy(() => import('./pages/BrandBook'));
 
 // Superadmin Pages
 const AdminOrganizations = React.lazy(() => import('./pages/admin/AdminOrganizations').then(m => ({ default: m.AdminOrganizations })));
@@ -44,7 +43,6 @@ export default function App() {
                     <Routes>
                         {/* Always-public landing page */}
                         <Route path="/" element={<Landing />} />
-                        <Route path="/brand-book" element={<BrandBook />} />
 
                         {/* Public Routes — redirect to /dashboard if already logged in */}
                         <Route element={<PublicRoute />}>
