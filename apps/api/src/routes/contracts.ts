@@ -196,7 +196,6 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
                 property: true,
                 tenant: true,
                 payments: { orderBy: { paymentDate: 'desc' } },
-                documents: { orderBy: { generatedAt: 'desc' } },
             },
         })
         if (!contract) return reply.code(404).send({ success: false, error: 'Contract not found' })

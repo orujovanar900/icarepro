@@ -29,7 +29,12 @@ export function Properties() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [page, setPage] = useState(1);
     const [showDeleted, setShowDeleted] = useState(false);
+    const [statusFilter, setStatusFilter] = useState('');
     const limit = 20;
+
+    // Add property form state
+    const [form, setForm] = useState({ number: '', name: '', building: '', address: '', area: '', status: 'VACANT' });
+    const [isSaving, setIsSaving] = useState(false);
 
     // Report Modal State
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -50,7 +55,7 @@ export function Properties() {
     }, [search]);
 
     const { data: propertiesData, isLoading: propsLoading, isError: propsError, refetch } = useQuery({
-        queryKey: ['properties', debouncedSearch, page, showDeleted],
+        queryKey: ['properties', debouncedSearch, page, showDeleted, statusFilter],
         queryFn: async () => {
             const params = new URLSearchParams({
                 limit: String(limit),
@@ -58,6 +63,7 @@ export function Properties() {
             });
             if (debouncedSearch) params.append('search', debouncedSearch);
             if (showDeleted) params.append('deleted', 'true');
+            if (statusFilter) params.append('status', statusFilter);
 
             const res = await api.get(`/properties?${params.toString()}`);
             console.log('Properties API response:', res.data);
@@ -75,6 +81,26 @@ export function Properties() {
             addToast({ message: 'Bərpa zamanı xəta baş verdi', type: 'error' });
         }
     });
+
+    const handleAddProperty = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!form.number || !form.name || !form.building || !form.address || !form.area) {
+            addToast({ message: 'Bütnün saheləri doldurun', type: 'error' });
+            return;
+        }
+        setIsSaving(true);
+        try {
+            await api.post('/properties', { ...form, area: Number(form.area) });
+            addToast({ message: 'Obyekt əlavə edildi ✓', type: 'success' });
+            setIsModalOpen(false);
+            setForm({ number: '', name: '', building: '', address: '', area: '', status: 'VACANT' });
+            queryClient.invalidateQueries({ queryKey: ['properties'] });
+        } catch (error: any) {
+            addToast({ message: error.response?.data?.error || 'Xəta baş verdi', type: 'error' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     const { data: contractsData, isLoading: contractsLoading } = useQuery({
         queryKey: ['contracts-for-properties'],
@@ -179,9 +205,61 @@ export function Properties() {
                 </div>
             </div>
 
-            {/* Modal placeholder */}
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Yeni Obyekt">
-                <div className="p-4 text-center text-muted">Tezliklə əlavə ediləcək...</div>
+            {/* Add Property Modal */}
+            <Modal isOpen={isModalOpen} onClose={() => !isSaving && setIsModalOpen(false)} title="Yeni Obyekt">
+                <form onSubmit={handleAddProperty} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input
+                            label="Nömrə *"
+                            value={form.number}
+                            onChange={e => setForm(f => ({ ...f, number: e.target.value }))}
+                            placeholder="001"
+                        />
+                        <Input
+                            label="Ad *"
+                            value={form.name}
+                            onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                            placeholder="Mənzil 3A"
+                        />
+                    </div>
+                    <Input
+                        label="Bina *"
+                        value={form.building}
+                        onChange={e => setForm(f => ({ ...f, building: e.target.value }))}
+                        placeholder="Neftçilər pr. 15"
+                    />
+                    <Input
+                        label="Ünvan *"
+                        value={form.address}
+                        onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
+                        placeholder="Bakı, Nərimanov rayonu"
+                    />
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input
+                            label="Sahə (m²) *"
+                            type="number"
+                            min="1"
+                            value={form.area}
+                            onChange={e => setForm(f => ({ ...f, area: e.target.value }))}
+                            placeholder="75"
+                        />
+                        <Select
+                            label="Status"
+                            value={form.status}
+                            onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
+                            options={[
+                                { label: 'Boş', value: 'VACANT' },
+                                { label: 'Təmirdə', value: 'UNDER_REPAIR' },
+                            ]}
+                        />
+                    </div>
+                    <div className="flex gap-3 pt-4 border-t border-border">
+                        <Button type="button" variant="outline" className="flex-1" onClick={() => setIsModalOpen(false)} disabled={isSaving}>Ləğv et</Button>
+                        <Button type="submit" className="flex-1" disabled={isSaving}>
+                            {isSaving ? 'Əlavə edilir...' : 'Əlavə et'}
+                        </Button>
+                    </div>
+                </form>
             </Modal>
 
             {/* Map Section */}
@@ -209,7 +287,7 @@ export function Properties() {
 
             {/* Filters */}
             <Card variant="elevated">
-                <CardContent className="p-4 flex flex-col sm:flex-row gap-4 items-center justify-between">
+                <CardContent className="p-4 flex flex-col sm:flex-row gap-3 items-center justify-between">
                     <div className="relative w-full max-w-md">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
                         <Input
@@ -219,17 +297,27 @@ export function Properties() {
                             className="pl-9"
                         />
                     </div>
-                    <Button
-                        variant={showDeleted ? undefined : 'outline'}
-                        onClick={() => {
-                            setShowDeleted(!showDeleted);
-                            setPage(1);
-                        }}
-                        className={showDeleted ? 'bg-red/10 text-red border-red/20 hover:bg-red/20' : ''}
-                    >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        {showDeleted ? 'Aktivləri Göstər' : 'Silinmişləri Göstər'}
-                    </Button>
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        <Select
+                            className="w-full sm:w-40"
+                            value={statusFilter}
+                            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+                            options={[
+                                { label: 'Hamısı', value: '' },
+                                { label: 'Boş', value: 'VACANT' },
+                                { label: 'Tutulub', value: 'OCCUPIED' },
+                                { label: 'Təmirdə', value: 'UNDER_REPAIR' },
+                            ]}
+                        />
+                        <Button
+                            variant={showDeleted ? undefined : 'outline'}
+                            onClick={() => { setShowDeleted(!showDeleted); setPage(1); }}
+                            className={showDeleted ? 'bg-red/10 text-red border-red/20 hover:bg-red/20 whitespace-nowrap' : 'whitespace-nowrap'}
+                        >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            {showDeleted ? 'Aktivləri' : 'Silinmişlər'}
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 

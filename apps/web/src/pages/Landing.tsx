@@ -28,11 +28,11 @@ a{text-decoration:none;}
 .fiu{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease;}
 .fiu.vis{opacity:1;transform:translateY(0);}
 .gc{background:rgba(28,33,48,.75);border:1px solid rgba(201,168,76,0.13);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-radius:20px;}
-.btn-gold{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#C9A84C,#e8c56b,#C9A84C);background-size:200% 200%;color:#0A0B0F;font-family:${C.f};font-weight:700;border:none;border-radius:12px;cursor:pointer;transition:transform .2s,box-shadow .2s,background-position .4s;text-decoration:none;}
+.btn-gold{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#C9A84C,#e8c56b,#C9A84C);background-size:200% 200%;color:#0A0B0F;font-family:${C.f};font-weight:700;border:none;border-radius:12px;cursor:pointer;transition:transform .2s,box-shadow .2s,background-position .4s;text-decoration:none;white-space:nowrap;}
 .btn-gold:hover{transform:scale(1.04);box-shadow:0 0 28px rgba(201,168,76,.55);background-position:right center;}
 .btn-gold:hover .arr{transform:translateX(4px);}
 .arr{display:inline-flex;transition:transform .25s;}
-.btn-ghost{display:inline-flex;align-items:center;gap:8px;background:transparent;color:${C.text};font-family:${C.f};font-weight:500;border:1px solid rgba(255,255,255,.18);border-radius:12px;cursor:pointer;transition:transform .2s,border-color .2s,background .2s;text-decoration:none;}
+.btn-ghost{display:inline-flex;align-items:center;gap:8px;background:transparent;color:${C.text};font-family:${C.f};font-weight:500;border:1px solid rgba(255,255,255,.18);border-radius:12px;cursor:pointer;transition:transform .2s,border-color .2s,background .2s;text-decoration:none;white-space:nowrap;}
 .btn-ghost:hover{transform:scale(1.03);border-color:${C.gold};background:rgba(201,168,76,.08);}
 .fc{transition:transform .3s,border-color .3s,box-shadow .3s;}
 .fc:hover{border-color:rgba(201,168,76,.4)!important;transform:translateY(-5px);box-shadow:0 18px 50px rgba(0,0,0,.45);}
@@ -46,19 +46,23 @@ a{text-decoration:none;}
 .prop-wrap{display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-ms-overflow-style:none;padding-bottom:4px;}
 .prop-wrap::-webkit-scrollbar{display:none;}
 @media(max-width:768px){
+  section { padding: 60px 24px !important; }
+  .hero-sec { padding: 100px 24px 60px !important; }
   .hg{flex-direction:column!important;}
   .fg{grid-template-columns:1fr!important;}
   .pricg{flex-direction:column!important;align-items:center!important;}
-  .pricc{width:100%!important;max-width:360px;}
+  .pricc{width:100%!important;max-width:100%!important;}
   .ftc{flex-direction:column!important;gap:32px!important;}
   .sr{flex-direction:column!important;}
   .sc{display:none!important;}
   .tg{flex-direction:column!important;}
   .sf{flex-wrap:wrap!important;gap:24px!important;}
   .nl{display:none!important;}
-  .nh{display:flex!important;}
+  .nh{display:none!important;}
   .nr{gap:8px!important;}
   .pg2{grid-template-columns:1fr!important;}
+  .nav-btn { font-size: 13px !important; padding: 8px 16px !important; min-width: auto !important; }
+  .pc { flex: 0 0 240px !important; min-width: 240px !important; }
 }
 `;
 
@@ -188,8 +192,8 @@ export function Landing() {
                     ))}
                 </div>
                 <div className="nr" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <Link to="/login" className="btn-ghost" style={{ padding: '9px 20px', fontSize: 14 }}>Daxil ol</Link>
-                    <Link to="/register" className="btn-gold" style={{ padding: '9px 20px', fontSize: 14 }}>Başla</Link>
+                    <Link to="/login" className="btn-ghost nav-btn" style={{ padding: '9px 20px', fontSize: 14 }}>Daxil ol</Link>
+                    <Link to="/register" className="btn-gold nav-btn" style={{ padding: '9px 20px', fontSize: 14 }}>Başla</Link>
                     <button className="nh" onClick={() => setMo(o => !o)} style={{ display: 'none', background: 'none', border: 'none', color: C.text, cursor: 'pointer', padding: 4 }}>{mo ? <X size={24} /> : <Menu size={24} />}</button>
                 </div>
             </nav>
@@ -204,7 +208,7 @@ export function Landing() {
             )}
 
             {/* HERO - transparent, bg comes from fixed layer */}
-            <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', padding: '120px 32px 90px' }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+            <section className="hero-sec" style={{ position: 'relative', minHeight: '100vh', display: 'flex', alignItems: 'center', padding: '120px 32px 90px' }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
                 {/* Slide dots */}
                 <div style={{ position: 'absolute', bottom: 32, left: '50%', transform: 'translateX(-50%)', zIndex: 10, display: 'flex', gap: 8 }}>
                     {SLIDES.map((_, i) => (
@@ -216,7 +220,7 @@ export function Landing() {
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: C.goldA, border: `1px solid ${C.goldA3}`, borderRadius: 50, padding: '6px 18px', marginBottom: 30, fontSize: 13, fontWeight: 600, color: C.gold, animation: 'fsu .6s ease both' }}>
                             🇦🇿 Azərbaycan üçün hazırlanmış
                         </div>
-                        <h1 style={{ fontFamily: C.f, fontWeight: 800, fontSize: 'clamp(3rem,6vw,5rem)', lineHeight: 1.08, letterSpacing: '-1.5px', marginBottom: 24, animation: 'fsu .6s .1s ease both' }}>
+                        <h1 style={{ fontFamily: C.f, fontWeight: 800, fontSize: 'clamp(2rem,5vw,5rem)', lineHeight: 1.08, letterSpacing: '-1.5px', marginBottom: 24, animation: 'fsu .6s .1s ease both' }}>
                             Əmlakınızı{' '}
                             <span style={{ background: `linear-gradient(135deg,${C.gold},#e8c56b,${C.gold})`, backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundSize: '200% 200%', animation: 'gs 4s ease infinite', display: 'inline-block' }}>professional</span>{' '}
                             səviyyədə idarə edin

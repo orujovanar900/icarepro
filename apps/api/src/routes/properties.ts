@@ -80,7 +80,6 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
                     include: { tenant: { select: { tenantType: true, firstName: true, lastName: true, companyName: true, phone: true } } },
                     orderBy: { startDate: 'desc' },
                 },
-                documents: { orderBy: { uploadedAt: 'desc' } },
             },
         })
         if (!property) return reply.code(404).send({ success: false, error: 'Property not found' })
@@ -200,66 +199,7 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.code(201).send({ success: true, data: photo })
     })
 
-    // POST /properties/:id/documents — multipart upload property documents
-    fastify.post('/:id/documents', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
-        const { id } = req.params as { id: string }
-        const exists = await fastify.prisma.property.findFirst({ where: { id, ...withOrg(req) } })
-        if (!exists) return reply.code(404).send({ success: false, error: 'Property not found' })
 
-        const data = await req.file()
-        if (!data) return reply.code(400).send({ success: false, error: 'No file uploaded' })
-
-        // Extract query parameters manually
-        const typeRaw = (req.query as Record<string, string>)['type']
-        const nameRaw = (req.query as Record<string, string>)['name']
-        const docType = (typeRaw && ['OWNERSHIP_CERT', 'TEX_PASSPORT'].includes(typeRaw) ? typeRaw : 'OWNERSHIP_CERT') as any
-
-        const allowedMimes = ['image/jpeg', 'image/png', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-        if (!allowedMimes.includes(data.mimetype)) {
-            return reply.code(400).send({ success: false, error: 'Destəklənməyən fayl formatı (pdf, doc, docx, jpg, png)' })
-        }
-
-        const fileBuffer = await data.toBuffer()
-        if (fileBuffer.length > 4 * 1024 * 1024) {
-            return reply.code(400).send({ success: false, error: 'Maksimum fayl ölçüsü 4MB olmalıdır' })
-        }
-
-        const ext = data.filename.split('.').pop() ?? 'pdf'
-        const path = `properties/${req.user.organizationId}/${id}/${Date.now()}.${ext}`
-
-        const { error } = await supabase.storage
-            .from('property-documents')
-            .upload(path, fileBuffer, { contentType: data.mimetype, upsert: false })
-
-        if (error) {
-            fastify.log.error(error)
-            return reply.code(500).send({ success: false, error: 'Upload failed' })
-        }
-
-        const { data: { publicUrl } } = supabase.storage.from('property-documents').getPublicUrl(path)
-
-        const document = await fastify.prisma.propertyDocument.create({
-            data: {
-                propertyId: id,
-                filePath: publicUrl,
-                type: docType,
-                name: nameRaw || data.filename
-            },
-        })
-
-        return reply.code(201).send({ success: true, data: document })
-    })
-
-    // DELETE /properties/:id/documents/:docId
-    fastify.delete('/:id/documents/:docId', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
-        const { id, docId } = req.params as { id: string, docId: string }
-
-        await fastify.prisma.propertyDocument.delete({
-            where: { id: docId, propertyId: id, property: { ...withOrg(req) } }
-        }).catch(() => null)
-
-        return reply.code(204).send()
-    })
 
     // DELETE /properties/:id/photos/:photoId
     fastify.delete('/:id/photos/:photoId', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {

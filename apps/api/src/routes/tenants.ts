@@ -72,7 +72,6 @@ const tenantsRoutes: FastifyPluginAsync = async (fastify) => {
                 } : {}),
             },
             include: {
-                tenantDocuments: true,
                 contracts: {
                     where: { status: 'ACTIVE' },
                     include: { property: { select: { name: true, number: true } } },
@@ -96,7 +95,6 @@ const tenantsRoutes: FastifyPluginAsync = async (fastify) => {
         const tenant = await fastify.prisma.tenant.findFirst({
             where: { id, ...withOrg(req) },
             include: {
-                tenantDocuments: true,
                 contracts: {
                     include: {
                         property: { select: { name: true, number: true } },
@@ -164,51 +162,18 @@ const tenantsRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.send({ success: true })
     })
 
-    // POST /tenants/:id/documents — multipart → Supabase Storage
-    fastify.post('/:id/documents', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
+    // PATCH /tenants/:id/toggle-status (active/inactive)
+    fastify.patch('/:id/toggle-status', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ADMINISTRATOR'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
         const exists = await fastify.prisma.tenant.findFirst({ where: { id, ...withOrg(req) } })
         if (!exists) return reply.code(404).send({ success: false, error: 'Tenant not found' })
-
-        const data = await req.file()
-        if (!data) return reply.code(400).send({ success: false, error: 'No file uploaded' })
-
-        const fileBuffer = await data.toBuffer()
-        const ext = data.filename.split('.').pop() ?? 'pdf'
-        const path = `${req.user.organizationId}/${id}/${Date.now()}.${ext}`
-
-        const { error } = await supabase.storage
-            .from('tenant-docs')
-            .upload(path, fileBuffer, { contentType: data.mimetype })
-
-        if (error) {
-            fastify.log.error(error)
-            return reply.code(500).send({ success: false, error: 'Upload failed' })
-        }
-
-        const { data: { publicUrl } } = supabase.storage.from('tenant-docs').getPublicUrl(path)
-        const q = req.query as Record<string, string>
-
-        const doc = await fastify.prisma.tenantDocument.create({
-            data: {
-                tenantId: id,
-                type: (q['type'] as never) ?? 'CONTRACT',
-                filePath: publicUrl,
-                name: q['name'] ?? data.filename,
-            },
+        const updated = await fastify.prisma.tenant.update({
+            where: { id },
+            data: { isActive: !exists.isActive }
         })
-
-        return reply.code(201).send({ success: true, data: doc })
+        return reply.send({ success: true, data: { isActive: updated.isActive } })
     })
 
-    // DELETE /tenants/:id/documents/:docId
-    fastify.delete('/:id/documents/:docId', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
-        const { id, docId } = req.params as { id: string; docId: string }
-        const exists = await fastify.prisma.tenantDocument.findFirst({ where: { id: docId, tenantId: id } })
-        if (!exists) return reply.code(404).send({ success: false, error: 'Document not found' })
-        await fastify.prisma.tenantDocument.delete({ where: { id: docId } })
-        return reply.code(204).send()
-    })
 
     // GET /tenants/:id/payments — all payments across tenant's contracts
     fastify.get('/:id/payments', { preHandler: [authenticate] }, async (req, reply) => {

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Building, MapPin, Maximize, ArrowLeft, Calendar, User, FileText, Zap, Camera, Trash2, UploadCloud, Loader2 } from 'lucide-react';
+import { Building, MapPin, Maximize, ArrowLeft, Calendar, User, FileText, Zap, Camera, Trash2, UploadCloud, Loader2, ChevronLeft, ChevronRight, X, ExternalLink } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -49,9 +49,24 @@ export function PropertyDetail() {
     const queryClient = useQueryClient();
     const addToast = useToastStore((state) => state.addToast);
 
-    const [activeTab, setActiveTab] = useState<'details' | 'photos' | 'documents' | 'history'>('details');
+    const [activeTab, setActiveTab] = useState<'details' | 'photos' | 'history'>('details');
+    const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+    const photosRef = useRef<any[]>([]);
     const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
     const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+
+    // Keyboard nav for lightbox - must be declared before early returns (React rules)
+    useEffect(() => {
+        if (lightboxIndex === null) return;
+        const photos = photosRef.current;
+        const handler = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowRight') setLightboxIndex(i => i !== null ? (i + 1) % photos.length : null);
+            if (e.key === 'ArrowLeft') setLightboxIndex(i => i !== null ? (i - 1 + photos.length) % photos.length : null);
+            if (e.key === 'Escape') setLightboxIndex(null);
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [lightboxIndex]);
 
     const { data, isLoading, isError } = useQuery({
         queryKey: ['property', id],
@@ -88,6 +103,7 @@ export function PropertyDetail() {
     }
 
     const property = data;
+    photosRef.current = property?.photos || [];
     const activeContract = property.contracts?.find((c: any) => c.status === 'ACTIVE');
 
     const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -175,7 +191,7 @@ export function PropertyDetail() {
 
             {/* Tabs Navigation */}
             <div className="flex space-x-1 border-b border-border overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                {(['details', 'photos', 'documents', 'history'] as const).map(tab => (
+                {(['details', 'photos', 'history'] as const).map(tab => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -186,7 +202,6 @@ export function PropertyDetail() {
                     >
                         {tab === 'details' && 'Təfərrüatlar'}
                         {tab === 'photos' && `Fotolar (${property.photos?.length || 0}/5)`}
-                        {tab === 'documents' && 'Sənədlər'}
                         {tab === 'history' && 'İcarəçi Tarixçəsi'}
                     </button>
                 ))}
@@ -315,11 +330,18 @@ export function PropertyDetail() {
 
                     {property.photos?.length > 0 ? (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                            {property.photos.map((photo: any) => (
-                                <div key={photo.id} className="group relative aspect-square rounded-lg overflow-hidden border border-border bg-surface">
+                            {property.photos.map((photo: any, index: number) => (
+                                <div
+                                    key={photo.id}
+                                    className="group relative aspect-square rounded-lg overflow-hidden border border-border bg-surface cursor-pointer"
+                                    onClick={() => setLightboxIndex(index)}
+                                >
                                     <img src={photo.url} alt="Property" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <Maximize className="w-6 h-6 text-white" />
+                                    </div>
                                     <button
-                                        onClick={() => handleDeletePhoto(photo.id)}
+                                        onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id); }}
                                         className="absolute top-2 right-2 p-1.5 bg-red/80 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red"
                                     >
                                         <Trash2 className="w-4 h-4" />
@@ -333,85 +355,70 @@ export function PropertyDetail() {
                             <p>Obyektə aid şəkil yoxdur.</p>
                         </div>
                     )}
+
+                    {/* Lightbox Modal */}
+                    {lightboxIndex !== null && property.photos?.length > 0 && (
+                        <div
+                            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center"
+                            onClick={() => setLightboxIndex(null)}
+                        >
+                            {/* Close */}
+                            <button
+                                className="absolute top-4 right-4 text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors z-10"
+                                onClick={() => setLightboxIndex(null)}
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+
+                            {/* Open in new tab */}
+                            <a
+                                href={property.photos[lightboxIndex].url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="absolute top-4 right-16 text-white bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors z-10"
+                                onClick={e => e.stopPropagation()}
+                            >
+                                <ExternalLink className="w-6 h-6" />
+                            </a>
+
+                            {/* Counter */}
+                            <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white text-sm font-medium bg-black/50 px-3 py-1 rounded-full">
+                                {lightboxIndex + 1} / {property.photos.length}
+                            </div>
+
+                            {/* Prev */}
+                            {property.photos.length > 1 && (
+                                <button
+                                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 transition-colors z-10"
+                                    onClick={e => { e.stopPropagation(); setLightboxIndex(i => i !== null ? (i - 1 + property.photos.length) % property.photos.length : 0); }}
+                                >
+                                    <ChevronLeft className="w-7 h-7" />
+                                </button>
+                            )}
+
+                            {/* Image */}
+                            <img
+                                src={property.photos[lightboxIndex].url}
+                                alt="property"
+                                className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg shadow-2xl"
+                                onClick={e => e.stopPropagation()}
+                            />
+
+                            {/* Next */}
+                            {property.photos.length > 1 && (
+                                <button
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 transition-colors z-10"
+                                    onClick={e => { e.stopPropagation(); setLightboxIndex(i => i !== null ? (i + 1) % property.photos.length : 0); }}
+                                >
+                                    <ChevronRight className="w-7 h-7" />
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
 
-            {/* Sənədlər Tab */}
-            {activeTab === 'documents' && (
-                <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Çıxarış */}
-                        <Card variant="elevated">
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <CardTitle className="text-base">Mülkiyyət Çıxarışı (Kupça)</CardTitle>
-                                <div className="flex flex-col items-end gap-1">
-                                    <label className="cursor-pointer">
-                                        <div className="p-2 text-gold bg-gold/10 hover:bg-gold/20 rounded-md transition-colors">
-                                            {isUploadingDoc ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
-                                        </div>
-                                        <input type="file" className="hidden" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={e => handleUploadDocument(e, 'OWNERSHIP_CERT')} />
-                                    </label>
-                                    <p className="text-[10px] text-muted font-normal max-w-[80px] text-right">max 4MB<br />(pdf, jpg, png)</p>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                                {property.documents?.filter((d: any) => d.type === 'OWNERSHIP_CERT').map((doc: any) => (
-                                    <div key={doc.id} className="flex items-center justify-between p-3 bg-surface border border-border rounded-lg">
-                                        <div className="flex items-center gap-3">
-                                            <FileText className="w-5 h-5 text-gold" />
-                                            <div>
-                                                <a href={doc.filePath} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-text hover:underline">{doc.name}</a>
-                                                <p className="text-xs text-muted">{new Date(doc.uploadedAt).toLocaleDateString('az-AZ')}</p>
-                                            </div>
-                                        </div>
-                                        <button onClick={() => handleDeleteDocument(doc.id)} className="p-2 text-muted hover:text-red transition-colors">
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                ))}
-                                {property.documents?.filter((d: any) => d.type === 'OWNERSHIP_CERT').length === 0 && (
-                                    <p className="text-sm text-muted text-center py-4 border border-dashed border-border rounded-lg">Sənəd yüklənməyib</p>
-                                )}
-                            </CardContent>
-                        </Card>
 
-                        {/* Tex-Pasport */}
-                        <Card variant="elevated">
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <CardTitle className="text-base">Tex-Pasport</CardTitle>
-                                <div className="flex flex-col items-end gap-1">
-                                    <label className="cursor-pointer">
-                                        <div className="p-2 text-gold bg-gold/10 hover:bg-gold/20 rounded-md transition-colors">
-                                            {isUploadingDoc ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
-                                        </div>
-                                        <input type="file" className="hidden" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={e => handleUploadDocument(e, 'TEX_PASSPORT')} />
-                                    </label>
-                                    <p className="text-[10px] text-muted font-normal max-w-[80px] text-right">max 4MB<br />(pdf, jpg, png)</p>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                                {property.documents?.filter((d: any) => d.type === 'TEX_PASSPORT').map((doc: any) => (
-                                    <div key={doc.id} className="flex items-center justify-between p-3 bg-surface border border-border rounded-lg">
-                                        <div className="flex items-center gap-3">
-                                            <FileText className="w-5 h-5 text-gold" />
-                                            <div>
-                                                <a href={doc.filePath} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-text hover:underline">{doc.name}</a>
-                                                <p className="text-xs text-muted">{new Date(doc.uploadedAt).toLocaleDateString('az-AZ')}</p>
-                                            </div>
-                                        </div>
-                                        <button onClick={() => handleDeleteDocument(doc.id)} className="p-2 text-muted hover:text-red transition-colors">
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                ))}
-                                {property.documents?.filter((d: any) => d.type === 'TEX_PASSPORT').length === 0 && (
-                                    <p className="text-sm text-muted text-center py-4 border border-dashed border-border rounded-lg">Sənəd yüklənməyib</p>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
-                </div>
-            )}
 
             {/* İcarəçi Tarixçəsi Tab */}
             {activeTab === 'history' && (

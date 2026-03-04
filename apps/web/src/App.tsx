@@ -23,10 +23,10 @@ const Expenses = React.lazy(() => import('./pages/Expenses').then(m => ({ defaul
 const Tenants = React.lazy(() => import('./pages/Tenants').then(m => ({ default: m.Tenants })));
 const TenantDetail = React.lazy(() => import('./pages/TenantDetail').then(m => ({ default: m.TenantDetail })));
 const TenantForm = React.lazy(() => import('./pages/TenantForm').then(m => ({ default: m.TenantForm })));
-const Documents = React.lazy(() => import('./pages/Documents').then(m => ({ default: m.Documents })));
 const SanadUstasi = React.lazy(() => import('./pages/SanadUstasi').then(m => ({ default: m.SanadUstasi })));
 const Users = React.lazy(() => import('./pages/Users').then(m => ({ default: m.Users })));
 const Settings = React.lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
+const Billing = React.lazy(() => import('./pages/Billing').then(m => ({ default: m.Billing })));
 const NotFound = React.lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 const Suspended = React.lazy(() => import('./pages/Suspended').then(m => ({ default: m.Suspended })));
 
@@ -77,7 +77,6 @@ export default function App() {
                                     <Route path="/tenants/new" element={<TenantForm />} />
                                     <Route path="/tenants/:id" element={<TenantDetail />} />
                                     <Route path="/tenants/:id/edit" element={<TenantForm />} />
-                                    <Route path="/documents" element={<Documents />} />
                                 </Route>
 
                                 <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'MANAGER', 'CASHIER']} />}>
@@ -89,6 +88,7 @@ export default function App() {
                                 <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'MANAGER']} />}>
                                     <Route path="/users" element={<Users />} />
                                     <Route path="/settings" element={<Settings />} />
+                                    <Route path="/settings/billing" element={<Billing />} />
                                 </Route>
 
                                 {/* SUPERADMIN ONLY routes */}

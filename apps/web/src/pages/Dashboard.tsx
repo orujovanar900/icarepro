@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import {
     Wallet, TrendingUp, AlertCircle, Calendar, ArrowRight, Users, Search,
-    ArrowUpRight, ArrowDownRight, MapPin, Clock, Plus,
+    ArrowUpRight, ArrowDownRight, MapPin, Clock, Plus, X,
     AlertTriangle, CalendarX, Building2, LineChart
 } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -454,6 +454,12 @@ function DashboardContent() {
     const incomeChangePct = dashboard?.prevMonthIncome ? Math.round((incomeChange / dashboard.prevMonthIncome) * 100) : 0;
     const sortedDebtors = [...(dashboard?.debtors || [])].sort((a, b) => (b.daysOverdue || 0) - (a.daysOverdue || 0));
 
+    // Billing Banner Logic
+    const [isBannerDismissed, setIsBannerDismissed] = useState(() => localStorage.getItem('billing_banner_dismissed') === 'true');
+    const expiresAt = (user as any)?.organization?.planExpiresAt;
+    const daysUntilExpiry = expiresAt ? Math.ceil((new Date(expiresAt).getTime() - new Date().getTime()) / (1000 * 3600 * 24)) : null;
+    const showExpiryWarning = daysUntilExpiry !== null && daysUntilExpiry <= 7 && daysUntilExpiry >= 0 && !isBannerDismissed && (user as any)?.organization?.subscriptionStatus === 'ACTIVE';
+
     return (
         <div className="flex-1 space-y-6 p-6 pb-24 max-w-7xl mx-auto print-dashboard">
             {/* Header & Filters */}
@@ -489,6 +495,36 @@ function DashboardContent() {
                     <div className="text-right font-bold text-black border border-black p-2 bg-gray-100">İl: {year}</div>
                 </div>
             </div>
+
+            {/* Expiry Warning Banner */}
+            {showExpiryWarning && (
+                <div className="bg-yellow/10 border border-yellow/50 text-[#C9A84C] p-4 rounded-xl flex items-center justify-between no-print gap-4">
+                    <div className="flex items-center gap-3">
+                        <AlertTriangle className="w-6 h-6 shrink-0" />
+                        <p className="font-medium text-[15px]">
+                            ⚠️ Abunəliyiniz {daysUntilExpiry === 0 ? 'bu gün' : `${daysUntilExpiry} gün sonra`} bitir.
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                        <Button
+                            variant="primary"
+                            className="bg-gold hover:bg-gold/90 text-background text-sm py-1.5 h-auto shadow-md shadow-gold/20"
+                            onClick={() => navigate('/settings/billing')}
+                        >
+                            Planı yenilə →
+                        </Button>
+                        <button
+                            className="p-1.5 hover:bg-yellow/20 rounded-full transition-colors flex-shrink-0"
+                            onClick={() => {
+                                localStorage.setItem('billing_banner_dismissed', 'true');
+                                setIsBannerDismissed(true);
+                            }}
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Grace Period Banner */}
             {user?.organization?.subscriptionStatus === 'GRACE_PERIOD' && user?.organization?.gracePeriodStartedAt && (

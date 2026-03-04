@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     ArrowLeft, User, Building2, Phone, Mail, FileText,
-    AlertTriangle, Pencil, CreditCard, BadgeDollarSign, ClipboardList, UploadCloud, Trash2, Loader2
+    AlertTriangle, Pencil, CreditCard, BadgeDollarSign, ClipboardList, UploadCloud, Trash2, Loader2, Power
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -21,7 +21,7 @@ const contractStatus: Record<string, { label: string; variant: any }> = {
     DRAFT: { label: 'Qaralama', variant: 'draft' },
 };
 
-type Tab = 'info' | 'contracts' | 'payments' | 'debts' | 'documents';
+type Tab = 'info' | 'contracts' | 'payments' | 'debts';
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
     if (!value) return null;
@@ -42,6 +42,7 @@ export function TenantDetail() {
     const [tab, setTab] = useState<Tab>('info');
     const canEdit = ['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'].includes(user?.role || '');
     const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+    const [isTogglingStatus, setIsTogglingStatus] = useState(false);
 
     const { data, isLoading, isError } = useQuery({
         queryKey: ['tenant', id],
@@ -126,12 +127,24 @@ export function TenantDetail() {
         }
     };
 
+    const handleToggleStatus = async () => {
+        setIsTogglingStatus(true);
+        try {
+            await api.patch(`/tenants/${id}/toggle-status`);
+            addToast({ message: tenant.isActive !== false ? 'İcarəçi deaktiv edildi' : 'İcarəçi aktiv edildi', type: 'success' });
+            queryClient.invalidateQueries({ queryKey: ['tenant', id] });
+        } catch {
+            addToast({ message: 'Xəta baş verdi', type: 'error' });
+        } finally {
+            setIsTogglingStatus(false);
+        }
+    };
+
     const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
         { key: 'info', label: 'Məlumatlar', icon: <ClipboardList className="w-4 h-4" /> },
         { key: 'contracts', label: 'Müqavilələr', icon: <FileText className="w-4 h-4" /> },
         { key: 'payments', label: 'Ödənişlər', icon: <CreditCard className="w-4 h-4" /> },
         { key: 'debts', label: 'Borclar', icon: <BadgeDollarSign className="w-4 h-4" /> },
-        { key: 'documents', label: 'Sənədlər', icon: <FileText className="w-4 h-4" /> },
     ];
 
     return (
@@ -164,6 +177,9 @@ export function TenantDetail() {
                                 <AlertTriangle className="w-3 h-3 mr-1" />Qara siyahı
                             </Badge>
                         )}
+                        {tenant.isActive === false && (
+                            <Badge variant="arxiv">Deaktiv</Badge>
+                        )}
                     </div>
                     {tenant.phone && (
                         <p className="text-muted text-sm mt-1 flex items-center gap-1">
@@ -176,9 +192,24 @@ export function TenantDetail() {
                         </p>
                     )}
                 </div>
-                <div className="text-right shrink-0">
-                    <p className="text-xs text-muted">Aktiv müqavilə</p>
-                    <p className="text-2xl font-bold text-text">{contracts.filter((c: any) => c.status === 'ACTIVE').length}</p>
+                <div className="text-right shrink-0 flex flex-col items-end gap-2">
+                    <div>
+                        <p className="text-xs text-muted">Aktiv müqavilə</p>
+                        <p className="text-2xl font-bold text-text">{contracts.filter((c: any) => c.status === 'ACTIVE').length}</p>
+                    </div>
+                    {canEdit && (
+                        <button
+                            onClick={handleToggleStatus}
+                            disabled={isTogglingStatus}
+                            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-medium transition-colors ${tenant.isActive !== false
+                                ? 'bg-green/10 text-green hover:bg-green/20'
+                                : 'bg-gold/10 text-gold hover:bg-gold/20'
+                                }`}
+                        >
+                            <Power className="w-3.5 h-3.5" />
+                            {isTogglingStatus ? 'Yüklənir...' : tenant.isActive !== false ? 'Deaktiv et' : 'Aktiv et'}
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -197,217 +228,181 @@ export function TenantDetail() {
             </div>
 
             {/* Tab: Məlumatlar */}
-            {tab === 'info' && (
-                <div className="space-y-4">
-                    {isFiziki ? (
+            {
+                tab === 'info' && (
+                    <div className="space-y-4">
+                        {isFiziki ? (
+                            <Card variant="default">
+                                <CardHeader><CardTitle>👤 Fiziki Şəxs Məlumatları</CardTitle></CardHeader>
+                                <CardContent>
+                                    <InfoRow label="Ad" value={tenant.firstName} />
+                                    <InfoRow label="Soyad" value={tenant.lastName} />
+                                    <InfoRow label="Ata adı" value={tenant.fatherName} />
+                                    <InfoRow label="FİN kod" value={tenant.fin} />
+                                    <InfoRow label="Pasport seriyası" value={tenant.passportSeries} />
+                                    <InfoRow label="Pasportu verən orqan" value={tenant.passportIssuedBy} />
+                                    <InfoRow label="Pasport tarixi" value={fmtDate(tenant.passportIssuedAt)} />
+                                    <InfoRow label="Doğum tarixi" value={fmtDate(tenant.birthDate)} />
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <Card variant="default">
+                                <CardHeader><CardTitle>🏢 Hüquqi Şəxs Məlumatları</CardTitle></CardHeader>
+                                <CardContent>
+                                    <InfoRow label="Şirkət adı" value={tenant.companyName} />
+                                    <InfoRow label="VÖEN" value={tenant.voen} />
+                                    <InfoRow label="Direktor" value={tenant.directorName} />
+                                    <InfoRow label="Şirkət ünvanı" value={tenant.companyAddress} />
+                                    <InfoRow label="Bank adı" value={tenant.bankName} />
+                                    <InfoRow label="Müxbir hesab" value={tenant.bankCode} />
+                                    <InfoRow label="IBAN" value={tenant.iban} />
+                                </CardContent>
+                            </Card>
+                        )}
                         <Card variant="default">
-                            <CardHeader><CardTitle>👤 Fiziki Şəxs Məlumatları</CardTitle></CardHeader>
+                            <CardHeader><CardTitle>Əlaqə</CardTitle></CardHeader>
                             <CardContent>
-                                <InfoRow label="Ad" value={tenant.firstName} />
-                                <InfoRow label="Soyad" value={tenant.lastName} />
-                                <InfoRow label="Ata adı" value={tenant.fatherName} />
-                                <InfoRow label="FİN kod" value={tenant.fin} />
-                                <InfoRow label="Pasport seriyası" value={tenant.passportSeries} />
-                                <InfoRow label="Pasportu verən orqan" value={tenant.passportIssuedBy} />
-                                <InfoRow label="Pasport tarixi" value={fmtDate(tenant.passportIssuedAt)} />
-                                <InfoRow label="Doğum tarixi" value={fmtDate(tenant.birthDate)} />
+                                <InfoRow label="Telefon" value={tenant.phone} />
+                                <InfoRow label="Əlavə telefon" value={tenant.phone2} />
+                                <InfoRow label="Email" value={tenant.email} />
+                                <InfoRow label="Ünvan" value={tenant.address} />
+                                <InfoRow label="Qeyd" value={tenant.notes} />
                             </CardContent>
                         </Card>
-                    ) : (
-                        <Card variant="default">
-                            <CardHeader><CardTitle>🏢 Hüquqi Şəxs Məlumatları</CardTitle></CardHeader>
-                            <CardContent>
-                                <InfoRow label="Şirkət adı" value={tenant.companyName} />
-                                <InfoRow label="VÖEN" value={tenant.voen} />
-                                <InfoRow label="Direktor" value={tenant.directorName} />
-                                <InfoRow label="Şirkət ünvanı" value={tenant.companyAddress} />
-                                <InfoRow label="Bank adı" value={tenant.bankName} />
-                                <InfoRow label="Müxbir hesab" value={tenant.bankCode} />
-                                <InfoRow label="IBAN" value={tenant.iban} />
-                            </CardContent>
-                        </Card>
-                    )}
-                    <Card variant="default">
-                        <CardHeader><CardTitle>Əlaqə</CardTitle></CardHeader>
-                        <CardContent>
-                            <InfoRow label="Telefon" value={tenant.phone} />
-                            <InfoRow label="Əlavə telefon" value={tenant.phone2} />
-                            <InfoRow label="Email" value={tenant.email} />
-                            <InfoRow label="Ünvan" value={tenant.address} />
-                            <InfoRow label="Qeyd" value={tenant.notes} />
-                        </CardContent>
-                    </Card>
-                    {tenant.isBlacklisted && (
-                        <Card variant="default" className="border-red/40">
-                            <CardContent className="p-4 flex items-start gap-3">
-                                <AlertTriangle className="w-5 h-5 text-red shrink-0 mt-0.5" />
-                                <div>
-                                    <p className="font-semibold text-red">Qara siyahıda</p>
-                                    <p className="text-sm text-muted mt-0.5">{tenant.blacklistReason || 'Səbəb qeyd edilməyib'}</p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
-                </div>
-            )}
+                        {tenant.isBlacklisted && (
+                            <Card variant="default" className="border-red/40">
+                                <CardContent className="p-4 flex items-start gap-3">
+                                    <AlertTriangle className="w-5 h-5 text-red shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="font-semibold text-red">Qara siyahıda</p>
+                                        <p className="text-sm text-muted mt-0.5">{tenant.blacklistReason || 'Səbəb qeyd edilməyib'}</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                )
+            }
 
             {/* Tab: Müqavilələr */}
-            {tab === 'contracts' && (
-                <Card variant="default">
-                    <CardContent className="p-0">
-                        {allContracts.length === 0 ? (
-                            <div className="text-center py-12 text-muted">
-                                <FileText className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                                <p>Müqavilə tapılmadı</p>
-                            </div>
-                        ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Müqavilə №</TableHead>
-                                        <TableHead>Obyekt</TableHead>
-                                        <TableHead>Müddət</TableHead>
-                                        <TableHead className="text-right">Aylıq icarə</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {allContracts.map((c: any) => {
-                                        const cs = contractStatus[c.status] || { label: c.status, variant: 'draft' };
-                                        return (
-                                            <TableRow key={c.id} className="cursor-pointer hover:bg-surface" onClick={() => navigate(`/contracts/${c.id}`)}>
-                                                <TableCell><Badge variant={cs.variant}>{cs.label}</Badge></TableCell>
-                                                <TableCell className="font-mono text-sm">{c.number}</TableCell>
-                                                <TableCell>
-                                                    <p className="font-medium">{c.property?.name || '—'}</p>
-                                                </TableCell>
-                                                <TableCell className="text-sm text-muted">
-                                                    {fmtDate(c.startDate)} — {fmtDate(c.endDate)}
-                                                </TableCell>
-                                                <TableCell className="text-right font-bold">{fmt(Number(c.monthlyRent))}</TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        )}
-                    </CardContent>
-                </Card>
-            )}
+            {
+                tab === 'contracts' && (
+                    <Card variant="default">
+                        <CardContent className="p-0">
+                            {allContracts.length === 0 ? (
+                                <div className="text-center py-12 text-muted">
+                                    <FileText className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                                    <p>Müqavilə tapılmadı</p>
+                                </div>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead>Müqavilə №</TableHead>
+                                            <TableHead>Obyekt</TableHead>
+                                            <TableHead>Müddət</TableHead>
+                                            <TableHead className="text-right">Aylıq icarə</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {allContracts.map((c: any) => {
+                                            const cs = contractStatus[c.status] || { label: c.status, variant: 'draft' };
+                                            return (
+                                                <TableRow key={c.id} className="cursor-pointer hover:bg-surface" onClick={() => navigate(`/contracts/${c.id}`)}>
+                                                    <TableCell><Badge variant={cs.variant}>{cs.label}</Badge></TableCell>
+                                                    <TableCell className="font-mono text-sm">{c.number}</TableCell>
+                                                    <TableCell>
+                                                        <p className="font-medium">{c.property?.name || '—'}</p>
+                                                    </TableCell>
+                                                    <TableCell className="text-sm text-muted">
+                                                        {fmtDate(c.startDate)} — {fmtDate(c.endDate)}
+                                                    </TableCell>
+                                                    <TableCell className="text-right font-bold">{fmt(Number(c.monthlyRent))}</TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            )}
+                        </CardContent>
+                    </Card>
+                )
+            }
 
             {/* Tab: Ödənişlər */}
-            {tab === 'payments' && (
-                <Card variant="default">
-                    <CardContent className="p-0">
-                        {payments.length === 0 ? (
-                            <div className="text-center py-12 text-muted">
-                                <CreditCard className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                                <p>Ödəniş tapılmadı</p>
-                            </div>
-                        ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Tarix</TableHead>
-                                        <TableHead>Müqavilə</TableHead>
-                                        <TableHead>Növ</TableHead>
-                                        <TableHead className="text-right">Məbləğ</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {payments.map((p: any) => (
-                                        <TableRow key={p.id}>
-                                            <TableCell className="text-sm">{fmtDate(p.paymentDate)}</TableCell>
-                                            <TableCell className="font-mono text-sm">{p.contract?.number || '—'}</TableCell>
-                                            <TableCell className="text-sm text-muted">{p.paymentType}</TableCell>
-                                            <TableCell className="text-right font-bold text-green">{fmt(Number(p.amount))}</TableCell>
+            {
+                tab === 'payments' && (
+                    <Card variant="default">
+                        <CardContent className="p-0">
+                            {payments.length === 0 ? (
+                                <div className="text-center py-12 text-muted">
+                                    <CreditCard className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                                    <p>Ödəniş tapılmadı</p>
+                                </div>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Tarix</TableHead>
+                                            <TableHead>Müqavilə</TableHead>
+                                            <TableHead>Növ</TableHead>
+                                            <TableHead className="text-right">Məbləğ</TableHead>
                                         </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        )}
-                    </CardContent>
-                </Card>
-            )}
+                                    </TableHeader>
+                                    <TableBody>
+                                        {payments.map((p: any) => (
+                                            <TableRow key={p.id}>
+                                                <TableCell className="text-sm">{fmtDate(p.paymentDate)}</TableCell>
+                                                <TableCell className="font-mono text-sm">{p.contract?.number || '—'}</TableCell>
+                                                <TableCell className="text-sm text-muted">{p.paymentType}</TableCell>
+                                                <TableCell className="text-right font-bold text-green">{fmt(Number(p.amount))}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            )}
+                        </CardContent>
+                    </Card>
+                )
+            }
 
             {/* Tab: Borclar */}
-            {tab === 'debts' && (
-                <Card variant="default">
-                    <CardContent className="p-0">
-                        {debts.length === 0 ? (
-                            <div className="text-center py-12">
-                                <BadgeDollarSign className="w-10 h-10 mx-auto mb-3 text-green opacity-40" />
-                                <p className="text-green font-semibold">Borc yoxdur! ✓</p>
-                            </div>
-                        ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Müqavilə</TableHead>
-                                        <TableHead>Obyekt</TableHead>
-                                        <TableHead>Aylıq icarə</TableHead>
-                                        <TableHead className="text-right">Borc</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {debts.map((c: any) => (
-                                        <TableRow key={c.id} className="cursor-pointer hover:bg-surface" onClick={() => navigate(`/contracts/${c.id}`)}>
-                                            <TableCell className="font-mono text-sm">{c.number}</TableCell>
-                                            <TableCell>{c.property?.name || '—'}</TableCell>
-                                            <TableCell>{fmt(Number(c.monthlyRent))}</TableCell>
-                                            <TableCell className="text-right font-bold text-red">{fmt(c.debt)}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        )}
-                    </CardContent>
-                </Card>
-            )}
-            {/* Tab: Sənədlər */}
-            {tab === 'documents' && (
-                <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                        <h3 className="text-lg font-bold text-text">Sənədlər ({tenant.tenantDocuments?.length || 0})</h3>
-                        <label className="cursor-pointer">
-                            <div className="flex items-center gap-2 bg-gold/10 hover:bg-gold/20 text-gold px-4 py-2 rounded-lg transition-colors font-medium text-sm">
-                                {isUploadingDoc ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
-                                Sənəd Yüklə
-                            </div>
-                            <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleUploadDocument(e, 'PASSPORT')} />
-                        </label>
-                    </div>
-
-                    {tenant.tenantDocuments?.length > 0 ? (
-                        <div className="space-y-3">
-                            {tenant.tenantDocuments.map((doc: any) => (
-                                <div key={doc.id} className="flex items-center justify-between p-4 bg-surface border border-border rounded-xl">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-gold/10 rounded-lg flex items-center justify-center">
-                                            <FileText className="w-5 h-5 text-gold" />
-                                        </div>
-                                        <div>
-                                            <a href={doc.filePath} target="_blank" rel="noopener noreferrer" className="font-medium text-text hover:underline text-sm">
-                                                {doc.name || doc.type}
-                                            </a>
-                                            <p className="text-xs text-muted">{doc.type} • {new Date(doc.uploadedAt || doc.createdAt).toLocaleDateString('az-AZ')}</p>
-                                        </div>
-                                    </div>
-                                    <button onClick={() => handleDeleteDocument(doc.id)} className="p-2 text-muted hover:text-red transition-colors rounded-md hover:bg-red/10">
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
+            {
+                tab === 'debts' && (
+                    <Card variant="default">
+                        <CardContent className="p-0">
+                            {debts.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <BadgeDollarSign className="w-10 h-10 mx-auto mb-3 text-green opacity-40" />
+                                    <p className="text-green font-semibold">Borc yoxdur! ✓</p>
                                 </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center py-12 text-muted border border-dashed border-border rounded-xl">
-                            <FileText className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                            <p>Sənəd yüklənməyib.</p>
-                            <p className="text-xs mt-1">Pasport surəti və digər sənədləri buraya əlavə edə bilərsiniz.</p>
-                        </div>
-                    )}
-                </div>
-            )}
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Müqavilə</TableHead>
+                                            <TableHead>Obyekt</TableHead>
+                                            <TableHead>Aylıq icarə</TableHead>
+                                            <TableHead className="text-right">Borc</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {debts.map((c: any) => (
+                                            <TableRow key={c.id} className="cursor-pointer hover:bg-surface" onClick={() => navigate(`/contracts/${c.id}`)}>
+                                                <TableCell className="font-mono text-sm">{c.number}</TableCell>
+                                                <TableCell>{c.property?.name || '—'}</TableCell>
+                                                <TableCell>{fmt(Number(c.monthlyRent))}</TableCell>
+                                                <TableCell className="text-right font-bold text-red">{fmt(c.debt)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            )}
+                        </CardContent>
+                    </Card>
+                )
+            }
         </div>
     );
 }

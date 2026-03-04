@@ -14,7 +14,8 @@ import {
     Sparkles,
     X,
     BarChart4,
-    ShieldCheck
+    ShieldCheck,
+    CreditCard
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -25,10 +26,10 @@ const allNavItems = [
     { name: 'İcarəçilər', path: '/tenants', icon: UserCheck },
     { name: 'Mədaxil', path: '/income', icon: TrendingUp },
     { name: 'Məxaric', path: '/expenses', icon: Receipt },
-    { name: 'Sənədlər', path: '/documents', icon: FolderOpen },
     { name: '✦ Sənəd Ustası AI', path: '/sanad-ustasi', icon: Sparkles, isSpecial: true },
     { name: 'İstifadəçilər', path: '/users', icon: Users },
     { name: 'Parametrlər', path: '/settings', icon: Settings },
+    { name: 'Abonəlik Planı', path: '/settings/billing', icon: CreditCard },
     { name: 'Ümumi Statistika', path: '/admin/stats', icon: BarChart4 },
     { name: 'Təşkilatlar', path: '/admin/users', icon: ShieldCheck },
 ];
@@ -38,12 +39,12 @@ export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: bool
 
     const navItems = React.useMemo(() => {
         const allowedMenu = {
-            SUPERADMIN: ['Ümumi Statistika', 'Təşkilatlar', 'Parametrlər'],
-            OWNER: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'İcarəçilər', 'Mədaxil', 'Məxaric', 'Sənədlər', '✦ Sənəd Ustası AI', 'İstifadəçilər', 'Parametrlər'],
-            MANAGER: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'İcarəçilər', 'Mədaxil', 'Məxaric', 'Sənədlər', '✦ Sənəd Ustası AI', 'İstifadəçilər', 'Parametrlər'],
+            SUPERADMIN: ['Ümumi Statistika', 'Təşkilatlar', 'Parametrlər', 'Abonəlik Planı'],
+            OWNER: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'İcarəçilər', 'Mədaxil', 'Məxaric', '✦ Sənəd Ustası AI', 'İstifadəçilər', 'Parametrlər', 'Abonəlik Planı'],
+            MANAGER: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'İcarəçilər', 'Mədaxil', 'Məxaric', '✦ Sənəd Ustası AI', 'İstifadəçilər', 'Parametrlər'],
             CASHIER: ['İdarə Paneli', 'Mədaxil', 'Məxaric'],
-            ACCOUNTANT: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'İcarəçilər', 'Sənədlər', '✦ Sənəd Ustası AI'],
-            ADMINISTRATOR: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'İcarəçilər', 'Sənədlər', '✦ Sənəd Ustası AI'],
+            ACCOUNTANT: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'İcarəçilər', '✦ Sənəd Ustası AI'],
+            ADMINISTRATOR: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'İcarəçilər', '✦ Sənəd Ustası AI'],
             TENANT: [],
         };
 

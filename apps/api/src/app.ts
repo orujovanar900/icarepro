@@ -18,7 +18,6 @@ import expensesRoutes from './routes/expenses.js'
 import usersRoutes from './routes/users.js'
 import auditLogRoutes from './routes/audit-log.js'
 import meterReadingsRoutes from './routes/meter-readings.js'
-import documentsRoutes from './routes/documents.js'
 import hesabatRoutes from './routes/hesabat.js'
 import adminRoutes from './routes/admin.js'
 
@@ -109,7 +108,6 @@ export async function buildApp() {
     await app.register(usersRoutes, { prefix: '/users' })
     await app.register(auditLogRoutes, { prefix: '/audit-log' })
     await app.register(meterReadingsRoutes, { prefix: '/meter-readings' })
-    await app.register(documentsRoutes, { prefix: '/documents' })
     await app.register(hesabatRoutes, { prefix: '/hesabat' })
     await app.register(adminRoutes, { prefix: '/admin' })
 

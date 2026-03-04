@@ -308,12 +308,6 @@ export function ContractDetail() {
                         </p>
                     </div>
                     <div className="flex gap-2 items-start mt-2 sm:mt-0">
-                        {contract.documents && contract.documents.length > 0 && (
-                            <Button variant="outline" onClick={() => window.open(contract.documents[0].filePath, '_blank')}>
-                                <FileText className="w-4 h-4 mr-2" />
-                                Sistemin PDF-i
-                            </Button>
-                        )}
                         <Button
                             variant="outline"
                             onClick={async () => {
@@ -677,31 +671,7 @@ export function ContractDetail() {
                             </CardContent>
                         </Card>
 
-                        {/* Documents */}
-                        <Card variant="default">
-                            <CardHeader>
-                                <CardTitle>Sənədlər</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {contract.documents.length === 0 ? (
-                                    <p className="text-muted text-sm text-center py-4">Sənəd yoxdur.</p>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {contract.documents.map((doc: any) => (
-                                            <div key={doc.id} className="flex justify-between items-center bg-surface p-3 rounded-lg border border-border">
-                                                <div>
-                                                    <p className="text-sm font-medium">{doc.documentType}</p>
-                                                    <p className="text-xs text-muted">{new Date(doc.generatedAt).toLocaleDateString('az-AZ')}</p>
-                                                </div>
-                                                <Button variant="ghost" size="sm" onClick={() => window.open(doc.fileUrl)}>
-                                                    <Download className="w-4 h-4 text-gold" />
-                                                </Button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
+
                     </div>
                 </div>
             </div>

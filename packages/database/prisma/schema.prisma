@@ -123,7 +123,6 @@ model Organization {
   contracts     Contract[]
   payments      Payment[]
   expenses      Expense[]
-  documents     Document[]
   auditLogs     AuditLog[]
   meterReadings MeterReading[]
 
@@ -175,7 +174,6 @@ model Property {
   organization  Organization    @relation(fields: [organizationId], references: [id])
   contracts     Contract[]
   photos        PropertyPhoto[]
-  documents     PropertyDocument[]
   meterReadings MeterReading[]
 
   @@unique([organizationId, number])
@@ -218,6 +216,7 @@ model Tenant {
   notes           String?
   isBlacklisted   Boolean  @default(false)
   blacklistReason String?
+  isActive        Boolean  @default(true)
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -228,7 +227,6 @@ model Tenant {
   organization    Organization     @relation(fields: [organizationId], references: [id])
   user            User?            @relation(fields: [userId], references: [id])
   contracts       Contract[]
-  tenantDocuments TenantDocument[]
 
   @@unique([organizationId, voen])
   @@map("tenants")
@@ -272,7 +270,6 @@ model Contract {
   parentContract Contract?    @relation("subcontracts", fields: [parentContractId], references: [id])
   subContracts   Contract[]   @relation("subcontracts")
   payments       Payment[]
-  documents      Document[]
 
   @@unique([organizationId, number])
   @@map("contracts")
@@ -317,19 +314,6 @@ model Expense {
   @@map("expenses")
 }
 
-model Document {
-  id             String       @id @default(cuid())
-  organizationId String
-  contractId     String
-  type           DocumentType
-  filePath       String
-  generatedAt    DateTime     @default(now())
-
-  organization Organization @relation(fields: [organizationId], references: [id])
-  contract     Contract     @relation(fields: [contractId], references: [id])
-
-  @@map("documents")
-}
 
 model AuditLog {
   id             String   @id @default(cuid())
@@ -379,28 +363,4 @@ model PropertyPhoto {
   @@map("property_photos")
 }
 
-model TenantDocument {
-  id         String       @id @default(cuid())
-  tenantId   String
-  type       DocumentType
-  filePath   String
-  name       String
-  uploadedAt DateTime     @default(now())
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-
-  @@map("tenant_documents")
-}
-
-model PropertyDocument {
-  id         String       @id @default(cuid())
-  propertyId String
-  type       DocumentType
-  filePath   String
-  name       String
-  uploadedAt DateTime     @default(now())
-
-  property Property @relation(fields: [propertyId], references: [id])
-
-  @@map("property_documents")
-}
