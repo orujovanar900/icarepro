@@ -12,7 +12,7 @@ interface Props {
 }
 
 const MESSAGES: Record<FeatureGate, string> = {
-    senadUstasi: 'Sənəd Ustası AI Professional planından istifadə olunur',
+    senadUstasi: 'Sənəd Ustası AI Biznes planından istifadə olunur',
     senadLimit: 'Bu ay Sənəd Ustası limitiniz doldu (30/30)',
     addUnit: 'Maksimum obyekt limitinə çatdınız',
     addUser: 'İstifadəçi limitinə çatdınız',
@@ -35,8 +35,8 @@ const PRICES: Record<PlanType, string> = {
 const PLAN_NAMES: Record<PlanType, string> = {
     free: 'Pulsuz',
     starter: 'Başlanğıc',
-    pro: 'Professional',
-    business: 'Biznes'
+    pro: 'Biznes',
+    business: 'Korporativ'
 };
 
 export const UpgradeModal: React.FC<Props> = ({ isOpen, feature, requiredPlan, onClose, onUpgrade }) => {

@@ -558,7 +558,7 @@ export function Landing() {
                             {
                                 name: 'PULSUZ', sub: 'Free', price: 0, annualPrice: 0, promo: null,
                                 popular: false, enterprise: false,
-                                units: 2, users: 1,
+                                units: 1, users: 1,
                                 feats: [
                                     { ok: true, t: 'Obyekt siyahısı + xəritə' },
                                     { ok: true, t: 'Kirayəçi məlumatları (FİN, VÖEN)' },

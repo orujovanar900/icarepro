@@ -15,6 +15,17 @@ datasource db {
 // Enums
 // ─────────────────────────────────────────
 
+enum OwnerType {
+  FERDI_VETANDAS
+  FERDI_SAHIBKAR
+  HUQUQI_SEXS
+}
+
+enum ActivityLocation {
+  BAKI
+  DIGER
+}
+
 enum UserRole {
   SUPERADMIN
   OWNER
@@ -120,6 +131,11 @@ model Organization {
 
   senadUstasiUsedMonth Int       @default(0)
   senadUstasiResetDate DateTime? @default(now())
+
+  ownerType            OwnerType?
+  activityLocation     ActivityLocation?
+  taxVoen              String?
+  isVatPayer           Boolean   @default(false)
 
   users         User[]
   properties    Property[]

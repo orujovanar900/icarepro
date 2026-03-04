@@ -131,9 +131,9 @@ export function Billing() {
                             <span className="text-muted text-sm"> / ay</span>
                         </div>
                         <ul className="space-y-2 text-sm text-muted mb-6 flex-1">
-                            <li className="flex gap-2">✔ 6-15 obyekt</li>
+                            <li className="flex gap-2">✔ 6-20 obyekt</li>
                             <li className="flex gap-2">✔ Təkmilləşdirilmiş hesabatlar</li>
-                            <li className="flex gap-2">✔ Sənəd Ustası (10/ay)</li>
+                            <li className="flex gap-2">✔ Sənəd Ustası (30/ay)</li>
                             <li className="flex gap-2">✔ Whatsapp dəstəyi</li>
                         </ul>
                         <a href="mailto:support@icarepro.az?subject=Biznes Planı&body=Salam, mən Biznes planına keçmək istəyirəm." className="block text-center w-full py-2 bg-gold hover:bg-gold/90 text-background rounded-md transition-colors text-sm font-bold shadow-md shadow-gold/20">Seç</a>
@@ -147,8 +147,8 @@ export function Billing() {
                             <span className="text-muted text-sm"> / ay</span>
                         </div>
                         <ul className="space-y-2 text-sm text-muted mb-6 flex-1">
-                            <li className="flex gap-2">✔ 16-50 obyekt</li>
-                            <li className="flex gap-2">✔ Limitiz Sənəd Ustası</li>
+                            <li className="flex gap-2">✔ 21-50 obyekt</li>
+                            <li className="flex gap-2">✔ Limitsiz Sənəd Ustası</li>
                             <li className="flex gap-2">✔ 24/7 VIP dəstək</li>
                             <li className="flex gap-2">✔ Xüsusi funksiyalar</li>
                         </ul>

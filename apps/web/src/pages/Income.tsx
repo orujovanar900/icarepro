@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
+import { usePlan, FeatureGate } from '@/utils/planGates';
+import { UpgradeModal } from '@/components/UpgradeModal';
 
 const rentalTypeLabel: Record<string, string> = {
     RESIDENTIAL_LONG: 'Yaşayış (uzunmüddətli)',
@@ -125,6 +127,85 @@ export function Income() {
     const [page, setPage] = useState(1);
     const [showDeleted, setShowDeleted] = useState(false);
     const limit = 20;
+
+    const { can, plan } = usePlan();
+    const [upgradeFeature, setUpgradeFeature] = useState<FeatureGate | null>(null);
+
+    // Report Modal State
+    const [reportStartDate, setReportStartDate] = useState(new Date(currentYear, currentMonth - 1, 1).toISOString().split('T')[0]);
+    const [reportEndDate, setReportEndDate] = useState(new Date().toISOString().split('T')[0]);
+    const [isExporting, setIsExporting] = useState(false);
+    const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+    const [emailAddress, setEmailAddress] = useState(user?.email || '');
+
+    const getReportPayload = () => ({
+        startDate: new Date(reportStartDate || '').toISOString(),
+        endDate: new Date(new Date(reportEndDate || '').setHours(23, 59, 59)).toISOString(),
+        direction: 'income'
+    });
+
+    const handleExportExcel = async () => {
+        if (!can('excelExport')) {
+            setUpgradeFeature('excelExport');
+            return;
+        }
+        setIsExporting(true);
+        try {
+            const res = await api.post('/hesabat/contracts', { ...getReportPayload(), format: 'excel' }, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'medaxil_hesabati.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+        } catch (error) {
+            console.error("Export failed", error);
+            addToast({ message: "Hesabat generasiyası xətası.", type: 'error' });
+        } finally {
+            setIsExporting(false);
+            setShowReportModal(false);
+        }
+    };
+
+    const handlePrintPDF = async () => {
+        if (!can('pdfExport')) {
+            setUpgradeFeature('pdfExport');
+            return;
+        }
+        setIsExporting(true);
+        try {
+            const res = await api.post('/hesabat/contracts', { ...getReportPayload(), format: 'pdf' }, { responseType: 'blob' });
+            const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'medaxil_hesabati.pdf');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+        } catch (error) {
+            console.error("PDF generation failed", error);
+            addToast({ message: "PDF generasiyası xətası.", type: 'error' });
+        } finally {
+            setIsExporting(false);
+            setShowReportModal(false);
+        }
+    };
+
+    const handleSendEmail = async () => {
+        setIsExporting(true);
+        try {
+            await api.post('/hesabat/contracts/send-email', { ...getReportPayload(), email: emailAddress });
+            addToast({ message: 'Hesabat email-ə göndərildi ✓', type: 'success' });
+            setIsEmailModalOpen(false);
+            setShowReportModal(false);
+        } catch (error) {
+            console.error('Email send failed', error);
+            addToast({ message: 'Email göndərilmədi. Yenidən cəhd edin.', type: 'error' });
+        } finally {
+            setIsExporting(false);
+        }
+    };
 
     const handleFilterChange = (key: string, value: string) => {
         const newParams = new URLSearchParams(searchParams);
@@ -239,18 +320,23 @@ export function Income() {
                     <ArrowDownLeft className="w-8 h-8 text-green" />
                     Mədaxil
                 </h1>
-                {canAddPayment && (
-                    <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                        <Button variant="outline" onClick={() => setShowReportModal(true)} className="flex-1 sm:flex-none">
-                            <BarChart4 className="w-4 h-4 mr-2" />
-                            Hesabat
-                        </Button>
+                <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                    <Button onClick={() => {
+                        if (!can('reports')) {
+                            setUpgradeFeature('reports');
+                            return;
+                        }
+                        setShowReportModal(true);
+                    }} className="bg-gold border-gold text-black hover:bg-gold2 flex-1 sm:flex-none">
+                        📊 Hesabat
+                    </Button>
+                    {canAddPayment && (
                         <Button onClick={() => setIsModalOpen(true)} className="flex-[2] sm:flex-none">
                             <Plus className="w-4 h-4 mr-2" />
                             Yeni
                         </Button>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
 
             {/* Filters */}
@@ -528,85 +614,82 @@ export function Income() {
             </Modal>
 
             {/* Report Modal */}
-            <Modal isOpen={showReportModal} onClose={() => setShowReportModal(false)} title={`${months[month - 1]} ${year} - Mədaxil Hesabatı`} className="max-w-4xl">
-                <div className="space-y-6">
-                    <div className="flex justify-between items-center bg-surface p-4 rounded-xl border border-border">
-                        <div>
-                            <p className="text-sm text-muted mb-1">Cəmi Mədaxil</p>
-                            <p className="text-2xl font-bold text-green">{formatMoney(Number(totalAmount))}</p>
-                        </div>
-                        <div>
-                            <p className="text-sm text-muted mb-1">Ödəniş Sayı</p>
-                            <p className="text-2xl font-bold text-text text-right">{payments.length}</p>
-                        </div>
+            <Modal isOpen={showReportModal} onClose={() => setShowReportModal(false)} title="Mədaxil Hesabatı Yarat">
+                <div className="space-y-4">
+                    <p className="text-sm text-muted">Mədaxil hesabatını generə etmək üçün tarix aralığını seçin.</p>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input
+                            label="Başlanğıc tarixi"
+                            type="date"
+                            value={reportStartDate}
+                            onChange={(e) => setReportStartDate(e.target.value)}
+                        />
+                        <Input
+                            label="Bitmə tarixi"
+                            type="date"
+                            value={reportEndDate}
+                            onChange={(e) => setReportEndDate(e.target.value)}
+                        />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="bg-surface p-4 rounded-xl border border-border">
-                            <h3 className="text-sm font-semibold text-text mb-4 text-center">Növlər Üzrə</h3>
-                            <div className="h-[250px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={Object.entries(
-                                                payments.reduce((acc: any, p: any) => {
-                                                    const t = p.paymentType === 'CASH' ? 'Nağd' : p.paymentType === 'BANK' ? 'Bank' : p.paymentType === 'CARD' ? 'Kart' : 'Onlayn';
-                                                    acc[t] = (acc[t] || 0) + Number(p.amount);
-                                                    return acc;
-                                                }, {})
-                                            ).map(([name, value]) => ({ name, value }))}
-                                            cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"
-                                        >
-                                            {Object.entries(payments.reduce((acc: any, p: any) => { acc[p.paymentType] = 1; return acc; }, {})).map((_, index) => (
-                                                <Cell key={`cell-${index}`} fill={['#C9A84C', '#22c55e', '#3b82f6', '#a855f7'][index % 4]} />
-                                            ))}
-                                        </Pie>
-                                        <RechartsTooltip formatter={(val: any) => formatMoney(Number(val) || 0)} contentStyle={{ backgroundColor: '#1A1D24', border: '1px solid #2D3748', borderRadius: '8px', color: '#fff' }} />
-                                        <Legend />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
+                    <div className="flex flex-col gap-2 pt-4 border-t border-border mt-6">
+                        <div className="flex gap-4">
+                            <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={handleExportExcel}
+                                disabled={isExporting}
+                            >
+                                {isExporting ? 'Yüklənir...' : 'Excel Yüklə'}
+                            </Button>
+                            <Button
+                                className="flex-1 bg-gold hover:bg-gold2 text-black"
+                                onClick={handlePrintPDF}
+                                disabled={isExporting}
+                            >
+                                {isExporting ? 'Hazırlanır...' : 'PDF Yüklə'}
+                            </Button>
                         </div>
-
-                        <div className="bg-surface p-4 rounded-xl border border-border">
-                            <h3 className="text-sm font-semibold text-text mb-4 text-center">Təyinat Üzrə</h3>
-                            <div className="h-[250px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={Object.entries(
-                                                payments.reduce((acc: any, p: any) => {
-                                                    const t = rentalTypeLabel[p.contract.rentalType] || p.contract.rentalType;
-                                                    acc[t] = (acc[t] || 0) + Number(p.amount);
-                                                    return acc;
-                                                }, {})
-                                            ).map(([name, value]) => ({ name, value }))}
-                                            cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"
-                                        >
-                                            {Object.entries(payments.reduce((acc: any, p: any) => { acc[p.contract.rentalType] = 1; return acc; }, {})).map((_, index) => (
-                                                <Cell key={`cell-${index}`} fill={['#3b82f6', '#22c55e', '#a855f7', '#C9A84C', '#f97316'][index % 5]} />
-                                            ))}
-                                        </Pie>
-                                        <RechartsTooltip formatter={(val: any) => formatMoney(Number(val) || 0)} contentStyle={{ backgroundColor: '#1A1D24', border: '1px solid #2D3748', borderRadius: '8px', color: '#fff' }} />
-                                        <Legend />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex gap-4 pt-4 mt-6 border-t border-border">
-                        <Button type="button" variant="outline" className="flex-1" onClick={() => {
-                            window.print();
-                        }}>
-                            <Printer className="w-4 h-4 mr-2" /> Çap Et
-                        </Button>
-                        <Button type="button" className="flex-1" onClick={() => setShowReportModal(false)}>
-                            Bağla
+                        <Button
+                            className="w-full bg-blue border-blue/50 text-white"
+                            onClick={() => setIsEmailModalOpen(true)}
+                            disabled={isExporting}
+                        >
+                            MAIL-a göndər
                         </Button>
                     </div>
                 </div>
             </Modal>
+
+            <Modal isOpen={isEmailModalOpen} onClose={() => setIsEmailModalOpen(false)} title="Hesabatı E-poçta Göndər">
+                <div className="space-y-4">
+                    <Input
+                        label="E-poçt ünvanı"
+                        type="email"
+                        value={emailAddress}
+                        onChange={(e) => setEmailAddress(e.target.value)}
+                    />
+                    <div className="flex gap-4">
+                        <Button variant="outline" className="flex-1" onClick={() => setIsEmailModalOpen(false)}>Ləğv et</Button>
+                        <Button className="flex-1" onClick={handleSendEmail} disabled={isExporting || !emailAddress}>
+                            Göndər
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* Upgrade Modal Gate */}
+            {upgradeFeature && (
+                <div className="fixed inset-0 z-[100] backdrop-blur-md bg-black/40">
+                    <UpgradeModal
+                        isOpen={true}
+                        feature={upgradeFeature}
+                        requiredPlan={upgradeFeature === 'addUnit' ? (plan === 'free' ? 'starter' : (plan === 'starter' ? 'pro' : 'business')) : 'starter'}
+                        onClose={() => setUpgradeFeature(null)}
+                    />
+                </div>
+            )}
         </div>
     );
 }

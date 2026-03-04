@@ -44,6 +44,13 @@ const resetPasswordSchema = z.object({
     newPassword: z.string().min(8),
 })
 
+const updateOrgSchema = z.object({
+    ownerType: z.enum(['FERDI_VETANDAS', 'FERDI_SAHIBKAR', 'HUQUQI_SEXS']).optional(),
+    activityLocation: z.enum(['BAKI', 'DIGER']).nullable().optional(),
+    taxVoen: z.string().nullable().optional(),
+    isVatPayer: z.boolean().optional(),
+})
+
 const authRoutes: FastifyPluginAsync = async (fastify) => {
     // ─────────────────────────────────────────
     // POST /auth/register — create org + owner account
@@ -104,7 +111,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
                     isActive: true,
                     jwtVersion: 1,
                 },
-                include: { organization: { select: { id: true, name: true, plan: true, isActive: true, senadUstasiUsedMonth: true, senadUstasiResetDate: true } } },
+                include: { organization: { select: { id: true, name: true, plan: true, isActive: true, senadUstasiUsedMonth: true, senadUstasiResetDate: true, ownerType: true, activityLocation: true, taxVoen: true, isVatPayer: true } } },
             })
             return { user, org }
         })
@@ -279,11 +286,27 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
             select: {
                 id: true, email: true, name: true, role: true, phone: true,
                 isActive: true, createdAt: true, telegramChatId: true, avatarUrl: true,
-                organization: { select: { id: true, name: true, plan: true, isActive: true, senadUstasiUsedMonth: true, senadUstasiResetDate: true } },
+                organization: { select: { id: true, name: true, plan: true, isActive: true, senadUstasiUsedMonth: true, senadUstasiResetDate: true, ownerType: true, activityLocation: true, taxVoen: true, isVatPayer: true } },
             },
         })
         if (!user) return reply.code(404).send({ success: false, error: 'User not found' })
         return reply.send({ success: true, data: user })
+    })
+
+    // ─────────────────────────────────────────
+    // PATCH /auth/organization
+    // ─────────────────────────────────────────
+    fastify.patch('/organization', { preHandler: [authenticate, requireRole(['OWNER'])] }, async (req, reply) => {
+        const body = updateOrgSchema.safeParse(req.body)
+        if (!body.success) return sendZodError(reply, body.error)
+
+        const org = await fastify.prisma.organization.update({
+            where: { id: req.user.organizationId },
+            data: body.data,
+            select: { id: true, name: true, plan: true, isActive: true, ownerType: true, activityLocation: true, taxVoen: true, isVatPayer: true }
+        })
+
+        return reply.send({ success: true, data: org })
     })
 
     // ─────────────────────────────────────────

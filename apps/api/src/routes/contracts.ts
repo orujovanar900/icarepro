@@ -541,10 +541,12 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         const L: Record<string, { senadUstasi: boolean, senadLimit: number | null }> = {
+            FREE_TRIAL: { senadUstasi: false, senadLimit: 0 },
             FREE: { senadUstasi: false, senadLimit: 0 },
             BASHLANQIC: { senadUstasi: false, senadLimit: 0 },
             PROFESSIONAL: { senadUstasi: true, senadLimit: 30 },
-            BIZNES: { senadUstasi: true, senadLimit: null }
+            BIZNES: { senadUstasi: true, senadLimit: 30 },
+            KORPORATIV: { senadUstasi: true, senadLimit: null }
         };
         const planLimits = L[org.plan] || { senadUstasi: false, senadLimit: 0 };
 

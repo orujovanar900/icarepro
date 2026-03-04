@@ -15,7 +15,7 @@ export type FeatureGate =
     | 'addUser';
 
 export const PLAN_LIMITS = {
-    free: { maxUnits: 2, maxUsers: 1, senadUstasi: false, pdfExport: false, excelExport: false, reports: false, forecast: false, photos: false },
+    free: { maxUnits: 1, maxUsers: 1, senadUstasi: false, pdfExport: false, excelExport: false, reports: false, forecast: false, photos: false },
     starter: { maxUnits: 5, maxUsers: 2, senadUstasi: false, pdfExport: true, excelExport: true, reports: true, forecast: true, photos: true },
     pro: { maxUnits: 20, maxUsers: 5, senadUstasi: true, senadLimit: 30, pdfExport: true, excelExport: true, reports: true, forecast: true, photos: true },
     business: { maxUnits: 50, maxUsers: 10, senadUstasi: true, senadLimit: null, pdfExport: true, excelExport: true, reports: true, forecast: true, photos: true },
@@ -34,8 +34,8 @@ export function usePlan() {
 
     let currentPlan: PlanType = 'free';
     if (subPlanStr === 'BASHLANQIC') currentPlan = 'starter';
-    else if (subPlanStr === 'PROFESSIONAL') currentPlan = 'pro';
-    else if (subPlanStr === 'BIZNES' || subPlanStr === 'KORPORATIV') currentPlan = 'business';
+    else if (subPlanStr === 'BIZNES' || subPlanStr === 'PROFESSIONAL') currentPlan = 'pro';
+    else if (subPlanStr === 'KORPORATIV') currentPlan = 'business';
 
     return {
         plan: currentPlan,
