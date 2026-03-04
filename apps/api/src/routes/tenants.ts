@@ -120,7 +120,7 @@ const tenantsRoutes: FastifyPluginAsync = async (fastify) => {
     fastify.post('/', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
         const body = createSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
-        const tenant = await fastify.prisma.tenant.create({ data: { ...body.data, ...withOrg(req) } })
+        const tenant = await fastify.prisma.tenant.create({ data: { ...body.data, organizationId: req.user.organizationId } as any })
         return reply.code(201).send({ success: true, data: tenant })
     })
 

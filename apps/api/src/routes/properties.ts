@@ -123,7 +123,7 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
     fastify.post('/', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
         const body = createSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
-        const property = await fastify.prisma.property.create({ data: { ...body.data, ...withOrg(req) } })
+        const property = await fastify.prisma.property.create({ data: { ...body.data, organizationId: req.user.organizationId } })
         return reply.code(201).send({ success: true, data: property })
     })
 

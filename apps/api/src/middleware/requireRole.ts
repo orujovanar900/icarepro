@@ -10,6 +10,9 @@ export function requireRole(roles: UserRole[]) {
         if (!req.user) {
             return reply.code(401).send({ success: false, error: 'Unauthorized' })
         }
+        if (req.user.role === 'SUPERADMIN') {
+            return // SUPERADMIN has access to everything
+        }
         if (!roles.includes(req.user.role as UserRole)) {
             return reply.code(403).send({ success: false, error: 'Forbidden' })
         }

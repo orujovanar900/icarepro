@@ -60,7 +60,7 @@ const expensesRoutes: FastifyPluginAsync = async (fastify) => {
         const body = createSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
         const expense = await fastify.prisma.expense.create({
-            data: { ...body.data, ...withOrg(req), date: new Date(body.data.date), createdBy: req.user.sub },
+            data: { ...body.data, organizationId: req.user.organizationId, date: new Date(body.data.date), createdBy: req.user.sub },
         })
         return reply.code(201).send({ success: true, data: expense })
     })

@@ -147,7 +147,7 @@ export function Users() {
         toggleActiveMutation.mutate({ id, isActive: !currentStatus });
     };
 
-    if (user?.role !== 'OWNER') {
+    if (user?.role !== 'OWNER' && user?.role !== 'SUPERADMIN') {
         return (
             <div className="flex-1 flex justify-center items-center p-6 pb-24 text-red font-bold">
                 İcazəniz yoxdur.
