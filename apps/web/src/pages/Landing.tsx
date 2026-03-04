@@ -58,12 +58,15 @@ a{text-decoration:none;}
   .tg{flex-direction:column!important;}
   .sf{flex-wrap:wrap!important;gap:24px!important;}
   .nl{display:none!important;}
-  .nh{display:none!important;}
+  .nh{display:flex!important;}
   .nr{gap:8px!important;}
   .pg2{grid-template-columns:1fr!important;}
-  .nav-btn { font-size: 13px !important; padding: 8px 16px !important; min-width: auto !important; }
+  .nav-btn { font-size: 13px !important; padding: 8px 16px !important; min-width: auto !important; white-space: nowrap !important; }
+  .btn-ghost, .btn-gold { white-space: nowrap !important; }
+  .hero-h1 { font-size: clamp(2rem, 8vw, 4rem) !important; }
   .pc { flex: 0 0 240px !important; min-width: 240px !important; }
 }
+
 `;
 
 function useCountUp(target: number, dur = 1800, go = false) {

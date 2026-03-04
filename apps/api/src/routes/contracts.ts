@@ -394,6 +394,134 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
 
         return reply.send({ success: true })
     })
+
+    // ── Contract Documents ──────────────────────────────────────────
+    const { createClient } = await import('@supabase/supabase-js')
+    const supabase = createClient(
+        process.env['SUPABASE_URL']!,
+        process.env['SUPABASE_SERVICE_KEY']!
+    )
+
+    // GET /contracts/:id/documents
+    fastify.get('/:id/documents', { preHandler: [authenticate] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const contract = await fastify.prisma.contract.findFirst({ where: { id, ...withOrg(req) } })
+        if (!contract) return reply.code(404).send({ success: false, error: 'Contract not found' })
+
+        const docs = await fastify.prisma.contractDocument.findMany({
+            where: { contractId: id, deletedAt: null },
+            orderBy: { uploadedAt: 'desc' },
+        })
+        return reply.send({ success: true, data: docs })
+    })
+
+    // POST /contracts/:id/documents
+    fastify.post('/:id/documents', {
+        preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])]
+    }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const contract = await fastify.prisma.contract.findFirst({ where: { id, ...withOrg(req) } })
+        if (!contract) return reply.code(404).send({ success: false, error: 'Contract not found' })
+
+        const data = await req.file()
+        if (!data) return reply.code(400).send({ success: false, error: 'No file uploaded' })
+
+        const allowedMimes = [
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'image/jpeg',
+            'image/png',
+        ]
+        if (!allowedMimes.includes(data.mimetype)) {
+            return reply.code(400).send({ success: false, error: 'Yalniz PDF, DOC, DOCX, XLSX, JPG, PNG yukleye bilersiniz' })
+        }
+
+        const fileBuffer = await data.toBuffer()
+        if (fileBuffer.length > 5 * 1024 * 1024) {
+            return reply.code(400).send({ success: false, error: 'Maximum fayl olcusu 5MB olmalidir' })
+        }
+
+        const safeName = data.filename.replace(/[^a-zA-Z0-9._-]/g, '_')
+        const storagePath = `${id}/${Date.now()}_${safeName}`
+
+        const { error: uploadError } = await supabase.storage
+            .from('contract-documents')
+            .upload(storagePath, fileBuffer, { contentType: data.mimetype, upsert: false })
+
+        if (uploadError) {
+            fastify.log.error(uploadError)
+            return reply.code(500).send({ success: false, error: 'Upload failed' })
+        }
+
+        const { data: { publicUrl } } = supabase.storage.from('contract-documents').getPublicUrl(storagePath)
+
+        const qs = req.query as Record<string, string>
+        const docType = qs['type'] || 'OTHER'
+        const docTitle = qs['title'] || `${docTypeLabel(docType)} - ${new Date().toLocaleDateString('az-AZ')}`
+
+        const doc = await fastify.prisma.contractDocument.create({
+            data: {
+                contractId: id,
+                type: docType,
+                title: docTitle,
+                fileUrl: publicUrl,
+                fileName: data.filename,
+                fileSize: fileBuffer.length,
+                uploadedBy: req.user.sub,
+                notes: qs['notes'] || null,
+            },
+        })
+
+        return reply.code(201).send({ success: true, data: doc })
+    })
+
+    // PATCH /contracts/:id/documents/:docId
+    fastify.patch('/:id/documents/:docId', {
+        preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])]
+    }, async (req, reply) => {
+        const { id, docId } = req.params as { id: string; docId: string }
+        const body = req.body as { title?: string; notes?: string }
+
+        const doc = await fastify.prisma.contractDocument.findFirst({
+            where: { id: docId, contractId: id, deletedAt: null }
+        })
+        if (!doc) return reply.code(404).send({ success: false, error: 'Document not found' })
+
+        const updated = await fastify.prisma.contractDocument.update({
+            where: { id: docId },
+            data: {
+                title: body.title ?? doc.title,
+                notes: body.notes ?? doc.notes,
+            },
+        })
+        return reply.send({ success: true, data: updated })
+    })
+
+    // DELETE /contracts/:id/documents/:docId (soft delete)
+    fastify.delete('/:id/documents/:docId', {
+        preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ADMINISTRATOR'])]
+    }, async (req, reply) => {
+        const { id, docId } = req.params as { id: string; docId: string }
+        await fastify.prisma.contractDocument.updateMany({
+            where: { id: docId, contractId: id },
+            data: { deletedAt: new Date() },
+        })
+        return reply.code(204).send()
+    })
+}
+
+function docTypeLabel(type: string): string {
+    const labels: Record<string, string> = {
+        ACT: 'Akt',
+        NOTIFICATION: 'Bildiri\u015f',
+        ADDENDUM: '\u018flav\u0259',
+        INVOICE: 'Hesab-faktura',
+        OTHER: 'S\u0259n\u0259d',
+    }
+    return labels[type] || 'S\u0259n\u0259d'
 }
 
 export default contractsRoutes

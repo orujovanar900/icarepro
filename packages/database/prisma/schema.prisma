@@ -270,6 +270,7 @@ model Contract {
   parentContract Contract?    @relation("subcontracts", fields: [parentContractId], references: [id])
   subContracts   Contract[]   @relation("subcontracts")
   payments       Payment[]
+  documents      ContractDocument[]
 
   @@unique([organizationId, number])
   @@map("contracts")
@@ -363,4 +364,20 @@ model PropertyPhoto {
   @@map("property_photos")
 }
 
+model ContractDocument {
+  id         String    @id @default(cuid())
+  contractId String
+  type       String    @default("OTHER") // ACT, NOTIFICATION, ADDENDUM, INVOICE, OTHER
+  title      String
+  fileUrl    String
+  fileName   String
+  fileSize   Int
+  uploadedAt DateTime  @default(now())
+  uploadedBy String
+  notes      String?
+  deletedAt  DateTime?
 
+  contract Contract @relation(fields: [contractId], references: [id])
+
+  @@map("contract_documents")
+}
