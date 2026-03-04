@@ -13,6 +13,7 @@ interface Property {
 interface SimpleMapProps {
     compact?: boolean;
     hidePanel?: boolean;
+    height?: number;
     properties: Property[];
     onPropertyClick?: (id: string) => void;
 }
@@ -29,8 +30,8 @@ const STATUS_LABEL: Record<string, string> = {
     expired: 'Bitmişdir',
 };
 
-export default function SimpleMap({ compact = false, hidePanel = false, properties, onPropertyClick }: SimpleMapProps) {
-    const height = compact ? '100%' : 380;
+export default function SimpleMap({ compact = false, hidePanel = false, height: heightProp, properties, onPropertyClick }: SimpleMapProps) {
+    const height = compact ? '100%' : (heightProp ?? 280);
 
     // OpenStreetMap iframe — Baku area, zero JS dependencies
     const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=49.65,40.30,50.05,40.55&layer=mapnik`;

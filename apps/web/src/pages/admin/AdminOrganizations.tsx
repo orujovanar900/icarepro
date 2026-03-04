@@ -20,6 +20,8 @@ export function AdminOrganizations() {
     const [propCountFilter, setPropCountFilter] = useState('all');
     const [dateFilter, setDateFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [customDateStart, setCustomDateStart] = useState('');
+    const [customDateEnd, setCustomDateEnd] = useState('');
 
     // Sorting
     const [sortKey, setSortKey] = useState<'name' | 'properties' | 'createdAt' | 'plan'>('createdAt');
@@ -79,6 +81,9 @@ export function AdminOrganizations() {
             matchesDate = orgDate.getMonth() === today.getMonth() && orgDate.getFullYear() === today.getFullYear();
         } else if (dateFilter === 'Bu il') {
             matchesDate = orgDate.getFullYear() === today.getFullYear();
+        } else if (dateFilter === 'Xüssüsi') {
+            if (customDateStart) matchesDate = orgDate >= new Date(customDateStart);
+            if (customDateEnd) matchesDate = matchesDate && orgDate <= new Date(new Date(customDateEnd).setHours(23, 59, 59));
         }
 
         // Status Filter
@@ -110,11 +115,13 @@ export function AdminOrganizations() {
     };
 
     const hasActiveFilters = planFilter !== 'all' || propCountFilter !== 'all' ||
-        dateFilter !== 'all' || statusFilter !== 'all' || search !== '';
+        dateFilter !== 'all' || statusFilter !== 'all' || search !== '' ||
+        (customDateStart !== '' || customDateEnd !== '');
 
     const resetFilters = () => {
         setSearch(''); setPlanFilter('all'); setPropCountFilter('all');
         setDateFilter('all'); setStatusFilter('all');
+        setCustomDateStart(''); setCustomDateEnd('');
     };
 
     const renderSubscriptionBadge = (status: string) => {
