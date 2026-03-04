@@ -16,7 +16,7 @@ export function AdminOrganizations() {
 
     // Filters
     const [search, setSearch] = useState('');
-    const [planFilter, setPlanFilter] = useState('all');
+    const [planFilter, setPlanFilter] = useState('Hamısı');
     const [propCountFilter, setPropCountFilter] = useState('all');
     const [dateFilter, setDateFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -53,13 +53,16 @@ export function AdminOrganizations() {
         const matchesSearch = o.name.toLowerCase().includes(search.toLowerCase()) ||
             o.ownerEmail.toLowerCase().includes(search.toLowerCase());
 
-        // Plan Filter (Assuming Hamısı | Başlanğıc (PRO) | Biznes | Korporativ | Sınaq (FREE/FREE_TRIAL))
-        const matchesPlan = planFilter === 'all' ||
-            (planFilter === 'Sınaq' && (o.subscriptionPlan === 'FREE_TRIAL' || o.subscriptionPlan === 'FREE')) ||
-            (planFilter === 'Başlanğıc' && o.subscriptionPlan === 'BASHLANQIC') ||
-            (planFilter === 'Biznes' && o.subscriptionPlan === 'BIZNES') ||
-            (planFilter === 'Korporativ' && o.subscriptionPlan === 'KORPORATIV') ||
-            (planFilter === o.plan); // Fallback to old plan ENUM if needed
+        // Plan Filter (Assuming Hamısı | Başlanğıc (PRO) | Biznes | Korporativ | Pulsuz (FREE/FREE_TRIAL))
+        let matchesPlan = true;
+        if (planFilter !== 'Hamısı') {
+            matchesPlan =
+                (planFilter === 'Pulsuz' && (o.subscriptionPlan === 'FREE_TRIAL' || o.subscriptionPlan === 'FREE')) ||
+                (planFilter === 'Başlanğıc' && o.subscriptionPlan === 'BASHLANQIC') ||
+                (planFilter === 'Biznes' && o.subscriptionPlan === 'BIZNES') ||
+                (planFilter === 'Korporativ' && o.subscriptionPlan === 'KORPORATIV') ||
+                (planFilter === o.plan); // Fallback to old plan ENUM if needed
+        }
 
         // Property Count Filter
         let matchesPropCount = true;
@@ -114,12 +117,12 @@ export function AdminOrganizations() {
         }
     };
 
-    const hasActiveFilters = planFilter !== 'all' || propCountFilter !== 'all' ||
+    const hasActiveFilters = planFilter !== 'Hamısı' || propCountFilter !== 'all' ||
         dateFilter !== 'all' || statusFilter !== 'all' || search !== '' ||
         (customDateStart !== '' || customDateEnd !== '');
 
     const resetFilters = () => {
-        setSearch(''); setPlanFilter('all'); setPropCountFilter('all');
+        setSearch(''); setPlanFilter('Hamısı'); setPropCountFilter('all');
         setDateFilter('all'); setStatusFilter('all');
         setCustomDateStart(''); setCustomDateEnd('');
     };
@@ -163,8 +166,8 @@ export function AdminOrganizations() {
                             value={planFilter}
                             onChange={(e) => setPlanFilter(e.target.value)}
                             options={[
-                                { label: 'Bütün Planlar', value: 'all' },
-                                { label: 'Sınaq', value: 'Sınaq' },
+                                { label: 'Bütün Planlar', value: 'Hamısı' },
+                                { label: 'Pulsuz', value: 'Pulsuz' },
                                 { label: 'Başlanğıc', value: 'Başlanğıc' },
                                 { label: 'Biznes', value: 'Biznes' },
                                 { label: 'Korporativ', value: 'Korporativ' },

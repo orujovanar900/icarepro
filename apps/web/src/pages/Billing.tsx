@@ -16,7 +16,7 @@ export function Billing() {
     // Derived plan variables purely for visual mapping. 
     // Actual role checks are on backend.
     const planLabels: Record<string, string> = {
-        FREE_TRIAL: 'Sınaq',
+        FREE_TRIAL: 'Pulsuz',
         BASHLANQIC: 'Başlanğıc',
         BIZNES: 'Biznes',
         KORPORATIV: 'Korporativ',

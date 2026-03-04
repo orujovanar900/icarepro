@@ -144,6 +144,7 @@ export function Landing() {
     const [hover, setHover] = useState(false);
     const [stt, setStt] = useState(false);
     const [dm, setDm] = useState(false);
+    const [showComp, setShowComp] = useState(false);
     const [toast, setToast] = useState<string | null>(null);
     const propRef = useRef<HTMLDivElement>(null);
 
@@ -351,6 +352,127 @@ export function Landing() {
                 </div>
             </section>
 
+            {/* SMART REPORTS SECTION */}
+            <section style={{ padding: '110px 32px', background: C.dark }}>
+                <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+                    <div className="fiu" style={{ textAlign: 'center', marginBottom: 64 }}>
+                        <h2 style={{ fontFamily: C.f, fontWeight: 800, fontSize: 'clamp(28px,4vw,46px)', marginBottom: 14 }}>📊 Ağıllı Hesabatlar</h2>
+                        <p style={{ fontSize: 17, color: C.muted }}>Əmlak portfelinizi dərin analiz edin</p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 48, alignItems: 'center', flexWrap: 'wrap' }}>
+                        {/* CSS Mockup */}
+                        <div className="fiu gc" style={{ flex: '1 1 400px', padding: 24, paddingBottom: 0, borderRadius: '24px 24px 0 0', position: 'relative', overflow: 'hidden', height: 380, borderBottom: 'none' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 24 }}>
+                                <div style={{ width: 120, height: 16, background: C.w10, borderRadius: 8 }} />
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    <div style={{ width: 40, height: 20, background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }}>PDF</div>
+                                    <div style={{ width: 40, height: 20, background: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', fontSize: 10, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 4 }}>XLS</div>
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+                                <div style={{ background: C.surf, padding: 16, borderRadius: 12 }}>
+                                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>Ümumi Gəlir</div>
+                                    <div style={{ fontSize: 24, fontWeight: 800, color: C.text }}>AZN 45K</div>
+                                    <div style={{ fontSize: 10, color: C.green, marginTop: 4 }}>+12% artım 📈</div>
+                                </div>
+                                <div style={{ background: C.surf, padding: 16, borderRadius: 12 }}>
+                                    <div style={{ fontSize: 11, color: C.muted, marginBottom: 4 }}>Doluluq</div>
+                                    <div style={{ fontSize: 24, fontWeight: 800, color: C.gold }}>94%</div>
+                                    <div style={{ width: '100%', background: C.w10, height: 4, borderRadius: 2, marginTop: 8 }}>
+                                        <div style={{ width: '94%', background: C.gold, height: '100%', borderRadius: 2 }} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ background: C.surf, padding: 16, borderRadius: 12, height: 160 }}>
+                                <div style={{ fontSize: 12, color: C.muted, marginBottom: 16 }}>İllik Trend</div>
+                                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 100 }}>
+                                    {[40, 50, 45, 60, 55, 75, 65, 80, 70, 90, 85, 95].map((h, i) => (
+                                        <div key={i} style={{ flex: 1, height: `${h}%`, background: i === 11 ? C.gold : 'rgba(201,168,76,.2)', borderRadius: '4px 4px 0 0', animation: 'fsu 1s ease both', animationDelay: `${i * 0.05}s` }} />
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Text Grid */}
+                        <div style={{ flex: '1 1 500px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+                            {[
+                                { i: '📈', t: 'Gəlir Analizi', d: 'Aylıq, rüblük, illik gəlir trendi. Ötən dövrə müqayisə.' },
+                                { i: '🏢', t: 'Doluluq Hesabatı', d: 'Hər əmlak üzrə doluluq tarixi. Boş qalan günlər analizi.' },
+                                { i: '💰', t: 'Mənfəətlilik Reytinqi', d: 'Hansı əmlak daha çox gəlir gətirir? ROI hesablaması.' },
+                                { i: '⚡', t: 'Effektivlik Göstəriciləri', d: 'Orta boş qalma müddəti. Bazar qiyməti müqayisəsi.' },
+                                { i: '🔮', t: 'Gəlir Proqnozu', d: 'Aktiv müqavilələrə əsasən növbəti ay/rüb proqnozu.' },
+                                { i: '📥', t: 'Dərhal İxrac', d: 'Bütün hesabatları tək kliklə PDF və Excel olaraq yükləyin.' },
+                            ].map((f, i) => (
+                                <div key={i} className="fiu" style={{ transitionDelay: `${i * 0.1}s` }}>
+                                    <div style={{ fontSize: 24, marginBottom: 8 }}>{f.i}</div>
+                                    <h4 style={{ fontFamily: C.f, fontWeight: 700, fontSize: 16, marginBottom: 6 }}>{f.t}</h4>
+                                    <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.6 }}>{f.d}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* AI FEATURES */}
+            <section style={{ padding: '110px 32px', background: C.surf }}>
+                <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+                    <div className="fiu" style={{ textAlign: 'center', marginBottom: 64 }}>
+                        <h2 style={{ fontFamily: C.f, fontWeight: 800, fontSize: 'clamp(28px,4vw,46px)', marginBottom: 14 }}>🤖 Süni İntellekt ilə işləyin</h2>
+                        <p style={{ fontSize: 17, color: C.muted }}>İcarə Pro-nun AI funksiyaları işinizi avtomatlaşdırır</p>
+                    </div>
+
+                    <div className="fg" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+                        {/* Sənəd Ustası */}
+                        <div className="gc fc fiu" style={{ padding: '40px 36px', background: 'linear-gradient(145deg, rgba(88,28,135,0.15), rgba(0,0,0,0.4))', position: 'relative', overflow: 'hidden' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: C.gold, color: '#000', fontSize: 12, fontWeight: 800, padding: '4px 12px', borderRadius: 50, marginBottom: 24, paddingLeft: 8 }}>
+                                <span style={{ background: '#fff', borderRadius: '50%', width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>✨</span> AI ilə işləyir
+                            </div>
+                            <div style={{ fontSize: 48, marginBottom: 20, animation: 'floatA 4s ease-in-out infinite' }}>📄</div>
+                            <h3 style={{ fontFamily: C.f, fontWeight: 800, fontSize: 24, marginBottom: 16, color: '#e9d5ff' }}>Sənəd Ustası</h3>
+                            <p style={{ fontSize: 15, color: '#c084fc', lineHeight: 1.7, marginBottom: 28 }}>
+                                Müqavilələri saniyələr içində yaradın. AI kirayəçi məlumatlarını avtomatik doldurur, hüquqi şərtləri əlavə edir.
+                            </p>
+                            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 36 }}>
+                                {['Avtomatik müqavilə yaratma', 'Mövcud müqavilə skanı', 'Bütün məlumatların avtodoldurulması', 'PDF export'].map((f, i) => (
+                                    <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: '#e9d5ff' }}>
+                                        <CheckCircle2 size={16} color={C.gold} /> {f}
+                                    </li>
+                                ))}
+                            </ul>
+                            <Link to="/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: C.gold, fontWeight: 700, fontSize: 16 }}>
+                                Sənəd Ustasını sına <ArrowRight size={18} />
+                            </Link>
+                        </div>
+
+                        {/* Dəstək Assistenti */}
+                        <div className="gc fc fiu" style={{ padding: '40px 36px', background: 'linear-gradient(145deg, rgba(13,148,136,0.15), rgba(0,0,0,0.4))', position: 'relative', overflow: 'hidden', transitionDelay: '.1s' }}>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#10b981', color: '#fff', fontSize: 12, fontWeight: 800, padding: '4px 12px', borderRadius: 50, marginBottom: 24 }}>
+                                🟢 24/7 Online
+                            </div>
+                            <div style={{ fontSize: 48, marginBottom: 20, animation: 'floatC 4s ease-in-out infinite' }}>💬</div>
+                            <h3 style={{ fontFamily: C.f, fontWeight: 800, fontSize: 24, marginBottom: 16, color: '#ccfbf1' }}>Dəstək Assistenti</h3>
+                            <p style={{ fontSize: 15, color: '#5eead4', lineHeight: 1.7, marginBottom: 28 }}>
+                                Hər sualınıza anında cavab alın. Pro assistant platformanı tam bilir, Azərbaycan dilində cavab verir.
+                            </p>
+                            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 36 }}>
+                                {['24/7 dəstək', 'Azərbaycan dilində', 'Platform xüsusiyyətləri', 'Ani cavab'].map((f, i) => (
+                                    <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: '#ccfbf1' }}>
+                                        <CheckCircle2 size={16} color="#10b981" /> {f}
+                                    </li>
+                                ))}
+                            </ul>
+                            <Link to="/register" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: '#10b981', fontWeight: 700, fontSize: 16 }}>
+                                Sualını ver <ArrowRight size={18} />
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* PROPERTY SHOWCASE */}
             <section style={{ padding: '110px 32px', background: C.dark }}>
                 <div style={{ maxWidth: 1100, margin: '0 auto' }}>
@@ -425,7 +547,7 @@ export function Landing() {
                         <div className="ptg" style={{ display: 'inline-flex', position: 'relative' }}>
                             <button onClick={() => setPa(false)} style={{ background: !pa ? C.gold : 'transparent', color: !pa ? '#0A0B0F' : C.muted, fontWeight: !pa ? 700 : 400, transition: 'all .2s' }}>Aylıq</button>
                             <button onClick={() => setPa(true)} style={{ background: pa ? C.gold : 'transparent', color: pa ? '#0A0B0F' : C.muted, fontWeight: pa ? 700 : 400, transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                İllik <span style={{ fontSize: 10, background: '#22c55e', color: '#fff', borderRadius: 50, padding: '2px 8px', fontWeight: 700, whiteSpace: 'nowrap' }}>25% endirim</span>
+                                İllik <span style={{ fontSize: 10, background: '#22c55e', color: '#fff', borderRadius: 50, padding: '2px 8px', fontWeight: 700, whiteSpace: 'nowrap' }}>2 Ay Pulsuz (20%)</span>
                             </button>
                         </div>
                     </div>
@@ -434,7 +556,7 @@ export function Landing() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20, marginBottom: 64 }}>
                         {[
                             {
-                                name: 'İNDİVİDUAL', sub: 'Free', price: 0, annualPrice: 0, promo: null,
+                                name: 'PULSUZ', sub: 'Free', price: 0, annualPrice: 0, promo: null,
                                 popular: false, enterprise: false,
                                 units: 2, users: 1,
                                 feats: [
@@ -516,21 +638,47 @@ export function Landing() {
                                     </div>
 
                                     {/* Price */}
-                                    <div style={{ marginBottom: 8, minHeight: 60 }}>
+                                    <div style={{ marginBottom: 16, minHeight: 90 }}>
                                         {plan.enterprise ? (
                                             <div style={{ fontSize: 20, fontWeight: 700, color: C.gold, paddingTop: 8 }}>Bizimlə əlaqə</div>
                                         ) : plan.price === 0 ? (
-                                            <div><span style={{ fontSize: 40, fontWeight: 800, color: C.text }}>0</span><span style={{ fontSize: 15, color: C.muted }}> AZN</span></div>
-                                        ) : (
                                             <div>
-                                                {promoPrice && (
-                                                    <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 600, marginBottom: 2 }}>İlk 2 ay: {promoPrice} AZN/ay</div>
+                                                <div style={{ fontSize: 40, fontWeight: 800, color: C.text }}>0<span style={{ fontSize: 16, color: C.muted, fontWeight: 500 }}> AZN</span></div>
+                                                <div style={{ fontSize: 13, color: C.muted, marginTop: 4 }}>Həmişəlik pulsuz</div>
+                                            </div>
+                                        ) : (
+                                            <div style={{ position: 'relative' }}>
+                                                {/* Promo Price logic if monthly */}
+                                                {!pa && plan.promo && (
+                                                    <div style={{ fontSize: 12, color: '#f59e0b', fontWeight: 600, marginBottom: 4 }}>İlk 2 ay: {plan.promo} AZN/ay</div>
                                                 )}
-                                                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                                                    <span style={{ fontSize: 36, fontWeight: 800, color: plan.popular ? C.gold : C.text }}>{displayPrice}</span>
-                                                    <span style={{ fontSize: 14, color: C.muted }}>AZN/{pa ? 'ay' : 'ay'}</span>
-                                                </div>
-                                                {pa && <div style={{ fontSize: 11, color: '#22c55e', marginTop: 2 }}>İllik ödənişdə ({plan.annualPrice! * 12} AZN/il)</div>}
+
+                                                {/* Annual view logic */}
+                                                {pa && plan.price > 0 && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                            <span style={{ fontSize: 16, color: C.muted, textDecoration: 'line-through', fontWeight: 600 }}>{plan.price} AZN</span>
+                                                        </div>
+                                                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                                                            <span style={{ fontSize: 40, fontWeight: 800, color: C.gold }}>{(plan.price * 0.8).toFixed(2)}</span>
+                                                            <span style={{ fontSize: 15, color: C.muted }}>AZN /ay</span>
+                                                        </div>
+                                                        <div style={{ fontSize: 13, color: C.muted, marginTop: 2 }}>İllik: {(plan.price * 12 * 0.8).toFixed(2)} AZN</div>
+                                                        <div style={{ display: 'inline-flex', background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', fontSize: 11, padding: '4px 10px', borderRadius: 6, fontWeight: 700, marginTop: 8, alignSelf: 'flex-start' }}>
+                                                            Ayda {(plan.price * 0.2).toFixed(2)} AZN qənaət edirsən
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Monthly view logic */}
+                                                {!pa && plan.price > 0 && (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                                                            <span style={{ fontSize: 40, fontWeight: 800, color: plan.popular ? C.gold : C.text }}>{plan.price}</span>
+                                                            <span style={{ fontSize: 15, color: C.muted }}>AZN /ay</span>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -595,48 +743,56 @@ export function Landing() {
                     </div>
 
                     {/* Feature Comparison Table */}
-                    <div className="fiu" style={{ overflowX: 'auto' }}>
-                        <div style={{ fontSize: 12, textAlign: 'center', color: C.muted, marginBottom: 24, textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700 }}>Tam Xüsusiyyət Müqayisəsi</div>
-                        <table style={{ width: '100%', minWidth: 680, borderCollapse: 'collapse', fontSize: 13 }}>
-                            <thead>
-                                <tr style={{ borderBottom: `1px solid rgba(255,255,255,.08)` }}>
-                                    <th style={{ textAlign: 'left', padding: '12px 16px', color: C.muted, fontWeight: 600, width: '34%' }}>Xüsusiyyət</th>
-                                    {['İndividual', 'Başlanğıc', 'Prof.', 'Biznes', 'Enterprise'].map(h => (
-                                        <th key={h} style={{ textAlign: 'center', padding: '12px 8px', color: h === 'Prof.' ? C.gold : C.muted, fontWeight: h === 'Prof.' ? 700 : 600, fontSize: 12 }}>{h}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {[
-                                    { feat: 'Obyekt limiti', vals: ['2', '5', '20', '50', '50+'] },
-                                    { feat: 'İstifadəçi limiti', vals: ['1', '2', '5', '10', '∞'] },
-                                    { feat: 'Xəritə görünüşü', vals: ['✓', '✓', '✓', '✓', '✓'] },
-                                    { feat: 'Müqavilə idarəetməsi', vals: ['✓', '✓', '✓', '✓', '✓'] },
-                                    { feat: 'Vergi (14%) hesabı', vals: ['✓', '✓', '✓', '✓', '✓'] },
-                                    { feat: 'Xərc analizi', vals: ['✓', '✓', '✓', '✓', '✓'] },
-                                    { feat: 'AI Chat (Haiku)', vals: ['✓', '✓', '✓', '✓', '✓'] },
-                                    { feat: 'Obyekt fotoları', vals: ['—', '✓', '✓', '✓', '✓'] },
-                                    { feat: 'PDF / Excel ixracı', vals: ['—', '✓', '✓', '✓', '✓'] },
-                                    { feat: 'Aylıq/İllik hesabat', vals: ['—', '✓', '✓', '✓', '✓'] },
-                                    { feat: 'Gəlir proqnozu', vals: ['—', '✓', '✓', '✓', '✓'] },
-                                    { feat: 'Tam dashboard', vals: ['Əsas', '✓', '✓', '✓', '✓'] },
-                                    { feat: 'Sənəd Ustası AI', vals: ['—', '—', '30/ay', '∞', '∞'] },
-                                    { feat: 'Portfolio analizi', vals: ['—', '—', '✓', '✓', '✓'] },
-                                    { feat: 'Xüsusi hesabat', vals: ['—', '—', '—', '✓', '✓'] },
-                                    { feat: 'Prioritet dəstək', vals: ['—', '—', '—', '✓', '✓'] },
-                                    { feat: 'Şəxsi menecer', vals: ['—', '—', '—', '—', '✓'] },
-                                    { feat: 'SLA zəmanəti', vals: ['—', '—', '—', '—', '✓'] },
-                                ].map((row, ri) => (
-                                    <tr key={ri} style={{ borderBottom: `1px solid rgba(255,255,255,.04)`, background: ri % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.02)' }}>
-                                        <td style={{ padding: '11px 16px', color: C.text, fontWeight: 500 }}>{row.feat}</td>
-                                        {row.vals.map((v, vi) => (
-                                            <td key={vi} style={{ textAlign: 'center', padding: '11px 8px', color: v === '—' ? 'rgba(255,255,255,.2)' : v === '✓' ? '#22c55e' : vi === 2 ? C.gold : C.text, fontWeight: v === '✓' ? 600 : 400 }}>{v}</td>
+                    <div className="fiu" style={{ textAlign: 'center', marginBottom: 24, marginTop: 24 }}>
+                        <button onClick={() => setShowComp(!showComp)} className="btn-ghost" style={{ padding: '12px 24px', margin: '0 auto' }}>
+                            {showComp ? '▲ Xüsusiyyət müqayisəsini gizlət' : '▼ Tam xüsusiyyət müqayisəsinə bax'}
+                        </button>
+                    </div>
+
+                    {showComp && (
+                        <div style={{ overflowX: 'auto', animation: 'fsu 0.4s ease both' }}>
+                            <div style={{ fontSize: 12, textAlign: 'center', color: C.muted, marginBottom: 24, textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700 }}>Tam Xüsusiyyət Müqayisəsi</div>
+                            <table style={{ width: '100%', minWidth: 680, borderCollapse: 'collapse', fontSize: 13 }}>
+                                <thead>
+                                    <tr style={{ borderBottom: `1px solid rgba(255,255,255,.08)` }}>
+                                        <th style={{ textAlign: 'left', padding: '12px 16px', color: C.muted, fontWeight: 600, width: '34%' }}>Xüsusiyyət</th>
+                                        {['Pulsuz', 'Başlanğıc', 'Prof.', 'Biznes', 'Enterprise'].map(h => (
+                                            <th key={h} style={{ textAlign: 'center', padding: '12px 8px', color: h === 'Prof.' ? C.gold : C.muted, fontWeight: h === 'Prof.' ? 700 : 600, fontSize: 12 }}>{h}</th>
                                         ))}
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody>
+                                    {[
+                                        { feat: 'Obyekt limiti', vals: ['2', '5', '20', '50', '50+'] },
+                                        { feat: 'İstifadəçi limiti', vals: ['1', '2', '5', '10', '∞'] },
+                                        { feat: 'Xəritə görünüşü', vals: ['✓', '✓', '✓', '✓', '✓'] },
+                                        { feat: 'Müqavilə idarəetməsi', vals: ['✓', '✓', '✓', '✓', '✓'] },
+                                        { feat: 'Vergi (14%) hesabı', vals: ['✓', '✓', '✓', '✓', '✓'] },
+                                        { feat: 'Xərc analizi', vals: ['✓', '✓', '✓', '✓', '✓'] },
+                                        { feat: 'AI Chat (Haiku)', vals: ['✓', '✓', '✓', '✓', '✓'] },
+                                        { feat: 'Obyekt fotoları', vals: ['—', '✓', '✓', '✓', '✓'] },
+                                        { feat: 'PDF / Excel ixracı', vals: ['—', '✓', '✓', '✓', '✓'] },
+                                        { feat: 'Aylıq/İllik hesabat', vals: ['—', '✓', '✓', '✓', '✓'] },
+                                        { feat: 'Gəlir proqnozu', vals: ['—', '✓', '✓', '✓', '✓'] },
+                                        { feat: 'Tam dashboard', vals: ['Əsas', '✓', '✓', '✓', '✓'] },
+                                        { feat: 'Sənəd Ustası AI', vals: ['—', '—', '30/ay', '∞', '∞'] },
+                                        { feat: 'Portfolio analizi', vals: ['—', '—', '✓', '✓', '✓'] },
+                                        { feat: 'Xüsusi hesabat', vals: ['—', '—', '—', '✓', '✓'] },
+                                        { feat: 'Prioritet dəstək', vals: ['—', '—', '—', '✓', '✓'] },
+                                        { feat: 'Şəxsi menecer', vals: ['—', '—', '—', '—', '✓'] },
+                                        { feat: 'SLA zəmanəti', vals: ['—', '—', '—', '—', '✓'] },
+                                    ].map((row, ri) => (
+                                        <tr key={ri} style={{ borderBottom: `1px solid rgba(255,255,255,.04)`, background: ri % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.02)' }}>
+                                            <td style={{ padding: '11px 16px', color: C.text, fontWeight: 500 }}>{row.feat}</td>
+                                            {row.vals.map((v, vi) => (
+                                                <td key={vi} style={{ textAlign: 'center', padding: '11px 8px', color: v === '—' ? 'rgba(255,255,255,.2)' : v === '✓' ? '#22c55e' : vi === 2 ? C.gold : C.text, fontWeight: v === '✓' ? 600 : 400 }}>{v}</td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
 
                     <div className="fiu" style={{ textAlign: 'center', marginTop: 40, fontSize: 13, color: C.muted }}>
                         Heç bir gizli ödəniş • İstənilən vaxt ləğv edin • Kart tələb olunmur
