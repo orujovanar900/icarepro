@@ -688,17 +688,18 @@ function DashboardContent() {
             </div>
 
             {/* Map and Debtors Side by Side Layout */}
-            <div className="grid gap-6 grid-cols-1 lg:grid-cols-3 mt-6 items-start">
+            <div className="grid gap-6 grid-cols-1 lg:grid-cols-3 mt-6">
                 {/* Map Widget */}
-                <Card variant="elevated" className="overflow-hidden lg:col-span-2 flex flex-col">
-                    <CardHeader className="pb-2">
+                <Card variant="elevated" className="overflow-hidden lg:col-span-2 flex flex-col" style={{ height: 500 }}>
+                    <CardHeader className="pb-2 shrink-0">
                         <CardTitle className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
                             📍 Obyektlər xəritədə
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0 flex-1 flex flex-col">
-                        <div className="flex flex-col lg:flex-row gap-4 items-stretch p-4 lg:flex-1">
-                            <div className="flex-[3] lg:flex-[1.5] rounded-xl shrink-0 overflow-hidden min-w-0 h-[220px] lg:h-[320px]">
+                    <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
+                        <div className="flex flex-col lg:flex-row gap-4 p-4 h-full">
+                            {/* Map */}
+                            <div className="rounded-xl overflow-hidden shrink-0 h-[210px] lg:h-full lg:flex-[1.5]">
                                 <SimpleMap
                                     compact
                                     hidePanel
@@ -725,7 +726,8 @@ function DashboardContent() {
                                     onPropertyClick={(id) => navigate(`/properties/${id}`)}
                                 />
                             </div>
-                            <div className="overflow-y-auto flex flex-col gap-3 min-w-0 lg:min-w-[220px] custom-scrollbar pr-2 h-[220px] lg:flex-1 lg:h-0 lg:min-h-0">
+                            {/* Property list - scrollable */}
+                            <div className="flex-1 overflow-y-auto flex flex-col gap-2 custom-scrollbar pr-1" style={{ minHeight: 0 }}>
                                 {mapProperties.map((p: any) => {
                                     const contract = mapContracts.find((c: any) => c.propertyId === p.id);
                                     let status: 'active' | 'expiring' | 'expired' = 'expired';
@@ -734,20 +736,20 @@ function DashboardContent() {
                                         status = days < 0 ? 'expired' : days <= 30 ? 'expiring' : 'active';
                                     }
                                     return (
-                                        <div key={p.id} onClick={() => navigate(`/properties/${p.id}`)} className="p-4 bg-surface rounded-lg cursor-pointer hover:bg-surface/80 transition-colors border border-border/50 flex flex-col justify-center" style={{ flex: 1 }}>
+                                        <div key={p.id} onClick={() => navigate(`/properties/${p.id}`)} className="p-3 bg-surface rounded-lg cursor-pointer hover:bg-surface/80 transition-colors border border-border/50 shrink-0">
                                             <div className="flex justify-between items-start">
-                                                <p className="font-semibold text-text">{p.name}</p>
-                                                <span className={`w-2.5 h-2.5 rounded-full ${status === 'active' ? 'bg-green' : status === 'expiring' ? 'bg-orange' : 'bg-red'}`} />
+                                                <p className="font-semibold text-text text-sm">{p.name}</p>
+                                                <span className={`w-2.5 h-2.5 rounded-full shrink-0 mt-1 ${status === 'active' ? 'bg-green' : status === 'expiring' ? 'bg-orange' : 'bg-red'}`} />
                                             </div>
                                             <p className="text-xs text-muted truncate">{p.address || 'Ünvan yoxdur'}</p>
                                             {contract && (
                                                 <div className="flex justify-between items-center mt-1">
-                                                    <p className="text-xs text-text/80">
+                                                    <p className="text-xs text-text/80 truncate flex-1 mr-2">
                                                         {contract.tenant?.tenantType === 'fiziki'
                                                             ? `${contract.tenant?.firstName || ''} ${contract.tenant?.lastName || ''}`.trim()
                                                             : contract.tenant?.companyName || ''}
                                                     </p>
-                                                    <p className="text-xs font-bold text-gold">{formatMoney(Number(contract.monthlyRent))}</p>
+                                                    <p className="text-xs font-bold text-gold shrink-0">{formatMoney(Number(contract.monthlyRent))}</p>
                                                 </div>
                                             )}
                                         </div>
@@ -759,14 +761,14 @@ function DashboardContent() {
                 </Card>
 
                 {/* Debtors List next to Map */}
-                <Card variant="default" id="debtors-list" className="flex flex-col bg-card/50 min-h-[320px] lg:h-[450px]">
-                    <CardHeader>
+                <Card variant="default" id="debtors-list" className="flex flex-col bg-card/50" style={{ height: 500 }}>
+                    <CardHeader className="shrink-0">
                         <CardTitle className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
                             <AlertCircle className="w-5 h-5 text-red" />
                             Borclular
                         </CardTitle>
                     </CardHeader>
-                    <CardContent className="flex-1 overflow-auto pr-2 custom-scrollbar">
+                    <CardContent className="flex-1 overflow-y-auto pr-2 custom-scrollbar" style={{ minHeight: 0 }}>
                         {isDashboardLoading ? (
                             <div className="space-y-4">
                                 {[1, 2, 3].map(i => (
