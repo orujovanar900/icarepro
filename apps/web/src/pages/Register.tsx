@@ -9,7 +9,15 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/Card';
-import { Eye, EyeOff, Building2 } from 'lucide-react';
+import { Eye, EyeOff, Building2, Check, X } from 'lucide-react';
+
+const passwordRules = [
+    { label: 'Minimum 8 simvol', test: (p: string) => p.length >= 8 },
+    { label: '1 kiçik hərf (a–z)', test: (p: string) => /[a-z]/.test(p) },
+    { label: '1 böyük hərf (A–Z)', test: (p: string) => /[A-Z]/.test(p) },
+    { label: '1 rəqəm (0–9)', test: (p: string) => /[0-9]/.test(p) },
+    { label: '1 xüsusi simvol (!@#$…)', test: (p: string) => /[^a-zA-Z0-9]/.test(p) },
+];
 
 const registerSchema = z
     .object({
@@ -17,7 +25,13 @@ const registerSchema = z
         name: z.string().min(2, 'Ad Soyad ən azı 2 simvol olmalıdır.'),
         email: z.string().email('Düzgün e-poçt ünvanı daxil edin.'),
         organizationName: z.string().optional(),
-        password: z.string().min(6, 'Şifrə ən azı 6 simvoldan ibarət olmalıdır.'),
+        password: z
+            .string()
+            .min(8, 'Şifrə ən azı 8 simvoldan ibarət olmalıdır.')
+            .regex(/[a-z]/, 'Şifrədə ən azı 1 kiçik hərf olmalıdır.')
+            .regex(/[A-Z]/, 'Şifrədə ən azı 1 böyük hərf olmalıdır.')
+            .regex(/[0-9]/, 'Şifrədə ən azı 1 rəqəm olmalıdır.')
+            .regex(/[^a-zA-Z0-9]/, 'Şifrədə ən azı 1 xüsusi simvol olmalıdır.'),
         confirmPassword: z.string().min(1, 'Şifrəni təkrarlayın.'),
     })
     .refine((data) => {
@@ -58,6 +72,8 @@ export function Register() {
     });
 
     const selectedEntityType = watch('entityType');
+    const passwordValue = watch('password') ?? '';
+    const hasTypedPassword = passwordValue.length > 0;
 
     const onSubmit = async (data: RegisterFormValues) => {
         try {
@@ -67,7 +83,6 @@ export function Register() {
                 name: data.name,
                 email: data.email,
                 password: data.password,
-                // If individual, use their name as the implicit 'organization' name behind the scenes
                 organizationName: data.entityType === 'COMPANY' ? data.organizationName : data.name,
             });
 
@@ -180,6 +195,30 @@ export function Register() {
                                     </button>
                                 }
                             />
+
+                            {/* Password strength checklist — shown as soon as user starts typing */}
+                            {hasTypedPassword && (
+                                <div className="rounded-lg border border-border/40 bg-surface/60 px-4 py-3 space-y-1.5">
+                                    {passwordRules.map((rule) => {
+                                        const passed = rule.test(passwordValue);
+                                        return (
+                                            <div
+                                                key={rule.label}
+                                                className={`flex items-center gap-2 text-xs transition-colors ${passed ? 'text-green-400' : 'text-muted'}`}
+                                            >
+                                                <span className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center transition-all ${passed ? 'bg-green-400/20' : 'bg-white/5'}`}>
+                                                    {passed
+                                                        ? <Check size={10} strokeWidth={3} />
+                                                        : <X size={10} strokeWidth={3} className="text-muted/50" />
+                                                    }
+                                                </span>
+                                                {rule.label}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
                             <Input
                                 label="Şifrəni təkrarla"
                                 type={showConfirm ? 'text' : 'password'}
@@ -202,6 +241,30 @@ export function Register() {
                             <Button type="submit" variant="primary" className="w-full" size="lg" isLoading={isLoading}>
                                 Hesab yarat
                             </Button>
+
+                            {/* Terms & Conditions */}
+                            <p className="text-[11px] text-muted text-center leading-relaxed px-2">
+                                Qeydiyyatdan keçməklə{' '}
+                                <a
+                                    href="/terms"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-gold hover:underline font-medium"
+                                >
+                                    İstifadə Şərtləri
+                                </a>{' '}
+                                və{' '}
+                                <a
+                                    href="/terms"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-gold hover:underline font-medium"
+                                >
+                                    Publik Aferta
+                                </a>{' '}
+                                ilə razılaşırsınız.
+                            </p>
+
                             <Link
                                 to="/login"
                                 className="text-sm text-muted hover:text-gold transition-colors text-center"
