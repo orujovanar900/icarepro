@@ -130,10 +130,10 @@ const SLIDES = [
 ];
 
 const PROPS = [
-    { img: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=600&q=80', label: 'Mənzil • Bakı, Nərimanov', price: 'AZN 800/ay', badge: 'Aktiv', bc: C.green },
-    { img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=80', label: 'Ofis • Bakı, Nəftçilər pr.', price: 'AZN 2,500/ay', badge: 'Aktiv', bc: C.green },
-    { img: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&q=80', label: 'Mağaza • Bakı, Nizami', price: 'AZN 1,200/ay', badge: 'Boş', bc: C.orange },
-    { img: 'https://www.pashamalls.az/resized/resize1900/center/pages/12/pbm-1.jpg', label: 'Ticarət Mərkəzi • Port Baku Mall', price: 'AZN 8,500/ay', badge: 'Aktiv', bc: C.green },
+    { img: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=600&q=80', label: 'Yaşayış Kompleksləri', badge: 'Mənzil', bc: C.green },
+    { img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=80', label: 'Biznes Mərkəzləri', badge: 'Ofis', bc: C.purple },
+    { img: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=600&q=80', label: 'Ticarət Obyektləri', badge: 'Mağaza', bc: C.orange },
+    { img: 'https://www.pashamalls.az/resized/resize1900/center/pages/12/pbm-1.jpg', label: 'Böyük Ticarət Mərkəzləri', badge: 'AVM', bc: C.gold },
 ];
 
 export function Landing() {
@@ -236,10 +236,9 @@ export function Landing() {
                             <button className="btn-ghost" style={{ padding: '15px 30px', fontSize: 16 }} onClick={() => setDm(true)}>Demo izlə</button>
                         </div>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', animation: 'fsu .6s .4s ease both' }}>
-                            {['✓ 14 gün pulsuz', '✓ Kart tələb olunmur', '✓ AZ dəstəyi'].map((b, i) => (
+                            {['✓ Kart tələb olunmur'].map((b, i) => (
                                 <React.Fragment key={i}>
                                     <span style={{ fontSize: 13, color: C.muted, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ color: C.green }}>{b[0]}</span>{b.slice(1)}</span>
-                                    {i < 2 && <span style={{ color: 'rgba(255,255,255,.2)', fontSize: 12 }}>•</span>}
                                 </React.Fragment>
                             ))}
                         </div>
@@ -335,12 +334,12 @@ export function Landing() {
                     </div>
                     <div className="fg" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 24 }}>
                         {[
-                            { Icon: Building2, color: C.gold, title: 'Obyekt İdarəetməsi', desc: 'Mənzil, ofis, mağaza — bütün növ əmlakları idarə edin' },
-                            { Icon: FileText, color: C.purple, title: 'Ağıllı Müqavilələr', desc: 'Müqavilə yaradın, imzalayın, avtomatik yeniləmə xatırlatmaları alın' },
-                            { Icon: CreditCard, color: C.green, title: 'Ödəniş İzləmə', desc: 'Hər ödənişi qeyd edin, borclular üçün avtomatik bildirişlər' },
-                            { Icon: Users, color: '#60a5fa', title: 'Kirayəçi Bazası', desc: 'FİN, pasport, şirkət məlumatları — hamısı bir yerdə' },
-                            { Icon: BarChart3, color: C.orange, title: 'Vergi Hesabatları', desc: 'Azərbaycan vergi qanunvericiliyinə uyğun 10%/14%/20% hesablamalar' },
-                            { Icon: Bell, color: '#f472b6', title: 'Bildirişlər', desc: 'Müqavilə bitmədən 30 gün əvvəl xəbərdarlıq, ödəniş gecikməsi bildirişi' },
+                            { Icon: Building2, color: C.gold, title: 'Obyekt İdarəetməsi', desc: 'Mənzil, ofis, mağaza — bütün növ əmlakları rahatlıqla idarə edin' },
+                            { Icon: FileText, color: C.purple, title: 'Sənəd Ustası (AI)', desc: 'Süni intellektlə sənədlərinizi analiz edin və məlumatları avtomatik çıxarın' },
+                            { Icon: CreditCard, color: C.green, title: 'Ödəniş və Borc İzləmə', desc: 'Hər ödənişi qeyd edin, gecikmələr və passiv borclar barədə sistemli məlumat alın' },
+                            { Icon: Users, color: '#60a5fa', title: 'Kirayəçi Bazası', desc: 'FİN, VÖEN, müqavilələr — kirayəçilərinizin bütün detalları tək ekranda' },
+                            { Icon: BarChart3, color: C.orange, title: 'Analitika və Proqnoz', desc: 'Gəlir/Xərc hesabatları, illik P&L və maliyyə proqnozları çıxarın' },
+                            { Icon: Bell, color: '#f472b6', title: 'Avtomatik Xatırlatmalar', desc: 'Müqavilə bitməsi və ödəniş gecikmələri haqqında bildirişləri sadəcə izləyin' },
                         ].map(({ Icon, color, title, desc }, i) => (
                             <div key={i} className="gc fc fiu" style={{ padding: '32px 28px', transitionDelay: `${(i % 3) * .12}s` }}>
                                 <div style={{ width: 52, height: 52, borderRadius: 14, background: `${color}22`, border: `1px solid ${color}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}><Icon size={24} color={color} /></div>
@@ -363,12 +362,11 @@ export function Landing() {
                         <button onClick={() => scrollProps(-1)} style={{ position: 'absolute', left: -20, top: '50%', transform: 'translateY(-50%)', zIndex: 10, width: 40, height: 40, borderRadius: '50%', background: C.surf, border: `1px solid ${C.goldA3}`, color: C.text, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ChevronLeft size={20} /></button>
                         <div ref={propRef} className="prop-wrap">
                             {PROPS.map((p, i) => (
-                                <div key={i} className="pc fiu" style={{ flex: '0 0 calc(33.33% - 14px)', minWidth: 260, borderRadius: 20, overflow: 'hidden', position: 'relative', aspectRatio: '4/3', scrollSnapAlign: 'start', transitionDelay: `${i * .1}s` }}>
+                                <div key={i} className="pc fiu" style={{ flex: '0 0 calc(25% - 15px)', minWidth: 220, borderRadius: 20, overflow: 'hidden', position: 'relative', aspectRatio: '4/5', scrollSnapAlign: 'start', transitionDelay: `${i * .1}s` }}>
                                     <img src={p.img} alt={p.label} loading="lazy" onError={e => (e.currentTarget.style.background = '#1A1D26')} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top,rgba(10,11,15,.92) 0%,transparent 100%)', padding: '48px 20px 20px' }}>
+                                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top,rgba(10,11,15,.95) 0%,transparent 100%)', padding: '48px 20px 20px' }}>
                                         <div style={{ display: 'inline-block', marginBottom: 8, background: `${p.bc}22`, border: `1px solid ${p.bc}55`, borderRadius: 50, padding: '3px 12px', fontSize: 11, fontWeight: 700, color: p.bc }}>{p.badge}</div>
-                                        <div style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 4 }}>{p.label}</div>
-                                        <div style={{ fontSize: 18, fontWeight: 800, color: C.gold }}>{p.price}</div>
+                                        <div style={{ fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 4 }}>{p.label}</div>
                                     </div>
                                 </div>
                             ))}
@@ -427,7 +425,7 @@ export function Landing() {
                         <div className="ptg" style={{ display: 'inline-flex', position: 'relative' }}>
                             <button onClick={() => setPa(false)} style={{ background: !pa ? C.gold : 'transparent', color: !pa ? '#0A0B0F' : C.muted, fontWeight: !pa ? 700 : 400, transition: 'all .2s' }}>Aylıq</button>
                             <button onClick={() => setPa(true)} style={{ background: pa ? C.gold : 'transparent', color: pa ? '#0A0B0F' : C.muted, fontWeight: pa ? 700 : 400, transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                İllik <span style={{ fontSize: 10, background: '#22c55e', color: '#fff', borderRadius: 50, padding: '2px 8px', fontWeight: 700, whiteSpace: 'nowrap' }}>2 ay pulsuz</span>
+                                İllik <span style={{ fontSize: 10, background: '#22c55e', color: '#fff', borderRadius: 50, padding: '2px 8px', fontWeight: 700, whiteSpace: 'nowrap' }}>25% endirim</span>
                             </button>
                         </div>
                     </div>
@@ -436,7 +434,7 @@ export function Landing() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20, marginBottom: 64 }}>
                         {[
                             {
-                                name: 'PULSUZ', sub: 'Free', price: 0, annualPrice: 0, promo: null,
+                                name: 'İNDİVİDUAL', sub: 'Free', price: 0, annualPrice: 0, promo: null,
                                 popular: false, enterprise: false,
                                 units: 2, users: 1,
                                 feats: [
@@ -491,18 +489,7 @@ export function Landing() {
                                     { ok: true, t: 'Xüsusi hesabat qurucu' },
                                     { ok: true, t: 'Prioritet dəstək' },
                                 ],
-                            },
-                            {
-                                name: 'ENTERPRİSE', sub: '50+ obyekt', price: null, annualPrice: null, promo: null,
-                                popular: false, enterprise: true,
-                                units: null, users: null,
-                                feats: [
-                                    { ok: true, t: 'Biznes-dəki hər şey' },
-                                    { ok: true, t: 'Xüsusi inteqrasiyalar' },
-                                    { ok: true, t: 'Şəxsi menecer' },
-                                    { ok: true, t: 'SLA zəmanəti' },
-                                ],
-                            },
+                            }
                         ].map((plan, i) => {
                             const displayPrice = plan.price === null ? null : pa ? plan.annualPrice : plan.price;
                             const promoPrice = !pa && plan.promo ? plan.promo : null;
@@ -578,16 +565,33 @@ export function Landing() {
                                     </ul>
 
                                     {/* CTA */}
-                                    {plan.enterprise ? (
-                                        <a href="mailto:support@icarepro.az" className="btn-ghost" style={{ padding: '12px 0', textAlign: 'center', fontSize: 14 }}>Əlaqə saxla</a>
-                                    ) : plan.price === 0 ? (
-                                        <Link to="/register" className="btn-ghost" style={{ padding: '12px 0', textAlign: 'center', fontSize: 14 }}>Pulsuz başla</Link>
+                                    {plan.price === 0 ? (
+                                        <Link to="/register" className="btn-ghost" style={{ padding: '12px 0', justifyContent: 'center', fontSize: 14 }}>Pulsuz başla</Link>
                                     ) : (
-                                        <Link to="/register" className={plan.popular ? 'btn-gold' : 'btn-ghost'} style={{ padding: '12px 0', textAlign: 'center', fontSize: 14 }}>Başla</Link>
+                                        <Link to="/register" className={plan.popular ? 'btn-gold' : 'btn-ghost'} style={{ padding: '12px 0', justifyContent: 'center', fontSize: 14 }}>Başla</Link>
                                     )}
                                 </div>
                             );
                         })}
+                    </div>
+
+                    {/* Horizontal Enterprise Plan */}
+                    <div className="gc fiu" style={{ padding: '32px 36px', borderRadius: 16, background: `linear-gradient(135deg, rgba(201,168,76,.06), rgba(201,168,76,.02))`, border: `1px solid rgba(201,168,76,.13)`, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 32, marginBottom: 72 }}>
+                        <div style={{ flex: '1 1 300px' }}>
+                            <div style={{ fontSize: 11, color: C.muted, letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 8 }}>ENTERPRİSE</div>
+                            <div style={{ fontSize: 24, fontWeight: 800, color: C.text, marginBottom: 12 }}>Böyük portfeliniz var?</div>
+                            <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.6, maxWidth: 400 }}>50-dən çox obyekt, limitsiz istifadəçi, xüsusi inteqrasiyalar və şəxsi menecer ilə fərdi şərtlərlə əməkdaşlıq.</p>
+                        </div>
+                        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', flex: '1 1 300px' }}>
+                            {['Biznes-dəki hər şey', 'Xüsusi inteqrasiyalar', 'Şəxsi menecer', 'SLA zəmanəti'].map(f => (
+                                <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.text, flex: '1 1 calc(50% - 12px)', minWidth: 160 }}>
+                                    <CheckCircle2 size={14} color={C.green} /> {f}
+                                </div>
+                            ))}
+                        </div>
+                        <div style={{ flex: '0 0 auto' }}>
+                            <a href="mailto:support@icarepro.az" className="btn-ghost" style={{ padding: '14px 28px', fontSize: 15, justifyContent: 'center' }}>Bizimlə əlaqə saxlayın</a>
+                        </div>
                     </div>
 
                     {/* Feature Comparison Table */}
@@ -597,7 +601,7 @@ export function Landing() {
                             <thead>
                                 <tr style={{ borderBottom: `1px solid rgba(255,255,255,.08)` }}>
                                     <th style={{ textAlign: 'left', padding: '12px 16px', color: C.muted, fontWeight: 600, width: '34%' }}>Xüsusiyyət</th>
-                                    {['Pulsuz', 'Başlanğıc', 'Prof.', 'Biznes', 'Enterprise'].map(h => (
+                                    {['İndividual', 'Başlanğıc', 'Prof.', 'Biznes', 'Enterprise'].map(h => (
                                         <th key={h} style={{ textAlign: 'center', padding: '12px 8px', color: h === 'Prof.' ? C.gold : C.muted, fontWeight: h === 'Prof.' ? 700 : 600, fontSize: 12 }}>{h}</th>
                                     ))}
                                 </tr>
@@ -669,7 +673,7 @@ export function Landing() {
                 <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 55% 70% at 50% 50%,rgba(201,168,76,.11) 0%,transparent 65%)' }} />
                 <div className="fiu" style={{ position: 'relative', zIndex: 1, maxWidth: 680, margin: '0 auto', textAlign: 'center' }}>
                     <h2 style={{ fontFamily: C.f, fontWeight: 800, fontSize: 'clamp(28px,4vw,48px)', marginBottom: 20 }}>Əmlakınızı professional idarə etməyə hazırsınız?</h2>
-                    <p style={{ fontSize: 17, color: C.muted, marginBottom: 40, lineHeight: 1.75 }}>14 gün pulsuz, heç bir öhdəlik olmadan başlayın</p>
+                    <p style={{ fontSize: 17, color: C.muted, marginBottom: 40, lineHeight: 1.75 }}>Qeydiyyatdan keçərək sistemi yoxlamağa başlayın.</p>
                     <Link to="/register" className="btn-gold" style={{ padding: '17px 42px', fontSize: 18 }}>Pulsuz Başla <span className="arr"><ArrowRight size={20} /></span></Link>
                 </div>
             </section>
@@ -686,6 +690,9 @@ export function Landing() {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: C.muted }}><MapPin size={14} color={C.gold} /> Bakı, Azərbaycan</div>
                             </div>
                             <div style={{ display: 'flex', gap: 10 }}>
+                                <a href="https://www.facebook.com/" target="_blank" rel="noopener noreferrer" style={{ width: 38, height: 38, borderRadius: '50%', background: C.w10, border: '1px solid rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background .2s,border-color .2s', color: C.muted }} onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = C.goldA; (e.currentTarget as HTMLAnchorElement).style.borderColor = C.gold; }} onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = C.w10; (e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(255,255,255,.1)'; }}>
+                                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+                                </a>
                                 {[{ Icon: Instagram, l: 'Instagram' }, { Icon: Linkedin, l: 'LinkedIn' }].map(({ Icon, l }) => (
                                     <button key={l} onClick={() => showToast('Tezliklə hazır olacaq 🚀')} title={l} style={{ width: 38, height: 38, borderRadius: '50%', background: C.w10, border: '1px solid rgba(255,255,255,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background .2s,border-color .2s' }} onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = C.goldA; (e.currentTarget as HTMLButtonElement).style.borderColor = C.gold; }} onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = C.w10; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,.1)'; }}>
                                         <Icon size={16} color={C.muted} />
