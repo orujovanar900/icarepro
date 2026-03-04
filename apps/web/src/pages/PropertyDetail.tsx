@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Building, MapPin, Maximize, ArrowLeft, Calendar, User, FileText, Zap, Camera, Trash2, UploadCloud, Loader2, ChevronLeft, ChevronRight, X, ExternalLink, Download, FilePlus } from 'lucide-react';
+import { Building, MapPin, Maximize, ArrowLeft, Calendar, User, FileText, Zap, Camera, Trash2, UploadCloud, Loader2, ChevronLeft, ChevronRight, X, ExternalLink, Download, FilePlus, Printer } from 'lucide-react';
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { useToastStore } from '@/store/toast';
+import { usePlan, FeatureGate } from '@/utils/planGates';
+import { UpgradeModal } from '@/components/UpgradeModal';
 
 const formatMoney = (amount: number) =>
     new Intl.NumberFormat('az-AZ', { style: 'currency', currency: 'AZN', maximumFractionDigits: 0 }).format(amount);
@@ -48,8 +51,10 @@ export function PropertyDetail() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const addToast = useToastStore((state) => state.addToast);
+    const { can } = usePlan();
+    const [upgradeFeature, setUpgradeFeature] = useState<FeatureGate | null>(null);
 
-    const [activeTab, setActiveTab] = useState<'details' | 'photos' | 'history'>('details');
+    const [activeTab, setActiveTab] = useState<'details' | 'photos' | 'history' | 'report'>('details');
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
     const photosRef = useRef<any[]>([]);
     const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -76,6 +81,15 @@ export function PropertyDetail() {
             return res.data.data;
         },
         enabled: !!id,
+    });
+
+    const { data: reportData, isLoading: isReportLoading } = useQuery({
+        queryKey: ['property-report', id],
+        queryFn: async () => {
+            const res = await api.get(`/properties/${id}/report`);
+            return res.data.data;
+        },
+        enabled: !!id && activeTab === 'report',
     });
 
     if (isLoading) {
@@ -229,7 +243,7 @@ export function PropertyDetail() {
 
             {/* Tabs Navigation */}
             <div className="flex space-x-1 border-b border-border overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                {(['details', 'photos', 'history'] as const).map(tab => (
+                {(['details', 'photos', 'history', 'report'] as const).map(tab => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -241,6 +255,7 @@ export function PropertyDetail() {
                         {tab === 'details' && 'Təfərrüatlar'}
                         {tab === 'photos' && `Fotolar (${realPhotos.length}/5)`}
                         {tab === 'history' && 'İcarəçi Tarixçəsi'}
+                        {tab === 'report' && 'Əmlak Hesabatı'}
                     </button>
                 ))}
             </div>
@@ -421,7 +436,15 @@ export function PropertyDetail() {
                     <div className="flex justify-between items-center">
                         <h3 className="text-lg font-bold text-text">Fotolar ({property.photos?.length || 0}/5)</h3>
                         <div className="flex flex-col items-end gap-1">
-                            <label className={`cursor-pointer ${(property.photos?.length >= 5 || isUploadingPhoto) ? 'opacity-50 pointer-events-none' : ''}`}>
+                            <label
+                                className={`cursor-pointer ${((property.photos?.length >= 5 && can('photos')) || isUploadingPhoto) ? 'opacity-50 pointer-events-none' : ''}`}
+                                onClick={(e) => {
+                                    if (!can('photos')) {
+                                        e.preventDefault();
+                                        setUpgradeFeature('photos');
+                                    }
+                                }}
+                            >
                                 <div className="flex items-center gap-2 bg-gold/10 hover:bg-gold/20 text-gold px-4 py-2 rounded-lg transition-colors font-medium text-sm">
                                     {isUploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
                                     Şəkil Yüklə
@@ -567,6 +590,127 @@ export function PropertyDetail() {
                         )}
                     </CardContent>
                 </Card>
+            )}
+
+            {/* Əmlak Hesabatı Tab */}
+            {activeTab === 'report' && (
+                <div className="space-y-6">
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-lg font-bold text-text">Əmlak Hesabatı</h3>
+                        <Button variant="outline" size="sm" onClick={() => window.print()} className="hidden sm:flex">
+                            <Printer className="w-4 h-4 mr-2" />
+                            Çap et / PDF
+                        </Button>
+                    </div>
+
+                    {isReportLoading ? (
+                        <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-gold" /></div>
+                    ) : reportData ? (
+                        <>
+                            {/* Stats */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <Card variant="elevated">
+                                    <CardContent className="p-4">
+                                        <p className="text-sm font-medium text-muted">Aylıq İcarə (Aktiv)</p>
+                                        <p className="text-2xl font-bold text-text mt-1">{formatMoney(activeContract?.monthlyRent || 0)}</p>
+                                    </CardContent>
+                                </Card>
+                                <Card variant="elevated">
+                                    <CardContent className="p-4">
+                                        <p className="text-sm font-medium text-muted">Toplam Ödəniş</p>
+                                        <p className="text-xl font-bold text-green-500 mt-1">{formatMoney(reportData.totalIncome)}</p>
+                                    </CardContent>
+                                </Card>
+                                <Card variant="elevated">
+                                    <CardContent className="p-4">
+                                        <p className="text-sm font-medium text-muted">Toplam Borc</p>
+                                        <p className="text-xl font-bold text-red mt-1">{formatMoney(reportData.totalDebt)}</p>
+                                    </CardContent>
+                                </Card>
+                                <Card variant="elevated">
+                                    <CardContent className="p-4">
+                                        <p className="text-sm font-medium text-muted">Effektivlik</p>
+                                        <p className="text-2xl font-bold text-gold mt-1">{reportData.efficiency}%</p>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                {/* Pie Chart - İcarə Effektivliyi */}
+                                <Card variant="elevated" className="col-span-1">
+                                    <CardHeader>
+                                        <CardTitle>İcarə effektivliyi</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="flex justify-center items-center h-64">
+                                        {(reportData.totalIncome === 0 && reportData.totalDebt === 0) ? (
+                                            <p className="text-muted text-sm">Məlumat yoxdur</p>
+                                        ) : (
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <PieChart>
+                                                    <Pie
+                                                        data={[
+                                                            { name: 'Ödənilmiş', value: reportData.totalIncome },
+                                                            { name: 'Borc', value: reportData.totalDebt }
+                                                        ]}
+                                                        cx="50%" cy="50%"
+                                                        innerRadius={60}
+                                                        outerRadius={80}
+                                                        paddingAngle={5}
+                                                        dataKey="value"
+                                                    >
+                                                        <Cell fill="#22c55e" /> {/* green for income */}
+                                                        <Cell fill="#ef4444" /> {/* red for debt */}
+                                                    </Pie>
+                                                    <RechartsTooltip formatter={(val: any) => formatMoney(Number(val) || 0)} contentStyle={{ backgroundColor: '#1A1D24', border: '1px solid #2D3748', borderRadius: '8px', color: '#fff' }} />
+                                                    <Legend />
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                        )}
+                                    </CardContent>
+                                </Card>
+
+                                {/* Bar Chart - Ay-ba-ay Gəlir */}
+                                <Card variant="elevated" className="col-span-1 lg:col-span-2">
+                                    <CardHeader>
+                                        <CardTitle>Ay-ba-ay Gəlir və Borc</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="h-64 mt-4 text-xs font-sans">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={reportData.monthlyStats}>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#2D3748" vertical={false} />
+                                                <XAxis dataKey="name" stroke="#A0AEC0" fontSize={11} tickLine={false} axisLine={false} />
+                                                <YAxis stroke="#A0AEC0" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `₼${val}`} />
+                                                <RechartsTooltip
+                                                    contentStyle={{ backgroundColor: '#1A1D24', border: '1px solid #2D3748', borderRadius: '8px', color: '#fff' }}
+                                                    formatter={(val: any) => formatMoney(Number(val) || 0)}
+                                                />
+                                                <Legend />
+                                                <Bar dataKey="gelir" name="Ödəniş" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                                                <Bar dataKey="borc" name="Borc" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="text-center py-12 text-muted">
+                            <p>Tarixçə boşdur.</p>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Upgrade Modal Gate */}
+            {upgradeFeature && (
+                <div className="fixed inset-0 z-[100] backdrop-blur-md bg-black/40">
+                    <UpgradeModal
+                        isOpen={true}
+                        feature={upgradeFeature}
+                        requiredPlan={upgradeFeature === 'photos' ? 'starter' : 'starter'}
+                        onClose={() => setUpgradeFeature(null)}
+                    />
+                </div>
             )}
         </div>
     );

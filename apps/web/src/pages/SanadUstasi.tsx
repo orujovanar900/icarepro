@@ -8,6 +8,8 @@ import { Document, Packer, Paragraph, AlignmentType } from "docx";
 import { saveAs } from "file-saver";
 import * as mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist";
+import { usePlan, FeatureGate, PlanType } from '@/utils/planGates';
+import { UpgradeModal } from '@/components/UpgradeModal';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
@@ -237,6 +239,8 @@ export function SanadUstasi() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const contractId = searchParams.get('contractId');
+    const { can } = usePlan();
+    const [upgradeFeature, setUpgradeFeature] = useState<FeatureGate | null>(null);
 
     // Fetch contract details if contractId is present in URL
     const { data: contractDetails, isLoading: isContractLoading } = useQuery({
@@ -274,8 +278,12 @@ export function SanadUstasi() {
 
     const activeDocType = DOCS.find(d => d.id === docType) || DOCS[0];
 
-    // Initialize state when component mounts or contract data is loaded
     useEffect(() => {
+        if (!can('senadUstasi')) {
+            setUpgradeFeature('senadUstasi');
+            return;
+        }
+
         const savedTemplate = localStorage.getItem(`sanad_template_${user?.id}`);
         if (savedTemplate) {
             setUserTemplate(savedTemplate);
@@ -314,7 +322,7 @@ export function SanadUstasi() {
         setMsgs([{ from: "ai", text: initialMsg, chips: initialChips }]);
         setHist([]);
         setDone(false);
-    }, [contractId, isContractLoading, contractDetails, user?.id]);
+    }, [contractId, isContractLoading, contractDetails, user?.id, can]);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -428,10 +436,12 @@ export function SanadUstasi() {
                 if (pureHtml.length > 200) {
                     setUserTemplate(pureHtml);
                     setUseCustomTemplate(true);
+                    try { await api.post('/contracts/senad-ustasi/usage'); } catch (err) { console.error(err); }
                 }
             }
             if ((upd as any)._done) {
                 setDone(true);
+                try { await api.post('/contracts/senad-ustasi/usage'); } catch (err) { console.error(err); }
             }
             const { _done, htmlContent, ...restUpd } = upd as any;
             if (Object.keys(restUpd).length > 0) {
@@ -1329,6 +1339,18 @@ export function SanadUstasi() {
                     }
                 }
             `}} />
+
+            {/* Upgrade Modal Gate */}
+            {upgradeFeature && (
+                <div className="absolute inset-0 z-[100] backdrop-blur-md bg-black/40">
+                    <UpgradeModal
+                        isOpen={true}
+                        feature={upgradeFeature}
+                        requiredPlan={upgradeFeature === 'senadLimit' ? 'business' : 'pro'}
+                        onClose={() => navigate(-1)}
+                    />
+                </div>
+            )}
 
             {/* ── Contract Scanner Modal ── */}
             {isScanModalOpen && (

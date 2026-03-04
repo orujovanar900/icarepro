@@ -7,8 +7,10 @@ import {
 import {
     Wallet, TrendingUp, AlertCircle, Calendar, ArrowRight, Users, Search,
     ArrowUpRight, ArrowDownRight, MapPin, Clock, Plus, X,
-    AlertTriangle, CalendarX, Building2, LineChart
+    AlertTriangle, CalendarX, Building2, LineChart, Lock
 } from 'lucide-react';
+import { usePlan, FeatureGate } from '@/utils/planGates';
+import { UpgradeModal } from '@/components/UpgradeModal';
 import { api } from '@/lib/api';
 import { TopBar } from '@/components/ui/TopBar';
 import { Sidebar } from '@/components/ui/Sidebar';
@@ -180,6 +182,8 @@ function DashboardContent() {
     const month = parseInt(searchParams.get('month') || String(currentMonth), 10);
     const year = parseInt(searchParams.get('year') || String(currentYear), 10);
 
+    const { can, plan } = usePlan();
+    const [upgradeFeature, setUpgradeFeature] = useState<FeatureGate | null>(null);
     const { user } = useAuthStore();
     const addToast = useToastStore((state) => state.addToast);
     const { data: dashboard, isLoading: isDashboardLoading } = useQuery({
@@ -345,6 +349,10 @@ function DashboardContent() {
     });
 
     const handleExportExcel = async () => {
+        if (!can('excelExport')) {
+            setUpgradeFeature('excelExport');
+            return;
+        }
         setIsExporting(true);
         try {
             const res = await api.post('/hesabat', { ...getReportPayload(), format: 'excel' }, { responseType: 'blob' });
@@ -365,6 +373,10 @@ function DashboardContent() {
     };
 
     const handlePrintPDF = async () => {
+        if (!can('pdfExport')) {
+            setUpgradeFeature('pdfExport');
+            return;
+        }
         setIsExporting(true);
         try {
             const res = await api.post('/hesabat', { ...getReportPayload(), format: 'pdf' }, { responseType: 'blob' });
@@ -390,6 +402,10 @@ function DashboardContent() {
     });
 
     const handleExportExpensesExcel = async () => {
+        if (!can('excelExport')) {
+            setUpgradeFeature('excelExport');
+            return;
+        }
         setIsExporting(true);
         try {
             const res = await api.post('/hesabat/expenses', { ...getExpenseReportPayload(), format: 'excel' }, { responseType: 'blob' });
@@ -410,6 +426,10 @@ function DashboardContent() {
     };
 
     const handlePrintExpensesPDF = async () => {
+        if (!can('pdfExport')) {
+            setUpgradeFeature('pdfExport');
+            return;
+        }
         setIsExporting(true);
         try {
             const res = await api.post('/hesabat/expenses', { ...getExpenseReportPayload(), format: 'pdf' }, { responseType: 'blob' });
@@ -478,7 +498,13 @@ function DashboardContent() {
                         onChange={(e) => handlePeriodChange('year', e.target.value)}
                         options={yearOptions}
                     />
-                    <Button onClick={() => setIsReportModalOpen(true)} className="flex items-center gap-2 whitespace-nowrap bg-gold hover:bg-gold2 text-black">
+                    <Button onClick={() => {
+                        if (!can('reports')) {
+                            setUpgradeFeature('reports');
+                            return;
+                        }
+                        setIsReportModalOpen(true);
+                    }} className="flex items-center gap-2 whitespace-nowrap bg-gold hover:bg-gold2 text-black">
                         📊 Hesabat
                     </Button>
                 </div>
@@ -656,7 +682,13 @@ function DashboardContent() {
                     </CardContent>
                 </Card>
 
-                <Card variant="elevated" style={{ height: '120px', border: '1px solid rgba(255, 255, 255, 0.12)' }} className="flex flex-col justify-center">
+                <Card variant="elevated" style={{ height: '120px', border: '1px solid rgba(255, 255, 255, 0.12)', position: 'relative', overflow: 'hidden' }} className="flex flex-col justify-center">
+                    {!can('forecast') && (
+                        <div className="absolute inset-x-0" style={{ top: -10, bottom: -10, backdropFilter: 'blur(5px)', background: 'rgba(13,17,23,0.4)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                            <div className="bg-gold/20 p-2 rounded-full mb-1"><Lock className="w-4 h-4 text-gold" /></div>
+                            <span className="text-[10px] font-bold text-gold uppercase tracking-wider bg-[#0A0B0F] px-2 py-0.5 rounded">Tələb olunur: Başlanğıc</span>
+                        </div>
+                    )}
                     <CardHeader className="pb-2 flex flex-row items-center justify-between">
                         <CardTitle className="text-sm font-medium text-muted">Aylıq Gəlir Proqnozu</CardTitle>
                         <div className="h-8 w-8 rounded flex items-center justify-center" style={{ backgroundColor: 'rgba(167, 139, 250, 0.1)' }}>
@@ -665,13 +697,19 @@ function DashboardContent() {
                     </CardHeader>
                     <CardContent>
                         <div className="flex flex-col">
-                            <span className="text-3xl font-bold" style={{ color: '#a78bfa' }}>{formatMoney(dashboard?.incomeForecast || 0)}</span>
+                            <span className="text-3xl font-bold" style={{ color: '#a78bfa', filter: !can('forecast') ? 'blur(4px)' : 'none' }}>{formatMoney(dashboard?.incomeForecast || 0)}</span>
                             <span className="text-xs text-muted mt-1">Aktiv müqavilələr əsasında</span>
                         </div>
                     </CardContent>
                 </Card>
 
-                <Card variant="elevated" style={{ height: '120px', border: '1px solid rgba(255, 255, 255, 0.12)' }} className="flex flex-col justify-center">
+                <Card variant="elevated" style={{ height: '120px', border: '1px solid rgba(255, 255, 255, 0.12)', position: 'relative', overflow: 'hidden' }} className="flex flex-col justify-center">
+                    {!can('forecast') && (
+                        <div className="absolute inset-x-0" style={{ top: -10, bottom: -10, backdropFilter: 'blur(5px)', background: 'rgba(13,17,23,0.4)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                            <div className="bg-gold/20 p-2 rounded-full mb-1"><Lock className="w-4 h-4 text-gold" /></div>
+                            <span className="text-[10px] font-bold text-gold uppercase tracking-wider bg-[#0A0B0F] px-2 py-0.5 rounded">Tələb olunur: Başlanğıc</span>
+                        </div>
+                    )}
                     <CardHeader className="pb-2 flex flex-row items-center justify-between">
                         <CardTitle className="text-sm font-medium text-muted">İllik Gəlir Proqnozu</CardTitle>
                         <div className="h-8 w-8 rounded flex items-center justify-center" style={{ backgroundColor: 'rgba(52, 211, 153, 0.1)' }}>
@@ -680,7 +718,7 @@ function DashboardContent() {
                     </CardHeader>
                     <CardContent>
                         <div className="flex flex-col">
-                            <span className="text-3xl font-bold" style={{ color: '#34d399' }}>{formatMoney((dashboard?.incomeForecast || 0) * 12)}</span>
+                            <span className="text-3xl font-bold" style={{ color: '#34d399', filter: !can('forecast') ? 'blur(4px)' : 'none' }}>{formatMoney((dashboard?.incomeForecast || 0) * 12)}</span>
                             <span className="text-xs text-muted mt-1">Aylıq proqnozun 12 aylıq ekvivalenti</span>
                         </div>
                     </CardContent>
@@ -690,7 +728,7 @@ function DashboardContent() {
             {/* Map and Debtors Side by Side Layout */}
             <div className="grid gap-6 grid-cols-1 lg:grid-cols-3 mt-6">
                 {/* Map Widget */}
-                <Card variant="elevated" className="overflow-hidden lg:col-span-2 flex flex-col" style={{ height: 500 }}>
+                <Card variant="elevated" className="overflow-hidden lg:col-span-2 flex flex-col lg:h-[350px]">
                     <CardHeader className="pb-2 shrink-0">
                         <CardTitle className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
                             📍 Obyektlər xəritədə
@@ -699,7 +737,7 @@ function DashboardContent() {
                     <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
                         <div className="flex flex-col lg:flex-row gap-4 p-4 h-full">
                             {/* Map */}
-                            <div className="rounded-xl overflow-hidden shrink-0 h-[210px] lg:h-full lg:flex-[1.5]">
+                            <div className="rounded-xl overflow-hidden shrink-0 h-[350px] lg:h-full lg:flex-[1.5]">
                                 <SimpleMap
                                     compact
                                     hidePanel
@@ -727,7 +765,7 @@ function DashboardContent() {
                                 />
                             </div>
                             {/* Property list - scrollable */}
-                            <div className="flex-1 overflow-y-auto flex flex-col gap-2 custom-scrollbar pr-1" style={{ minHeight: 0 }}>
+                            <div className="overflow-y-auto flex flex-col gap-2 custom-scrollbar pr-1 h-[350px] lg:h-full lg:flex-1" style={{ minHeight: 0 }}>
                                 {mapProperties.map((p: any) => {
                                     const contract = mapContracts.find((c: any) => c.propertyId === p.id);
                                     let status: 'active' | 'expiring' | 'expired' = 'expired';
@@ -761,7 +799,7 @@ function DashboardContent() {
                 </Card>
 
                 {/* Debtors List next to Map */}
-                <Card variant="default" id="debtors-list" className="flex flex-col bg-card/50" style={{ height: 500 }}>
+                <Card variant="default" id="debtors-list" className="flex flex-col bg-card/50 h-[350px]">
                     <CardHeader className="shrink-0">
                         <CardTitle className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
                             <AlertCircle className="w-5 h-5 text-red" />
@@ -1207,6 +1245,18 @@ function DashboardContent() {
                     </div>
                 </form>
             </Modal>
+
+            {/* Upgrade Modal Gate */}
+            {upgradeFeature && (
+                <div className="fixed inset-0 z-[100] backdrop-blur-md bg-black/40">
+                    <UpgradeModal
+                        isOpen={true}
+                        feature={upgradeFeature}
+                        requiredPlan={upgradeFeature === 'excelExport' || upgradeFeature === 'pdfExport' ? 'starter' : 'starter'}
+                        onClose={() => setUpgradeFeature(null)}
+                    />
+                </div>
+            )}
         </div >
     );
 }

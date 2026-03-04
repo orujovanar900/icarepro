@@ -458,9 +458,11 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
 
         const { data: { publicUrl } } = supabase.storage.from('contract-documents').getPublicUrl(storagePath)
 
-        const qs = req.query as Record<string, string>
-        const docType = qs['type'] || 'OTHER'
-        const docTitle = qs['title'] || `${docTypeLabel(docType)} - ${new Date().toLocaleDateString('az-AZ')}`
+        const fields = data.fields as Record<string, any>
+        const docType = fields['type']?.value || 'OTHER'
+        const rawTitle = fields['title']?.value || ''
+        const docTitle = rawTitle || `${docTypeLabel(docType)} - ${new Date().toLocaleDateString('az-AZ')}`
+        const docNotes = fields['notes']?.value || null
 
         const doc = await fastify.prisma.contractDocument.create({
             data: {
@@ -471,7 +473,7 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
                 fileName: data.filename,
                 fileSize: fileBuffer.length,
                 uploadedBy: req.user.sub,
-                notes: qs['notes'] || null,
+                notes: docNotes,
             },
         })
 
@@ -511,6 +513,56 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
         })
         return reply.code(204).send()
     })
+    // ─────────────────────────────────────────
+    // POST /contracts/senad-ustasi/usage - Increment AI generation counter
+    // ─────────────────────────────────────────
+    fastify.post('/senad-ustasi/usage', { preHandler: [authenticate] }, async (req, reply) => {
+        const orgId = req.user.organizationId;
+        if (!orgId) return reply.code(403).send({ success: false, error: 'No organization attached' });
+
+        const org = await fastify.prisma.organization.findUnique({
+            where: { id: orgId },
+            select: { senadUstasiUsedMonth: true, senadUstasiResetDate: true, plan: true }
+        });
+
+        if (!org) return reply.code(404).send({ success: false, error: 'Organization not found' });
+
+        const now = new Date();
+        const resetDate = org.senadUstasiResetDate ? new Date(org.senadUstasiResetDate) : new Date(now.getFullYear(), now.getMonth(), 1);
+
+        let usedCount = org.senadUstasiUsedMonth || 0;
+        let newResetDate = org.senadUstasiResetDate;
+
+        // Reset if a new month has started since the last reset date
+        if (!org.senadUstasiResetDate || now.getMonth() !== resetDate.getMonth() || now.getFullYear() !== resetDate.getFullYear()) {
+            usedCount = 0;
+            // Set reset date to the first day of the current month
+            newResetDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        }
+
+        const L: Record<string, { senadUstasi: boolean, senadLimit: number | null }> = {
+            FREE: { senadUstasi: false, senadLimit: 0 },
+            BASHLANQIC: { senadUstasi: false, senadLimit: 0 },
+            PROFESSIONAL: { senadUstasi: true, senadLimit: 30 },
+            BIZNES: { senadUstasi: true, senadLimit: null }
+        };
+        const planLimits = L[org.plan] || { senadUstasi: false, senadLimit: 0 };
+
+        if (!planLimits.senadUstasi || (planLimits.senadLimit !== null && usedCount >= planLimits.senadLimit)) {
+            return reply.code(403).send({ success: false, error: 'Plan limit reached for Sənəd Ustası' });
+        }
+
+        const updatedOrg = await fastify.prisma.organization.update({
+            where: { id: orgId },
+            data: {
+                senadUstasiUsedMonth: usedCount + 1,
+                senadUstasiResetDate: newResetDate
+            },
+            select: { senadUstasiUsedMonth: true, senadUstasiResetDate: true }
+        });
+
+        return reply.send({ success: true, data: updatedOrg });
+    });
 }
 
 function docTypeLabel(type: string): string {

@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { Building2, Mail, Users, Home, ArrowLeft, Activity, CalendarDays, KeyRound, UserCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { translateRole } from '@/utils/roles';
 
 export function AdminOrganizationDetail() {
     const { id } = useParams<{ id: string }>();
@@ -68,7 +69,7 @@ export function AdminOrganizationDetail() {
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <Badge className="bg-bg text-muted border-border">{u.role}</Badge>
+                                    <Badge className="bg-bg text-muted border-border">{translateRole(u.role)}</Badge>
                                 </div>
                             </div>
                         ))}

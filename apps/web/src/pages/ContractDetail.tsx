@@ -126,11 +126,14 @@ export function ContractDetail() {
         e.preventDefault();
         if (!docFileRef) { addToast({ message: 'Fayl seçin', type: 'error' }); return; }
         setIsUploadingDoc(true);
+        const title = docTitle || autoDocTitle(docType);
         const formData = new FormData();
         formData.append('file', docFileRef);
-        const title = docTitle || autoDocTitle(docType);
+        formData.append('type', docType);
+        formData.append('title', title);
+        formData.append('notes', docNotes);
         try {
-            await api.post(`/contracts/${id}/documents?type=${docType}&title=${encodeURIComponent(title)}&notes=${encodeURIComponent(docNotes)}`, formData);
+            await api.post(`/contracts/${id}/documents`, formData);
             addToast({ message: 'Sənəd yükləndi ✓', type: 'success' });
             setDocFileRef(null);
             setDocTitle('');
@@ -314,7 +317,10 @@ export function ContractDetail() {
 
     // Calculate Brutto / Netto displays
     const nettoRent = Number(contract.monthlyRent);
-    const bruttoRent = nettoRent / 0.86;
+    const isMenzil = contract.property?.type?.toUpperCase() === 'MENZIL' || contract.property?.type?.toUpperCase() === 'MƏNZİL' || contract.property?.type?.toLowerCase() === 'mənzil';
+    const taxRate = isMenzil ? 0.10 : 0.14;
+    const taxFactor = 1 - taxRate;
+    const bruttoRent = nettoRent / taxFactor;
     const taxAmount = bruttoRent - nettoRent;
 
     const totalNetto = nettoRent * monthsElapsed;
@@ -449,7 +455,7 @@ export function ContractDetail() {
                                                     <span className="text-sm font-medium text-text">{formatMoneyExact(nettoRent)}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center mb-3">
-                                                    <span className="text-sm font-bold text-gold">Aylıq Brutto (÷0.86)</span>
+                                                    <span className="text-sm font-bold text-gold">Aylıq Brutto (÷{taxFactor.toFixed(2)})</span>
                                                     <span className="text-sm font-bold text-gold">{formatMoneyExact(bruttoRent)}</span>
                                                 </div>
                                                 <div className="border-t border-border/60 pt-3">
@@ -458,7 +464,7 @@ export function ContractDetail() {
                                                         title="Bu məbləğ vergi orqanına ödənilir"
                                                     >
                                                         <div>
-                                                            <span className="text-[13px] text-orange/80 block">ÖMV (14%)</span>
+                                                            <span className="text-[13px] text-orange/80 block">ÖMV ({taxRate * 100}%)</span>
                                                             <span className="text-[10px] text-muted block">(Vergi ödəniləcək məbləğ)</span>
                                                         </div>
                                                         <span className="text-[13px] font-medium text-orange/80">{formatMoneyExact(taxAmount)}</span>
@@ -567,6 +573,147 @@ export function ContractDetail() {
                                     )}
                                 </CardContent>
                             </Card>
+                        )}
+
+                        {/* ── Documents Tab Content ── */}
+                        {activeTab === 'documents' && (
+                            <div className="space-y-4">
+                                {/* Upload Form */}
+                                {canManageDocs && (
+                                    <Card variant="elevated">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center gap-2">
+                                                <UploadCloud className="w-5 h-5 text-gold" />
+                                                Sənəd yüklə
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <form onSubmit={handleUploadContractDoc} className="space-y-3">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                    <Select
+                                                        label="Sənəd növü"
+                                                        value={docType}
+                                                        onChange={e => { setDocType(e.target.value); setDocTitle(''); }}
+                                                        options={[
+                                                            { label: '📋 Akt (Təhvil-təslim aktı)', value: 'ACT' },
+                                                            { label: '🔔 Bildiriş', value: 'NOTIFICATION' },
+                                                            { label: '➕ Əlavə (Müqaviləyə əlavə)', value: 'ADDENDUM' },
+                                                            { label: '🧾 Hesab-faktura', value: 'INVOICE' },
+                                                            { label: '📄 Digər', value: 'OTHER' },
+                                                        ]}
+                                                    />
+                                                    <Input
+                                                        label="Sənəd adı (avtomatik doldurulur)"
+                                                        value={docTitle}
+                                                        onChange={e => setDocTitle(e.target.value)}
+                                                        placeholder={`${getDocTypeMeta(docType)?.label?.replace(/^[^ ]+ /, '') ?? docType} - ${new Date().toLocaleDateString('az-AZ')}`}
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-xs font-medium text-muted uppercase tracking-wide">Fayl * (PDF, DOC, DOCX, XLSX, JPG, PNG — max 5MB)</label>
+                                                    <div
+                                                        className="border-2 border-dashed border-border hover:border-gold/50 rounded-xl p-6 text-center cursor-pointer transition-colors group"
+                                                        onClick={() => docFileInputRef.current?.click()}
+                                                    >
+                                                        {docFileRef ? (
+                                                            <div className="flex items-center justify-center gap-3">
+                                                                <FileText className="w-6 h-6 text-gold" />
+                                                                <span className="text-sm text-text">{docFileRef.name}</span>
+                                                                <button type="button" onClick={e => { e.stopPropagation(); setDocFileRef(null); if (docFileInputRef.current) docFileInputRef.current.value = ''; }} className="text-muted hover:text-red">
+                                                                    <X className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <UploadCloud className="w-8 h-8 text-muted mx-auto mb-2 group-hover:text-gold transition-colors" />
+                                                                <p className="text-sm text-muted group-hover:text-text transition-colors">Faylı buraya sürükləyin və ya klikləyin</p>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                    <input
+                                                        ref={docFileInputRef}
+                                                        type="file"
+                                                        className="hidden"
+                                                        accept=".pdf,.doc,.docx,.xlsx,.xls,.jpg,.jpeg,.png"
+                                                        onChange={e => setDocFileRef(e.target.files?.[0] || null)}
+                                                    />
+                                                </div>
+                                                <Input
+                                                    label="Qeyd (isteğə bağlı)"
+                                                    value={docNotes}
+                                                    onChange={e => setDocNotes(e.target.value)}
+                                                    placeholder="Bu sənəd haqqında qeyd..."
+                                                />
+                                                <Button type="submit" disabled={isUploadingDoc || !docFileRef} className="w-full sm:w-auto">
+                                                    {isUploadingDoc ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Yüklənir...</> : <><UploadCloud className="w-4 h-4 mr-2" /> Yüklə</>}
+                                                </Button>
+                                            </form>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {/* Documents List */}
+                                {docsLoading ? (
+                                    <div className="py-8 text-center text-muted text-sm">Yüklənir...</div>
+                                ) : contractDocs.length === 0 ? (
+                                    <div className="text-center py-16 border border-dashed border-border rounded-xl text-muted">
+                                        <Paperclip className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                        <p>Bu müqaviləyə hələ sənəd əlavə edilməyib</p>
+                                        {canManageDocs && <p className="text-sm mt-1">Yuxarıdakı formdan sənəd yükləyin</p>}
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {DOC_TYPES.map(typeInfo => {
+                                            const typeDocs = contractDocs.filter((d: any) => d.type === typeInfo.value);
+                                            if (typeDocs.length === 0) return null;
+                                            const isCollapsed = collapsedGroups[typeInfo.value];
+                                            return (
+                                                <Card key={typeInfo.value} variant="default">
+                                                    <button
+                                                        className="w-full flex items-center justify-between p-4 hover:bg-surface/50 transition-colors"
+                                                        onClick={() => setCollapsedGroups(g => ({ ...g, [typeInfo.value]: !g[typeInfo.value] }))}
+                                                    >
+                                                        <span className="flex items-center gap-2 font-medium text-text">
+                                                            {typeInfo.label}
+                                                            <span className={`text-xs px-2 py-0.5 rounded-full border ${typeInfo.badge}`}>{typeDocs.length}</span>
+                                                        </span>
+                                                        {isCollapsed ? <ChevronDown className="w-4 h-4 text-muted" /> : <ChevronUp className="w-4 h-4 text-muted" />}
+                                                    </button>
+                                                    {!isCollapsed && (
+                                                        <div className="divide-y divide-border border-t border-border">
+                                                            {typeDocs.map((doc: any) => (
+                                                                <div key={doc.id} className="flex items-center gap-3 p-4">
+                                                                    <div className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 ${typeInfo.badge}`}>
+                                                                        <FileText className="w-4 h-4" />
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p className="text-sm font-medium text-text truncate">{doc.title}</p>
+                                                                        <p className="text-xs text-muted">{doc.fileName} · {(doc.fileSize / 1024).toFixed(0)} KB · {new Date(doc.uploadedAt).toLocaleDateString('az-AZ')}</p>
+                                                                        {doc.notes && <p className="text-xs text-muted italic mt-0.5">{doc.notes}</p>}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1 shrink-0">
+                                                                        <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 text-muted hover:text-gold transition-colors rounded" title="Bax">
+                                                                            <Eye className="w-4 h-4" />
+                                                                        </a>
+                                                                        <a href={doc.fileUrl} download={doc.fileName} className="p-1.5 text-muted hover:text-blue-400 transition-colors rounded" title="Yüklə">
+                                                                            <Download className="w-4 h-4" />
+                                                                        </a>
+                                                                        {canManageDocs && (
+                                                                            <button onClick={() => handleDeleteContractDoc(doc.id)} className="p-1.5 text-muted hover:text-red transition-colors rounded" title="Sil">
+                                                                                <Trash2 className="w-4 h-4" />
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </Card>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
 
@@ -752,146 +899,7 @@ export function ContractDetail() {
                 </div>
             </div>
 
-            {/* ── Documents Tab Content ── */}
-            {activeTab === 'documents' && (
-                <div className="space-y-4">
-                    {/* Upload Form */}
-                    {canManageDocs && (
-                        <Card variant="elevated">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <UploadCloud className="w-5 h-5 text-gold" />
-                                    Sənəd yüklə
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <form onSubmit={handleUploadContractDoc} className="space-y-3">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <Select
-                                            label="Sənəd növü"
-                                            value={docType}
-                                            onChange={e => { setDocType(e.target.value); setDocTitle(''); }}
-                                            options={[
-                                                { label: '📋 Akt (Təhvil-təslim aktı)', value: 'ACT' },
-                                                { label: '🔔 Bildiriş', value: 'NOTIFICATION' },
-                                                { label: '➕ Əlavə (Müqaviləyə əlavə)', value: 'ADDENDUM' },
-                                                { label: '🧾 Hesab-faktura', value: 'INVOICE' },
-                                                { label: '📄 Digər', value: 'OTHER' },
-                                            ]}
-                                        />
-                                        <Input
-                                            label="Sənəd adı (avtomatik doldurulur)"
-                                            value={docTitle}
-                                            onChange={e => setDocTitle(e.target.value)}
-                                            placeholder={`${getDocTypeMeta(docType)?.label?.replace(/^[^ ]+ /, '') ?? docType} - ${new Date().toLocaleDateString('az-AZ')}`}
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-xs font-medium text-muted uppercase tracking-wide">Fayl * (PDF, DOC, DOCX, XLSX, JPG, PNG — max 5MB)</label>
-                                        <div
-                                            className="border-2 border-dashed border-border hover:border-gold/50 rounded-xl p-6 text-center cursor-pointer transition-colors group"
-                                            onClick={() => docFileInputRef.current?.click()}
-                                        >
-                                            {docFileRef ? (
-                                                <div className="flex items-center justify-center gap-3">
-                                                    <FileText className="w-6 h-6 text-gold" />
-                                                    <span className="text-sm text-text">{docFileRef.name}</span>
-                                                    <button type="button" onClick={e => { e.stopPropagation(); setDocFileRef(null); if (docFileInputRef.current) docFileInputRef.current.value = ''; }} className="text-muted hover:text-red">
-                                                        <X className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <>
-                                                    <UploadCloud className="w-8 h-8 text-muted mx-auto mb-2 group-hover:text-gold transition-colors" />
-                                                    <p className="text-sm text-muted group-hover:text-text transition-colors">Faylı buraya sürükləyin və ya klikləyin</p>
-                                                </>
-                                            )}
-                                        </div>
-                                        <input
-                                            ref={docFileInputRef}
-                                            type="file"
-                                            className="hidden"
-                                            accept=".pdf,.doc,.docx,.xlsx,.xls,.jpg,.jpeg,.png"
-                                            onChange={e => setDocFileRef(e.target.files?.[0] || null)}
-                                        />
-                                    </div>
-                                    <Input
-                                        label="Qeyd (isteğə bağlı)"
-                                        value={docNotes}
-                                        onChange={e => setDocNotes(e.target.value)}
-                                        placeholder="Bu sənəd haqqında qeyd..."
-                                    />
-                                    <Button type="submit" disabled={isUploadingDoc || !docFileRef} className="w-full sm:w-auto">
-                                        {isUploadingDoc ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Yüklənir...</> : <><UploadCloud className="w-4 h-4 mr-2" /> Yüklə</>}
-                                    </Button>
-                                </form>
-                            </CardContent>
-                        </Card>
-                    )}
 
-                    {/* Documents List */}
-                    {docsLoading ? (
-                        <div className="py-8 text-center text-muted text-sm">Yüklənir...</div>
-                    ) : contractDocs.length === 0 ? (
-                        <div className="text-center py-16 border border-dashed border-border rounded-xl text-muted">
-                            <Paperclip className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                            <p>Bu müqaviləyə hələ sənəd əlavə edilməyib</p>
-                            {canManageDocs && <p className="text-sm mt-1">Yuxarıdakı formdan sənəd yükləyin</p>}
-                        </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {DOC_TYPES.map(typeInfo => {
-                                const typeDocs = contractDocs.filter((d: any) => d.type === typeInfo.value);
-                                if (typeDocs.length === 0) return null;
-                                const isCollapsed = collapsedGroups[typeInfo.value];
-                                return (
-                                    <Card key={typeInfo.value} variant="default">
-                                        <button
-                                            className="w-full flex items-center justify-between p-4 hover:bg-surface/50 transition-colors"
-                                            onClick={() => setCollapsedGroups(g => ({ ...g, [typeInfo.value]: !g[typeInfo.value] }))}
-                                        >
-                                            <span className="flex items-center gap-2 font-medium text-text">
-                                                {typeInfo.label}
-                                                <span className={`text-xs px-2 py-0.5 rounded-full border ${typeInfo.badge}`}>{typeDocs.length}</span>
-                                            </span>
-                                            {isCollapsed ? <ChevronDown className="w-4 h-4 text-muted" /> : <ChevronUp className="w-4 h-4 text-muted" />}
-                                        </button>
-                                        {!isCollapsed && (
-                                            <div className="divide-y divide-border border-t border-border">
-                                                {typeDocs.map((doc: any) => (
-                                                    <div key={doc.id} className="flex items-center gap-3 p-4">
-                                                        <div className={`w-9 h-9 rounded-lg border flex items-center justify-center shrink-0 ${typeInfo.badge}`}>
-                                                            <FileText className="w-4 h-4" />
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-medium text-text truncate">{doc.title}</p>
-                                                            <p className="text-xs text-muted">{doc.fileName} · {(doc.fileSize / 1024).toFixed(0)} KB · {new Date(doc.uploadedAt).toLocaleDateString('az-AZ')}</p>
-                                                            {doc.notes && <p className="text-xs text-muted italic mt-0.5">{doc.notes}</p>}
-                                                        </div>
-                                                        <div className="flex items-center gap-1 shrink-0">
-                                                            <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 text-muted hover:text-gold transition-colors rounded" title="Bax">
-                                                                <Eye className="w-4 h-4" />
-                                                            </a>
-                                                            <a href={doc.fileUrl} download={doc.fileName} className="p-1.5 text-muted hover:text-blue-400 transition-colors rounded" title="Yüklə">
-                                                                <Download className="w-4 h-4" />
-                                                            </a>
-                                                            {canManageDocs && (
-                                                                <button onClick={() => handleDeleteContractDoc(doc.id)} className="p-1.5 text-muted hover:text-red transition-colors rounded" title="Sil">
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </Card>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-            )}
 
             {/* Archive Confirm */}
             <ConfirmDialog

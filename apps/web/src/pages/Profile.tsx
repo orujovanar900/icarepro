@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { User, LogOut, Camera, Loader2, KeyRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { translateRole } from '@/utils/roles';
 
 export function Profile() {
     const { user, setUser, logout } = useAuthStore();
@@ -122,7 +123,7 @@ export function Profile() {
                         </div>
                         <div>
                             <h3 className="text-lg font-bold text-text">{user?.name}</h3>
-                            <p className="text-sm text-muted">{user?.role}</p>
+                            <p className="text-sm text-muted">{translateRole(user?.role)}</p>
                             <p className="text-xs text-muted mt-1">{user?.email}</p>
                         </div>
 

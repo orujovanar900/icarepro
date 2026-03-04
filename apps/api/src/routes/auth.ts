@@ -104,7 +104,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
                     isActive: true,
                     jwtVersion: 1,
                 },
-                include: { organization: { select: { id: true, name: true, plan: true, isActive: true } } },
+                include: { organization: { select: { id: true, name: true, plan: true, isActive: true, senadUstasiUsedMonth: true, senadUstasiResetDate: true } } },
             })
             return { user, org }
         })
@@ -167,7 +167,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
             where: { email, isActive: true },
             include: {
                 organization: {
-                    select: { id: true, name: true, plan: true, isActive: true },
+                    select: { id: true, name: true, plan: true, isActive: true, senadUstasiUsedMonth: true, senadUstasiResetDate: true },
                 },
             },
         })
@@ -279,7 +279,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
             select: {
                 id: true, email: true, name: true, role: true, phone: true,
                 isActive: true, createdAt: true, telegramChatId: true, avatarUrl: true,
-                organization: { select: { id: true, name: true, plan: true } },
+                organization: { select: { id: true, name: true, plan: true, isActive: true, senadUstasiUsedMonth: true, senadUstasiResetDate: true } },
             },
         })
         if (!user) return reply.code(404).send({ success: false, error: 'User not found' })

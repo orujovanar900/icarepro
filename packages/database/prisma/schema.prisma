@@ -96,6 +96,7 @@ enum SubscriptionStatus {
 enum SubscriptionPlan {
   FREE_TRIAL
   BASHLANQIC
+  PROFESSIONAL
   BIZNES
   KORPORATIV
 }
@@ -116,6 +117,9 @@ model Organization {
   subscriptionPlan     SubscriptionPlan   @default(FREE_TRIAL)
   planExpiresAt        DateTime?
   gracePeriodStartedAt DateTime?
+
+  senadUstasiUsedMonth Int       @default(0)
+  senadUstasiResetDate DateTime? @default(now())
 
   users         User[]
   properties    Property[]
@@ -165,6 +169,7 @@ model Property {
   building       String
   address        String
   area           Decimal  @db.Decimal(10, 2)
+  type           String   @default("MENZEL")
   isActive       Boolean  @default(true)
   status         PropertyStatus @default(VACANT)
   lat            Decimal? @db.Decimal(10, 8)

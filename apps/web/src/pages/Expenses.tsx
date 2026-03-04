@@ -13,6 +13,8 @@ import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Trash2 } from 'lucide-react';
+import { usePlan, FeatureGate } from '@/utils/planGates';
+import { UpgradeModal } from '@/components/UpgradeModal';
 
 const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('az-AZ', {
@@ -27,6 +29,9 @@ export function Expenses() {
     const queryClient = useQueryClient();
     const [searchParams, setSearchParams] = useSearchParams();
     const addToast = useToastStore((state) => state.addToast);
+
+    const { can, plan } = usePlan();
+    const [upgradeFeature, setUpgradeFeature] = useState<FeatureGate | null>(null);
 
     // Filter states from URL
     const currentMonth = new Date().getMonth() + 1;
@@ -152,6 +157,10 @@ export function Expenses() {
     };
 
     const handleExportExcel = async () => {
+        if (!can('excelExport')) {
+            setUpgradeFeature('excelExport');
+            return;
+        }
         setIsExporting(true);
         try {
             const res = await api.post('/hesabat/expenses', { ...getReportPayload(), format: 'excel' }, { responseType: 'blob' });
@@ -187,6 +196,10 @@ export function Expenses() {
     };
 
     const handlePrintPDF = async () => {
+        if (!can('pdfExport')) {
+            setUpgradeFeature('pdfExport');
+            return;
+        }
         setIsExporting(true);
         try {
             const res = await api.post('/hesabat/expenses', { ...getReportPayload(), format: 'pdf' }, { responseType: 'blob' });
@@ -228,7 +241,13 @@ export function Expenses() {
                     Məxaric
                 </h1>
                 <div className="flex gap-2">
-                    <Button onClick={() => setIsReportModalOpen(true)} className="bg-gold border-gold text-black hover:bg-gold2">
+                    <Button onClick={() => {
+                        if (!can('reports')) {
+                            setUpgradeFeature('reports');
+                            return;
+                        }
+                        setIsReportModalOpen(true);
+                    }} className="bg-gold border-gold text-black hover:bg-gold2">
                         📊 Hesabat
                     </Button>
                     <Button onClick={() => setIsModalOpen(true)}>
@@ -494,6 +513,18 @@ export function Expenses() {
                     </div>
                 </div>
             </Modal>
+
+            {/* Upgrade Modal Gate */}
+            {upgradeFeature && (
+                <div className="fixed inset-0 z-[100] backdrop-blur-md bg-black/40">
+                    <UpgradeModal
+                        isOpen={true}
+                        feature={upgradeFeature}
+                        requiredPlan={upgradeFeature === 'excelExport' || upgradeFeature === 'pdfExport' || upgradeFeature === 'reports' ? 'starter' : 'starter'}
+                        onClose={() => setUpgradeFeature(null)}
+                    />
+                </div>
+            )}
         </div>
     );
 }

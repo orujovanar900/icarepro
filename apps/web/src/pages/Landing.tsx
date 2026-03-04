@@ -469,7 +469,7 @@ export function Landing() {
                                 ],
                             },
                             {
-                                name: 'PROFESSIONAL', sub: null, price: 69, annualPrice: 49, promo: 35,
+                                name: 'BİZNES', sub: null, price: 69, annualPrice: 49, promo: 35,
                                 popular: true, enterprise: false,
                                 units: 20, users: 5,
                                 feats: [
@@ -480,7 +480,7 @@ export function Landing() {
                                 ],
                             },
                             {
-                                name: 'BİZNES', sub: null, price: 149, annualPrice: 119, promo: 75,
+                                name: 'KORPORATİV', sub: null, price: 149, annualPrice: 119, promo: 75,
                                 popular: false, enterprise: false,
                                 units: 50, users: 10,
                                 feats: [

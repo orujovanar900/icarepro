@@ -12,6 +12,38 @@ import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import SimpleMap from '@/components/SimpleMap';
 import { useToastStore } from '@/store/toast';
+import { usePlan, FeatureGate } from '@/utils/planGates';
+import { UpgradeModal } from '@/components/UpgradeModal';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+
+let DefaultIcon = L.icon({
+    iconUrl: icon,
+    shadowUrl: iconShadow,
+    iconAnchor: [12, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
+
+function LocationPicker({ position, setPosition, setAddress }: any) {
+    useMapEvents({
+        click(e) {
+            const { lat, lng } = e.latlng;
+            setPosition({ lat, lng });
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.display_name) {
+                        setAddress(data.display_name);
+                    }
+                })
+                .catch(() => { });
+        }
+    });
+    return position.lat ? <Marker position={[position.lat, position.lng]} /> : null;
+}
 
 const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('az-AZ', {
@@ -32,8 +64,11 @@ export function Properties() {
     const [statusFilter, setStatusFilter] = useState('');
     const limit = 20;
 
+    const { can, plan } = usePlan();
+    const [upgradeFeature, setUpgradeFeature] = useState<FeatureGate | null>(null);
+
     // Add property form state
-    const [form, setForm] = useState({ number: '', name: '', propertyType: 'MENZEL', address: '', area: '', status: 'VACANT' });
+    const [form, setForm] = useState({ number: '', name: '', propertyType: 'MENZEL', address: '', area: '', status: 'VACANT', lat: 40.4093, lng: 49.8671 });
     const [isSaving, setIsSaving] = useState(false);
 
     // Extra filters
@@ -94,10 +129,10 @@ export function Properties() {
         }
         setIsSaving(true);
         try {
-            await api.post('/properties', { ...form, building: form.address, area: Number(form.area) });
+            await api.post('/properties', { ...form, building: form.address, area: Number(form.area), lat: form.lat, lng: form.lng });
             addToast({ message: 'Obyekt əlavə edildi ✓', type: 'success' });
             setIsModalOpen(false);
-            setForm({ number: '', name: '', propertyType: 'MENZEL', address: '', area: '', status: 'VACANT' });
+            setForm({ number: '', name: '', propertyType: 'MENZEL', address: '', area: '', status: 'VACANT', lat: 40.4093, lng: 49.8671 });
             queryClient.invalidateQueries({ queryKey: ['properties'] });
         } catch (error: any) {
             addToast({ message: error.response?.data?.error || 'Xəta baş verdi', type: 'error' });
@@ -134,6 +169,10 @@ export function Properties() {
     });
 
     const handleExportExcel = async () => {
+        if (!can('excelExport')) {
+            setUpgradeFeature('excelExport');
+            return;
+        }
         setIsExporting(true);
         try {
             const res = await api.post('/hesabat/properties', { ...getReportPayload(), format: 'excel' }, { responseType: 'blob' });
@@ -154,6 +193,10 @@ export function Properties() {
     };
 
     const handlePrintPDF = async () => {
+        if (!can('pdfExport')) {
+            setUpgradeFeature('pdfExport');
+            return;
+        }
         setIsExporting(true);
         try {
             const res = await api.post('/hesabat/properties', { ...getReportPayload(), format: 'pdf' }, { responseType: 'blob' });
@@ -197,11 +240,23 @@ export function Properties() {
                     Obyektlər
                 </h1>
                 <div className="flex gap-2">
-                    <Button onClick={() => setIsReportModalOpen(true)} className="bg-gold border-gold text-black hover:bg-gold2">
+                    <Button onClick={() => {
+                        if (!can('reports')) {
+                            setUpgradeFeature('reports');
+                            return;
+                        }
+                        setIsReportModalOpen(true);
+                    }} className="bg-gold border-gold text-black hover:bg-gold2">
                         📊 Hesabat
                     </Button>
                     {canAddProperty && (
-                        <Button onClick={() => setIsModalOpen(true)}>
+                        <Button onClick={() => {
+                            if (!can('addUnit', totalCount)) {
+                                setUpgradeFeature('addUnit');
+                                return;
+                            }
+                            setIsModalOpen(true);
+                        }}>
                             <Plus className="w-4 h-4 mr-2" />
                             Yeni Obyekt
                         </Button>
@@ -216,7 +271,13 @@ export function Properties() {
                     <div>
                         <label className="text-xs font-medium text-muted uppercase tracking-wide block mb-2">Növ</label>
                         <div className="flex gap-2 flex-wrap">
-                            {[{ v: 'MENZEL', l: '🏠 Mənzil' }, { v: 'OFIS', l: '📋 Ofis' }, { v: 'OBYEKT', l: '🏪 Obyekt' }, { v: 'DIGER', l: '📌 Digər' }].map(t => (
+                            {[
+                                { v: 'MENZEL', l: '🏠 Mənzil' },
+                                { v: 'OFIS', l: '📋 Ofis' },
+                                { v: 'MAGAZA', l: '🏪 Mağaza' },
+                                { v: 'ANBAR', l: '📦 Anbar' },
+                                { v: 'DIGER', l: '📌 Digər' }
+                            ].map(t => (
                                 <button
                                     key={t.v}
                                     type="button"
@@ -243,12 +304,27 @@ export function Properties() {
                             placeholder="Mənzil 3A"
                         />
                     </div>
-                    <Input
-                        label="Ünvan *"
-                        value={form.address}
-                        onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
-                        placeholder="Bakı, Nərimanov r., Neftçilər pr. 15"
-                    />
+                    <div className="grid grid-cols-2 gap-4">
+                        <Input
+                            label="Ünvan *"
+                            value={form.address}
+                            onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
+                            placeholder="Xəritədən seçin və ya daxil edin"
+                        />
+                        <div className="flex flex-col gap-1 justify-end">
+                            <label className="text-xs font-medium text-muted">Xəritədə yeri seçin</label>
+                            <div className="h-[90px] rounded-xl overflow-hidden border border-border">
+                                <MapContainer center={[form.lat, form.lng]} zoom={11} style={{ height: '100%', width: '100%' }}>
+                                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                                    <LocationPicker
+                                        position={{ lat: form.lat, lng: form.lng }}
+                                        setPosition={(pos: any) => setForm(f => ({ ...f, lat: pos.lat, lng: pos.lng }))}
+                                        setAddress={(addr: string) => setForm(f => ({ ...f, address: addr }))}
+                                    />
+                                </MapContainer>
+                            </div>
+                        </div>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         <Input
                             label="Sahə (m²) *"
@@ -302,8 +378,8 @@ export function Properties() {
 
             {/* Filters */}
             <Card variant="elevated">
-                <CardContent className="p-4 space-y-3">
-                    <div className="flex flex-col sm:flex-row gap-3 items-center">
+                <CardContent className="p-4 space-y-4">
+                    <div className="flex flex-col gap-4">
                         <div className="relative w-full max-w-md">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
                             <Input
@@ -313,72 +389,98 @@ export function Properties() {
                                 className="pl-9"
                             />
                         </div>
-                        <div className="flex gap-2 w-full sm:w-auto flex-wrap">
-                            <Select
-                                className="w-36"
-                                value={statusFilter}
-                                onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-                                options={[
-                                    { label: 'Status: Hamısı', value: '' },
-                                    { label: 'Boş', value: 'VACANT' },
-                                    { label: 'Tutulub', value: 'OCCUPIED' },
-                                    { label: 'Təmirdə', value: 'UNDER_REPAIR' },
-                                ]}
-                            />
-                            <Select
-                                className="w-36"
-                                value={typeFilter}
-                                onChange={e => { setTypeFilter(e.target.value); setPage(1); }}
-                                options={[
-                                    { label: 'Növ: Hamısı', value: '' },
-                                    { label: 'Mənzil', value: 'MENZEL' },
-                                    { label: 'Ofis', value: 'OFIS' },
-                                    { label: 'Obyekt', value: 'OBYEKT' },
-                                    { label: 'Digər', value: 'DIGER' },
-                                ]}
-                            />
-                            <Select
-                                className="w-44"
-                                value={sortFilter}
-                                onChange={e => setSortFilter(e.target.value)}
-                                options={[
-                                    { label: 'Sırala: Tarix', value: '' },
-                                    { label: 'Qiymət: Yüksək → Aşağı', value: 'rent_desc' },
-                                    { label: 'Qiymət: Aşağı → Yüksək', value: 'rent_asc' },
-                                    { label: 'Sahə: Böyük → Kiçik', value: 'area_desc' },
-                                    { label: 'Sahə: Kiçik → Böyük', value: 'area_asc' },
-                                ]}
-                            />
+
+                        {/* Horizontal Filter Bar */}
+                        <div className="flex items-center gap-4 overflow-x-auto whitespace-nowrap [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pb-1">
+                            {/* Status Pills */}
+                            <div className="flex items-center gap-1.5 p-1 bg-surface border border-border rounded-lg shrink-0">
+                                {[
+                                    { id: '', label: 'Hamısı' },
+                                    { id: 'OCCUPIED', label: 'Dolu' },
+                                    { id: 'VACANT', label: 'Boş' },
+                                    { id: 'UNDER_REPAIR', label: 'Təmirdə' }
+                                ].map(st => (
+                                    <button
+                                        key={st.id}
+                                        onClick={() => { setStatusFilter(st.id); setPage(1); }}
+                                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${statusFilter === st.id
+                                            ? 'bg-gold text-black border border-gold'
+                                            : 'bg-transparent text-muted border border-transparent hover:border-gold/30'
+                                            }`}
+                                    >
+                                        {st.label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="w-[1px] h-8 bg-border shrink-0"></div>
+
+                            {/* Type Dropdown */}
+                            <div className="shrink-0 w-40">
+                                <Select
+                                    value={typeFilter}
+                                    onChange={e => { setTypeFilter(e.target.value); setPage(1); }}
+                                    options={[
+                                        { label: 'Növ: Hamısı', value: '' },
+                                        { label: 'Mənzil', value: 'MENZEL' },
+                                        { label: 'Ofis', value: 'OFIS' },
+                                        { label: 'Mağaza', value: 'MAGAZA' },
+                                        { label: 'Anbar', value: 'ANBAR' },
+                                        { label: 'Digər', value: 'DIGER' },
+                                    ]}
+                                />
+                            </div>
+
+                            <div className="w-[1px] h-8 bg-border shrink-0"></div>
+
+                            {/* Sort Dropdown */}
+                            <div className="shrink-0 w-48">
+                                <Select
+                                    value={sortFilter}
+                                    onChange={e => setSortFilter(e.target.value)}
+                                    options={[
+                                        { label: 'Sırala: Ən yeni', value: '' },
+                                        { label: 'Ən yüksək qiymət', value: 'rent_desc' },
+                                        { label: 'Ən aşağı qiymət', value: 'rent_asc' },
+                                        { label: 'Ən böyük sahə', value: 'area_desc' },
+                                        { label: 'Ən kiçik sahə', value: 'area_asc' },
+                                    ]}
+                                />
+                            </div>
+
+                            <div className="w-[1px] h-8 bg-border shrink-0 hidden sm:block"></div>
+
+                            {/* Show Deleted Toggle */}
                             <Button
                                 variant={showDeleted ? undefined : 'outline'}
                                 onClick={() => { setShowDeleted(!showDeleted); setPage(1); }}
-                                className={showDeleted ? 'bg-red/10 text-red border-red/20 hover:bg-red/20 whitespace-nowrap' : 'whitespace-nowrap'}
+                                className={`shrink-0 ${showDeleted ? 'bg-red/10 text-red border-red/20 hover:bg-red/20' : ''}`}
                             >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                {showDeleted ? 'Aktivləri' : 'Silinmişlər'}
+                                <ArchiveRestore className="w-4 h-4 mr-2" />
+                                {showDeleted ? 'Aktivləri Yüklə' : 'Silinmişlər'}
                             </Button>
                         </div>
                     </div>
+
                     {/* Active filter chips */}
                     {(statusFilter || typeFilter || sortFilter) && (
-                        <div className="flex gap-2 flex-wrap items-center">
-                            <span className="text-xs text-muted">Aktiv filtrlər:</span>
+                        <div className="flex gap-2 flex-wrap items-center pt-2 border-t border-border">
                             {statusFilter && (
                                 <button onClick={() => setStatusFilter('')} className="flex items-center gap-1 bg-gold/10 text-gold border border-gold/30 px-2.5 py-1 rounded-full text-xs font-medium hover:bg-gold/20">
-                                    {statusFilter === 'VACANT' ? 'Boş' : statusFilter === 'OCCUPIED' ? 'Tutulub' : 'Təmirdə'} ×
+                                    {statusFilter === 'VACANT' ? 'Boş' : statusFilter === 'OCCUPIED' ? 'Dolu' : 'Təmirdə'} ×
                                 </button>
                             )}
                             {typeFilter && (
                                 <button onClick={() => setTypeFilter('')} className="flex items-center gap-1 bg-gold/10 text-gold border border-gold/30 px-2.5 py-1 rounded-full text-xs font-medium hover:bg-gold/20">
-                                    {typeFilter === 'MENZEL' ? 'Mənzil' : typeFilter === 'OFIS' ? 'Ofis' : typeFilter === 'OBYEKT' ? 'Obyekt' : 'Digər'} ×
+                                    {typeFilter === 'MENZEL' ? 'Mənzil' : typeFilter === 'OFIS' ? 'Ofis' : typeFilter === 'MAGAZA' ? 'Mağaza' : typeFilter === 'ANBAR' ? 'Anbar' : 'Digər'} ×
                                 </button>
                             )}
                             {sortFilter && (
                                 <button onClick={() => setSortFilter('')} className="flex items-center gap-1 bg-gold/10 text-gold border border-gold/30 px-2.5 py-1 rounded-full text-xs font-medium hover:bg-gold/20">
-                                    {sortFilter.replace('_', ' ')} ×
+                                    {sortFilter === 'rent_desc' ? 'Yüksək qiymət' : sortFilter === 'rent_asc' ? 'Aşağı qiymət' : sortFilter === 'area_desc' ? 'Böyük sahə' : 'Kiçik sahə'} ×
                                 </button>
                             )}
-                            <button onClick={() => { setStatusFilter(''); setTypeFilter(''); setSortFilter(''); }} className="text-xs text-muted hover:text-red ml-1">
+                            <button onClick={() => { setStatusFilter(''); setTypeFilter(''); setSortFilter(''); }} className="text-xs text-red hover:underline ml-1">
                                 Sıfırla
                             </button>
                         </div>
@@ -572,6 +674,18 @@ export function Properties() {
                     </div>
                 </div>
             </Modal>
+
+            {/* Upgrade Modal Gate */}
+            {upgradeFeature && (
+                <div className="fixed inset-0 z-[100] backdrop-blur-md bg-black/40">
+                    <UpgradeModal
+                        isOpen={true}
+                        feature={upgradeFeature}
+                        requiredPlan={upgradeFeature === 'addUnit' ? (plan === 'free' ? 'starter' : (plan === 'starter' ? 'pro' : 'business')) : 'starter'}
+                        onClose={() => setUpgradeFeature(null)}
+                    />
+                </div>
+            )}
         </div>
     );
 }

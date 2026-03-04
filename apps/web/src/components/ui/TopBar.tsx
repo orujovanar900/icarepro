@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { LogOut, User as UserIcon, Menu, Bell, AlertCircle, AlertTriangle, Clock, CheckCircle, Sun, Moon } from 'lucide-react';
 import { Button } from './Button';
+import { translateRole } from '@/utils/roles';
 
 function timeAgo(dateInput: Date | string) {
     const diff = new Date(dateInput).getTime() - Date.now();
@@ -221,7 +222,7 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
                         {user?.name}
                     </span>
                     <span className="rounded bg-border px-1.5 py-0.5 text-xs text-muted md:ml-2">
-                        {user?.role}
+                        {translateRole(user?.role)}
                     </span>
                 </button>
 

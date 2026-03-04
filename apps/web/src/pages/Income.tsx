@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowDownLeft, Plus, Filter, Search, Trash2, ArchiveRestore } from 'lucide-react';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend } from 'recharts';
+import { ArrowDownLeft, Plus, Filter, Search, Trash2, ArchiveRestore, BarChart4, Printer } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { useToastStore } from '@/store/toast';
@@ -178,6 +179,7 @@ export function Income() {
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
 
     // Form State
     const [formContractId, setFormContractId] = useState('');
@@ -238,10 +240,16 @@ export function Income() {
                     Mədaxil
                 </h1>
                 {canAddPayment && (
-                    <Button onClick={() => setIsModalOpen(true)}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Ödəniş Əlavə Et
-                    </Button>
+                    <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                        <Button variant="outline" onClick={() => setShowReportModal(true)} className="flex-1 sm:flex-none">
+                            <BarChart4 className="w-4 h-4 mr-2" />
+                            Hesabat
+                        </Button>
+                        <Button onClick={() => setIsModalOpen(true)} className="flex-[2] sm:flex-none">
+                            <Plus className="w-4 h-4 mr-2" />
+                            Yeni
+                        </Button>
+                    </div>
                 )}
             </div>
 
@@ -517,6 +525,87 @@ export function Income() {
                         </Button>
                     </div>
                 </form>
+            </Modal>
+
+            {/* Report Modal */}
+            <Modal isOpen={showReportModal} onClose={() => setShowReportModal(false)} title={`${months[month - 1]} ${year} - Mədaxil Hesabatı`} className="max-w-4xl">
+                <div className="space-y-6">
+                    <div className="flex justify-between items-center bg-surface p-4 rounded-xl border border-border">
+                        <div>
+                            <p className="text-sm text-muted mb-1">Cəmi Mədaxil</p>
+                            <p className="text-2xl font-bold text-green">{formatMoney(Number(totalAmount))}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted mb-1">Ödəniş Sayı</p>
+                            <p className="text-2xl font-bold text-text text-right">{payments.length}</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="bg-surface p-4 rounded-xl border border-border">
+                            <h3 className="text-sm font-semibold text-text mb-4 text-center">Növlər Üzrə</h3>
+                            <div className="h-[250px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={Object.entries(
+                                                payments.reduce((acc: any, p: any) => {
+                                                    const t = p.paymentType === 'CASH' ? 'Nağd' : p.paymentType === 'BANK' ? 'Bank' : p.paymentType === 'CARD' ? 'Kart' : 'Onlayn';
+                                                    acc[t] = (acc[t] || 0) + Number(p.amount);
+                                                    return acc;
+                                                }, {})
+                                            ).map(([name, value]) => ({ name, value }))}
+                                            cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"
+                                        >
+                                            {Object.entries(payments.reduce((acc: any, p: any) => { acc[p.paymentType] = 1; return acc; }, {})).map((_, index) => (
+                                                <Cell key={`cell-${index}`} fill={['#C9A84C', '#22c55e', '#3b82f6', '#a855f7'][index % 4]} />
+                                            ))}
+                                        </Pie>
+                                        <RechartsTooltip formatter={(val: any) => formatMoney(Number(val) || 0)} contentStyle={{ backgroundColor: '#1A1D24', border: '1px solid #2D3748', borderRadius: '8px', color: '#fff' }} />
+                                        <Legend />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        <div className="bg-surface p-4 rounded-xl border border-border">
+                            <h3 className="text-sm font-semibold text-text mb-4 text-center">Təyinat Üzrə</h3>
+                            <div className="h-[250px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={Object.entries(
+                                                payments.reduce((acc: any, p: any) => {
+                                                    const t = rentalTypeLabel[p.contract.rentalType] || p.contract.rentalType;
+                                                    acc[t] = (acc[t] || 0) + Number(p.amount);
+                                                    return acc;
+                                                }, {})
+                                            ).map(([name, value]) => ({ name, value }))}
+                                            cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"
+                                        >
+                                            {Object.entries(payments.reduce((acc: any, p: any) => { acc[p.contract.rentalType] = 1; return acc; }, {})).map((_, index) => (
+                                                <Cell key={`cell-${index}`} fill={['#3b82f6', '#22c55e', '#a855f7', '#C9A84C', '#f97316'][index % 5]} />
+                                            ))}
+                                        </Pie>
+                                        <RechartsTooltip formatter={(val: any) => formatMoney(Number(val) || 0)} contentStyle={{ backgroundColor: '#1A1D24', border: '1px solid #2D3748', borderRadius: '8px', color: '#fff' }} />
+                                        <Legend />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-4 pt-4 mt-6 border-t border-border">
+                        <Button type="button" variant="outline" className="flex-1" onClick={() => {
+                            window.print();
+                        }}>
+                            <Printer className="w-4 h-4 mr-2" /> Çap Et
+                        </Button>
+                        <Button type="button" className="flex-1" onClick={() => setShowReportModal(false)}>
+                            Bağla
+                        </Button>
+                    </div>
+                </div>
             </Modal>
         </div>
     );

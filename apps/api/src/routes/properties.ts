@@ -12,7 +12,10 @@ const createSchema = z.object({
     building: z.string().min(1),
     address: z.string().min(1),
     area: z.number().positive(),
+    type: z.string().optional(),
     status: z.enum(['VACANT', 'OCCUPIED', 'UNDER_REPAIR']).optional(),
+    lat: z.number().optional(),
+    lng: z.number().optional(),
 })
 
 const updateSchema = createSchema.partial()
@@ -29,6 +32,7 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
         const search = q['search']
         const limit = Number(q['limit'] ?? 50)
         const offset = Number(q['offset'] ?? 0)
+        const typeFilter = q['type']
 
         const deleted = q['deleted'] === 'true'
 
@@ -42,7 +46,10 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
                     { address: { contains: search, mode: 'insensitive' } },
                 ]
             } : {}),
+            ...(typeFilter ? { type: typeFilter } : {}),
         }
+
+        let orderByCol = 'number'
 
         const [properties, total] = await Promise.all([
             fastify.prisma.property.findMany({
@@ -51,8 +58,9 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
                     photos: { orderBy: { sortOrder: 'asc' } },
                     meterReadings: { take: 1, orderBy: { readingDate: 'desc' } },
                     _count: { select: { contracts: { where: { status: 'ACTIVE' } } } },
+                    contracts: { where: { status: 'ACTIVE' }, take: 1, include: { tenant: { select: { firstName: true, lastName: true, companyName: true } } } }
                 },
-                orderBy: { number: 'asc' },
+                orderBy: q['sort'] === 'rent_desc' ? { contracts: { _count: 'desc' } } : q['sort'] === 'rent_asc' ? { contracts: { _count: 'asc' } } : q['sort'] === 'area_desc' ? { area: 'desc' } : q['sort'] === 'area_asc' ? { area: 'asc' } : { number: 'asc' },
                 take: limit,
                 skip: offset,
             }),
@@ -102,6 +110,95 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         return reply.send({ success: true, data: propertyMapped })
+    })
+
+    // GET /properties/:id/report — For Property Detail 'Əmlak Hesabatı' tab
+    fastify.get('/:id/report', { preHandler: [authenticate] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const exists = await fastify.prisma.property.findFirst({ where: { id, ...withOrg(req) } })
+        if (!exists) return reply.code(404).send({ success: false, error: 'Property not found' })
+
+        // Fetch all contracts for this property
+        const contracts = await fastify.prisma.contract.findMany({
+            where: { propertyId: id, deletedAt: null },
+            include: { payments: { where: { deletedAt: null } } }
+        })
+
+        let totalIncome = 0;
+        let totalExpectedRent = 0;
+
+        // Calculate total income and expected rent
+        for (const c of contracts) {
+            // Income for this contract
+            const cIncome = c.payments.reduce((acc, p) => acc + Number(p.amount), 0);
+            totalIncome += cIncome;
+
+            // Simple Expected rent for this contract based on months passed
+            const start = new Date(c.startDate);
+            const end = c.endDate ? new Date(c.endDate) : new Date();
+            const now = new Date();
+            const effectiveEnd = end > now ? now : end;
+
+            // basic month diff
+            let monthsPassed = (effectiveEnd.getFullYear() - start.getFullYear()) * 12 + (effectiveEnd.getMonth() - start.getMonth());
+            if (monthsPassed < 0) monthsPassed = 0;
+            if (monthsPassed === 0 && effectiveEnd >= start) monthsPassed = 1; // at least 1 month if started
+
+            const cExpected = monthsPassed * Number(c.monthlyRent);
+            totalExpectedRent += cExpected;
+        }
+
+        let totalDebt = totalExpectedRent - totalIncome;
+        if (totalDebt < 0) totalDebt = 0;
+
+        const efficiency = (totalIncome + totalDebt) > 0 ? Math.round((totalIncome / (totalIncome + totalDebt)) * 100) : 0;
+
+        // Ay-ba-ay Gəlir (Last 12 months)
+        const monthlyStats = [];
+        const now = new Date();
+        for (let i = 11; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthLabel = d.toLocaleString('az-AZ', { month: 'short', year: '2-digit' });
+
+            // Income for this month
+            let monthIncome = 0;
+            let monthExpected = 0;
+
+            for (const c of contracts) {
+                // Sum payments in this month
+                const paymentsThisMonth = c.payments.filter(p => {
+                    const pd = new Date(p.paymentDate);
+                    return pd.getFullYear() === d.getFullYear() && pd.getMonth() === d.getMonth();
+                });
+                monthIncome += paymentsThisMonth.reduce((acc, p) => acc + Number(p.amount), 0);
+
+                // Expected rent (if contract was active in this month)
+                const start = new Date(c.startDate);
+                const end = new Date(c.endDate);
+                if (start <= new Date(d.getFullYear(), d.getMonth() + 1, 0) && end >= d) {
+                    monthExpected += Number(c.monthlyRent);
+                }
+            }
+
+            let monthDebt = monthExpected - monthIncome;
+            if (monthDebt < 0) monthDebt = 0;
+
+            monthlyStats.push({
+                name: monthLabel,
+                gelir: monthIncome,
+                borc: monthDebt
+            });
+        }
+
+        return reply.send({
+            success: true,
+            data: {
+                totalIncome,
+                totalDebt,
+                efficiency,
+                monthlyStats
+            }
+        });
     })
 
     // GET /properties/:id/tenants

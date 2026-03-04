@@ -11,6 +11,9 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Modal } from '@/components/ui/Modal';
+import { usePlan, FeatureGate } from '@/utils/planGates';
+import { UpgradeModal } from '@/components/UpgradeModal';
+import { translateRole } from '@/utils/roles';
 
 export function Users() {
     const { user } = useAuthStore();
@@ -20,6 +23,9 @@ export function Users() {
     // Main fetch
     const [page, setPage] = useState(1);
     const limit = 20;
+
+    const { can, plan } = usePlan();
+    const [upgradeFeature, setUpgradeFeature] = useState<FeatureGate | null>(null);
 
     const { data: usersData, isLoading, isError, refetch } = useQuery({
         queryKey: ['users', page],
@@ -46,6 +52,10 @@ export function Users() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const openCreateModal = () => {
+        if (!can('addUser', totalCount)) {
+            setUpgradeFeature('addUser');
+            return;
+        }
         setIsEditMode(false);
         setEditingUserId(null);
         setFormName('');
@@ -202,7 +212,7 @@ export function Users() {
                                                 <TableCell className="text-sm text-muted">{u.email}</TableCell>
                                                 <TableCell>
                                                     <Badge variant={u.role === 'OWNER' ? 'draft' : u.role === 'TENANT' ? 'arxiv' : 'aktiv'}>
-                                                        {u.role}
+                                                        {translateRole(u.role)}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="text-sm text-muted">
@@ -254,7 +264,7 @@ export function Users() {
                                             </div>
                                             <div className="flex flex-col items-end gap-2">
                                                 <Badge variant={u.role === 'OWNER' ? 'draft' : u.role === 'TENANT' ? 'arxiv' : 'aktiv'}>
-                                                    {u.role}
+                                                    {translateRole(u.role)}
                                                 </Badge>
                                                 {u.isActive ? (
                                                     <span className="text-[10px] font-bold uppercase tracking-wider text-green">AKTİV</span>
@@ -334,11 +344,11 @@ export function Users() {
                         value={formRole}
                         onChange={(e) => setFormRole(e.target.value)}
                         options={[
-                            { label: 'Menecer (MANAGER)', value: 'MANAGER' },
-                            { label: 'Kassir (CASHIER)', value: 'CASHIER' },
-                            { label: 'Mühasib (ACCOUNTANT)', value: 'ACCOUNTANT' },
-                            { label: 'İnzibatçı (ADMINISTRATOR)', value: 'ADMINISTRATOR' },
-                            { label: 'İcarəçi (TENANT)', value: 'TENANT' },
+                            { label: 'Menecer', value: 'MANAGER' },
+                            { label: 'Kassir', value: 'CASHIER' },
+                            { label: 'Mühasib', value: 'ACCOUNTANT' },
+                            { label: 'Administrator', value: 'ADMINISTRATOR' },
+                            { label: 'İcarəçi', value: 'TENANT' },
                         ]}
                     />
 
@@ -356,6 +366,18 @@ export function Users() {
                     </div>
                 </form>
             </Modal>
+
+            {/* Upgrade Modal Gate */}
+            {upgradeFeature && (
+                <div className="fixed inset-0 z-[100] backdrop-blur-md bg-black/40">
+                    <UpgradeModal
+                        isOpen={true}
+                        feature={upgradeFeature}
+                        requiredPlan={upgradeFeature === 'addUser' ? (plan === 'free' ? 'starter' : (plan === 'starter' ? 'pro' : 'business')) : 'starter'}
+                        onClose={() => setUpgradeFeature(null)}
+                    />
+                </div>
+            )}
         </div>
     );
 }
