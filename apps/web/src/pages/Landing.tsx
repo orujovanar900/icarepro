@@ -408,46 +408,238 @@ export function Landing() {
 
             {/* PRICING */}
             <section id="pricing" style={{ padding: '110px 32px', background: C.dark }}>
-                <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-                    <div className="fiu" style={{ textAlign: 'center', marginBottom: 48 }}>
+                <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+                    {/* Header */}
+                    <div className="fiu" style={{ textAlign: 'center', marginBottom: 16 }}>
                         <h2 style={{ fontFamily: C.f, fontWeight: 800, fontSize: 'clamp(28px,4vw,46px)', marginBottom: 14 }}>Şəffaf qiymətlər</h2>
-                        <div className="ptg" style={{ marginTop: 24 }}>
-                            <button onClick={() => setPa(false)} style={{ background: !pa ? C.gold : 'transparent', color: !pa ? '#0A0B0F' : C.muted, fontWeight: !pa ? 700 : 400 }}>Aylıq</button>
-                            <button onClick={() => setPa(true)} style={{ background: pa ? C.gold : 'transparent', color: pa ? '#0A0B0F' : C.muted, fontWeight: pa ? 700 : 400 }}>
-                                İllik <span style={{ marginLeft: 6, fontSize: 10, background: C.green, color: '#0A0B0F', borderRadius: 50, padding: '1px 7px', fontWeight: 700 }}>-20%</span>
+                        <p style={{ color: C.muted, fontSize: 16, marginBottom: 28 }}>Hər ölçüdə əmlak portfeli üçün uyğun plan seçin</p>
+                    </div>
+
+                    {/* Promo Banner */}
+                    <div className="fiu" style={{ textAlign: 'center', marginBottom: 28 }}>
+                        <div style={{ display: 'inline-block', background: 'linear-gradient(90deg,rgba(245,200,66,.18),rgba(245,200,66,.08))', border: '1px solid rgba(245,200,66,.35)', borderRadius: 12, padding: '10px 24px', fontSize: 14, color: C.gold, fontWeight: 700 }}>
+                            🎁 İlk 2 ay — 50% endirim (aylıq abunəlikdə)
+                        </div>
+                    </div>
+
+                    {/* Toggle */}
+                    <div className="fiu" style={{ textAlign: 'center', marginBottom: 48 }}>
+                        <div className="ptg" style={{ display: 'inline-flex', position: 'relative' }}>
+                            <button onClick={() => setPa(false)} style={{ background: !pa ? C.gold : 'transparent', color: !pa ? '#0A0B0F' : C.muted, fontWeight: !pa ? 700 : 400, transition: 'all .2s' }}>Aylıq</button>
+                            <button onClick={() => setPa(true)} style={{ background: pa ? C.gold : 'transparent', color: pa ? '#0A0B0F' : C.muted, fontWeight: pa ? 700 : 400, transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                İllik <span style={{ fontSize: 10, background: '#22c55e', color: '#fff', borderRadius: 50, padding: '2px 8px', fontWeight: 700, whiteSpace: 'nowrap' }}>2 ay pulsuz</span>
                             </button>
                         </div>
                     </div>
-                    <div className="pricg" style={{ display: 'flex', gap: 24, justifyContent: 'center', alignItems: 'stretch' }}>
+
+                    {/* Plan Cards */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20, marginBottom: 64 }}>
                         {[
-                            { name: 'BAŞLANĞIC', p: prc(29), popular: false, gold: false, cta: 'Başla', link: '/register', feats: [{ ok: true, t: '10 obyektə qədər' }, { ok: true, t: 'Müqavilə idarəetməsi' }, { ok: true, t: 'Ödəniş izləmə' }, { ok: true, t: 'Email bildirişlər' }, { ok: false, t: 'Vergi hesabatları' }, { ok: false, t: 'API girişi' }] },
-                            { name: 'BİZNES', p: prc(69), popular: true, gold: true, cta: 'Başla', link: '/register', feats: [{ ok: true, t: '50 obyektə qədər' }, { ok: true, t: 'Hər şey Başlanğıcda +' }, { ok: true, t: 'Vergi hesabatları' }, { ok: true, t: 'Kirayəçi bazası' }, { ok: true, t: 'Prioritet dəstək' }, { ok: false, t: 'API girişi' }] },
-                            { name: 'KORPORATİV', p: prc(149), popular: false, gold: false, cta: 'Əlaqə', link: 'mailto:support@icarepro.az', feats: [{ ok: true, t: 'Limitsiz obyekt' }, { ok: true, t: 'Hər şey Biznes-də +' }, { ok: true, t: 'API girişi' }, { ok: true, t: 'Xüsusi inteqrasiyalar' }, { ok: true, t: 'Şəxsi menecer' }] },
-                        ].map((plan, i) => (
-                            <div key={i} className="pricc gc fiu" style={{ width: 320, padding: '36px 30px', position: 'relative', border: plan.popular ? `1.5px solid ${C.gold}` : `1px solid rgba(201,168,76,.13)`, transform: plan.popular ? 'scale(1.04)' : 'scale(1)', boxShadow: plan.popular ? `0 0 48px rgba(201,168,76,.18)` : 'none', display: 'flex', flexDirection: 'column', transitionDelay: `${i * .12}s` }}>
-                                {plan.popular && <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: C.gold, color: '#0A0B0F', fontSize: 11, fontWeight: 800, padding: '4px 16px', borderRadius: 50, letterSpacing: '.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>🔥 Ən populyar</div>}
-                                <div style={{ fontSize: 12, color: C.muted, letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 8, fontWeight: 600 }}>{plan.name}</div>
-                                <div style={{ marginBottom: 28 }}><span style={{ fontSize: 44, fontWeight: 800, color: plan.popular ? C.gold : C.text }}>{plan.p}</span><span style={{ fontSize: 16, color: C.muted }}> AZN/ay</span></div>
-                                <ul style={{ listStyle: 'none', flex: 1, display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
-                                    {plan.feats.map((f, j) => (
-                                        <li key={j} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: f.ok ? C.text : C.muted }}>
-                                            {f.ok ? <CheckCircle2 size={16} color={C.green} /> : <XCircle size={16} color="rgba(255,255,255,.18)" />}{f.t}
-                                        </li>
-                                    ))}
-                                </ul>
-                                {plan.link.startsWith('mailto:') ? (
-                                    <a href={plan.link} className={plan.gold ? 'btn-gold' : 'btn-ghost'} style={{ padding: '13px 0', justifyContent: 'center', fontSize: 15 }}>{plan.cta}</a>
-                                ) : (
-                                    <Link to={plan.link} className={plan.gold ? 'btn-gold' : 'btn-ghost'} style={{ padding: '13px 0', justifyContent: 'center', fontSize: 15 }}>{plan.cta}</Link>
-                                )}
-                            </div>
-                        ))}
+                            {
+                                name: 'PULSUZ', sub: 'Free', price: 0, annualPrice: 0, promo: null,
+                                popular: false, enterprise: false,
+                                units: 2, users: 1,
+                                feats: [
+                                    { ok: true, t: 'Obyekt siyahısı + xəritə' },
+                                    { ok: true, t: 'Kirayəçi məlumatları (FİN, VÖEN)' },
+                                    { ok: true, t: 'Müqavilə girişi & statusu' },
+                                    { ok: true, t: 'Gəlir/xərc izlənməsi' },
+                                    { ok: true, t: 'Borc hesablaması' },
+                                    { ok: true, t: 'Vergi (14%) hesablaması' },
+                                    { ok: true, t: 'Xərc kateqoriya analizi' },
+                                    { ok: true, t: 'Əsas dashboard + borclular' },
+                                    { ok: true, t: 'AI Chat (Haiku)' },
+                                    { ok: false, t: 'Obyekt fotoları' },
+                                    { ok: false, t: 'PDF ixracı' },
+                                    { ok: false, t: 'Excel ixracı' },
+                                    { ok: false, t: 'Sənəd Ustası AI', upgrade: true },
+                                ],
+                            },
+                            {
+                                name: 'BAŞLANĞIC', sub: null, price: 29, annualPrice: 19, promo: 15,
+                                popular: false, enterprise: false,
+                                units: 5, users: 2,
+                                feats: [
+                                    { ok: true, t: 'Pulsuz-dakı hər şey' },
+                                    { ok: true, t: 'Obyekt fotoları' },
+                                    { ok: true, t: 'PDF ixracı' },
+                                    { ok: true, t: 'Excel ixracı + aylıq hesabatlar' },
+                                    { ok: true, t: 'İllik P&L hesabatı' },
+                                    { ok: true, t: 'Gəlir proqnozu (aylıq/illik)' },
+                                    { ok: true, t: 'Tam dashboard' },
+                                    { ok: false, t: 'Sənəd Ustası AI', upgrade: true },
+                                ],
+                            },
+                            {
+                                name: 'PROFESSIONAL', sub: null, price: 69, annualPrice: 49, promo: 35,
+                                popular: true, enterprise: false,
+                                units: 20, users: 5,
+                                feats: [
+                                    { ok: true, t: 'Başlanğıc-dakı hər şey' },
+                                    { ok: true, t: 'Sənəd Ustası AI (30 sorğu/ay)' },
+                                    { ok: true, t: 'Dolulıq analitikası' },
+                                    { ok: true, t: 'Portfolio analizi' },
+                                ],
+                            },
+                            {
+                                name: 'BİZNES', sub: null, price: 149, annualPrice: 119, promo: 75,
+                                popular: false, enterprise: false,
+                                units: 50, users: 10,
+                                feats: [
+                                    { ok: true, t: 'Professional-dakı hər şey' },
+                                    { ok: true, t: 'Sənəd Ustası AI (limitsiz)' },
+                                    { ok: true, t: 'Xüsusi hesabat qurucu' },
+                                    { ok: true, t: 'Prioritet dəstək' },
+                                ],
+                            },
+                            {
+                                name: 'ENTERPRİSE', sub: '50+ obyekt', price: null, annualPrice: null, promo: null,
+                                popular: false, enterprise: true,
+                                units: null, users: null,
+                                feats: [
+                                    { ok: true, t: 'Biznes-dəki hər şey' },
+                                    { ok: true, t: 'Xüsusi inteqrasiyalar' },
+                                    { ok: true, t: 'Şəxsi menecer' },
+                                    { ok: true, t: 'SLA zəmanəti' },
+                                ],
+                            },
+                        ].map((plan, i) => {
+                            const displayPrice = plan.price === null ? null : pa ? plan.annualPrice : plan.price;
+                            const promoPrice = !pa && plan.promo ? plan.promo : null;
+                            return (
+                                <div key={i} className="gc fiu" style={{
+                                    padding: '30px 24px',
+                                    position: 'relative',
+                                    border: plan.popular ? `1.5px solid ${C.gold}` : `1px solid rgba(201,168,76,.13)`,
+                                    borderRadius: 16,
+                                    background: plan.popular ? 'rgba(245,200,66,.04)' : plan.enterprise ? `linear-gradient(135deg, rgba(201,168,76,.06), rgba(201,168,76,.02))` : undefined,
+                                    boxShadow: plan.popular ? `0 0 48px rgba(201,168,76,.15)` : 'none',
+                                    display: 'flex', flexDirection: 'column',
+                                    transitionDelay: `${i * 0.08}s`,
+                                }}>
+                                    {/* Popular badge */}
+                                    {plan.popular && (
+                                        <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: C.gold, color: '#0A0B0F', fontSize: 11, fontWeight: 800, padding: '4px 16px', borderRadius: 50, whiteSpace: 'nowrap' }}>🔥 Populyar</div>
+                                    )}
+
+                                    {/* Name row */}
+                                    <div style={{ marginBottom: 8 }}>
+                                        <div style={{ fontSize: 11, color: C.muted, letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>{plan.name}</div>
+                                        {plan.sub && <div style={{ fontSize: 12, color: C.muted }}>{plan.sub}</div>}
+                                    </div>
+
+                                    {/* Price */}
+                                    <div style={{ marginBottom: 8, minHeight: 60 }}>
+                                        {plan.enterprise ? (
+                                            <div style={{ fontSize: 20, fontWeight: 700, color: C.gold, paddingTop: 8 }}>Bizimlə əlaqə</div>
+                                        ) : plan.price === 0 ? (
+                                            <div><span style={{ fontSize: 40, fontWeight: 800, color: C.text }}>0</span><span style={{ fontSize: 15, color: C.muted }}> AZN</span></div>
+                                        ) : (
+                                            <div>
+                                                {promoPrice && (
+                                                    <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 600, marginBottom: 2 }}>İlk 2 ay: {promoPrice} AZN/ay</div>
+                                                )}
+                                                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                                                    <span style={{ fontSize: 36, fontWeight: 800, color: plan.popular ? C.gold : C.text }}>{displayPrice}</span>
+                                                    <span style={{ fontSize: 14, color: C.muted }}>AZN/{pa ? 'ay' : 'ay'}</span>
+                                                </div>
+                                                {pa && <div style={{ fontSize: 11, color: '#22c55e', marginTop: 2 }}>İllik ödənişdə ({plan.annualPrice! * 12} AZN/il)</div>}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Units/Users chips */}
+                                    {plan.units && (
+                                        <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                                            <span style={{ fontSize: 11, background: 'rgba(201,168,76,.1)', border: '1px solid rgba(201,168,76,.2)', color: C.gold, borderRadius: 50, padding: '3px 10px', fontWeight: 600 }}>🏢 {plan.units} obyekt</span>
+                                            <span style={{ fontSize: 11, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', color: C.muted, borderRadius: 50, padding: '3px 10px', fontWeight: 600 }}>👤 {plan.users} istifadəçi</span>
+                                        </div>
+                                    )}
+                                    {plan.enterprise && (
+                                        <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                                            <span style={{ fontSize: 11, background: 'rgba(201,168,76,.1)', border: '1px solid rgba(201,168,76,.2)', color: C.gold, borderRadius: 50, padding: '3px 10px', fontWeight: 600 }}>🏢 50+ obyekt</span>
+                                            <span style={{ fontSize: 11, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', color: C.muted, borderRadius: 50, padding: '3px 10px', fontWeight: 600 }}>👥 Limitsiz</span>
+                                        </div>
+                                    )}
+
+                                    {/* Features list */}
+                                    <ul style={{ listStyle: 'none', flex: 1, display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 28 }}>
+                                        {plan.feats.map((f: any, j) => (
+                                            <li key={j} style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 13, color: f.ok ? C.text : C.muted }}>
+                                                {f.ok
+                                                    ? <CheckCircle2 size={14} color={C.green} style={{ flexShrink: 0 }} />
+                                                    : <XCircle size={14} color="rgba(255,255,255,.18)" style={{ flexShrink: 0 }} />}
+                                                <span>{f.t}</span>
+                                                {f.upgrade && (
+                                                    <span style={{ marginLeft: 'auto', fontSize: 9, background: C.gold, color: '#0A0B0F', borderRadius: 4, padding: '2px 6px', fontWeight: 800, letterSpacing: '.04em', whiteSpace: 'nowrap', flexShrink: 0 }}>UPGRADE</span>
+                                                )}
+                                            </li>
+                                        ))}
+                                    </ul>
+
+                                    {/* CTA */}
+                                    {plan.enterprise ? (
+                                        <a href="mailto:support@icarepro.az" className="btn-ghost" style={{ padding: '12px 0', textAlign: 'center', fontSize: 14 }}>Əlaqə saxla</a>
+                                    ) : plan.price === 0 ? (
+                                        <Link to="/register" className="btn-ghost" style={{ padding: '12px 0', textAlign: 'center', fontSize: 14 }}>Pulsuz başla</Link>
+                                    ) : (
+                                        <Link to="/register" className={plan.popular ? 'btn-gold' : 'btn-ghost'} style={{ padding: '12px 0', textAlign: 'center', fontSize: 14 }}>Başla</Link>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
-                    <div className="fiu" style={{ textAlign: 'center', marginTop: 36, fontSize: 14, color: C.muted }}>
-                        14 gün pulsuz sınaq • Kart tələb olunmur • İstənilən vaxt ləğv edin
+
+                    {/* Feature Comparison Table */}
+                    <div className="fiu" style={{ overflowX: 'auto' }}>
+                        <div style={{ fontSize: 12, textAlign: 'center', color: C.muted, marginBottom: 24, textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700 }}>Tam Xüsusiyyət Müqayisəsi</div>
+                        <table style={{ width: '100%', minWidth: 680, borderCollapse: 'collapse', fontSize: 13 }}>
+                            <thead>
+                                <tr style={{ borderBottom: `1px solid rgba(255,255,255,.08)` }}>
+                                    <th style={{ textAlign: 'left', padding: '12px 16px', color: C.muted, fontWeight: 600, width: '34%' }}>Xüsusiyyət</th>
+                                    {['Pulsuz', 'Başlanğıc', 'Prof.', 'Biznes', 'Enterprise'].map(h => (
+                                        <th key={h} style={{ textAlign: 'center', padding: '12px 8px', color: h === 'Prof.' ? C.gold : C.muted, fontWeight: h === 'Prof.' ? 700 : 600, fontSize: 12 }}>{h}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {[
+                                    { feat: 'Obyekt limiti', vals: ['2', '5', '20', '50', '50+'] },
+                                    { feat: 'İstifadəçi limiti', vals: ['1', '2', '5', '10', '∞'] },
+                                    { feat: 'Xəritə görünüşü', vals: ['✓', '✓', '✓', '✓', '✓'] },
+                                    { feat: 'Müqavilə idarəetməsi', vals: ['✓', '✓', '✓', '✓', '✓'] },
+                                    { feat: 'Vergi (14%) hesabı', vals: ['✓', '✓', '✓', '✓', '✓'] },
+                                    { feat: 'Xərc analizi', vals: ['✓', '✓', '✓', '✓', '✓'] },
+                                    { feat: 'AI Chat (Haiku)', vals: ['✓', '✓', '✓', '✓', '✓'] },
+                                    { feat: 'Obyekt fotoları', vals: ['—', '✓', '✓', '✓', '✓'] },
+                                    { feat: 'PDF / Excel ixracı', vals: ['—', '✓', '✓', '✓', '✓'] },
+                                    { feat: 'Aylıq/İllik hesabat', vals: ['—', '✓', '✓', '✓', '✓'] },
+                                    { feat: 'Gəlir proqnozu', vals: ['—', '✓', '✓', '✓', '✓'] },
+                                    { feat: 'Tam dashboard', vals: ['Əsas', '✓', '✓', '✓', '✓'] },
+                                    { feat: 'Sənəd Ustası AI', vals: ['—', '—', '30/ay', '∞', '∞'] },
+                                    { feat: 'Portfolio analizi', vals: ['—', '—', '✓', '✓', '✓'] },
+                                    { feat: 'Xüsusi hesabat', vals: ['—', '—', '—', '✓', '✓'] },
+                                    { feat: 'Prioritet dəstək', vals: ['—', '—', '—', '✓', '✓'] },
+                                    { feat: 'Şəxsi menecer', vals: ['—', '—', '—', '—', '✓'] },
+                                    { feat: 'SLA zəmanəti', vals: ['—', '—', '—', '—', '✓'] },
+                                ].map((row, ri) => (
+                                    <tr key={ri} style={{ borderBottom: `1px solid rgba(255,255,255,.04)`, background: ri % 2 === 0 ? 'transparent' : 'rgba(255,255,255,.02)' }}>
+                                        <td style={{ padding: '11px 16px', color: C.text, fontWeight: 500 }}>{row.feat}</td>
+                                        {row.vals.map((v, vi) => (
+                                            <td key={vi} style={{ textAlign: 'center', padding: '11px 8px', color: v === '—' ? 'rgba(255,255,255,.2)' : v === '✓' ? '#22c55e' : vi === 2 ? C.gold : C.text, fontWeight: v === '✓' ? 600 : 400 }}>{v}</td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="fiu" style={{ textAlign: 'center', marginTop: 40, fontSize: 13, color: C.muted }}>
+                        Heç bir gizli ödəniş • İstənilən vaxt ləğv edin • Kart tələb olunmur
                     </div>
                 </div>
             </section>
+
 
             {/* TESTIMONIALS */}
             <section id="about" style={{ padding: '110px 32px', background: C.surf }}>
