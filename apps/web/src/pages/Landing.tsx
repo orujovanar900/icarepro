@@ -361,22 +361,25 @@ export function Landing() {
                                 <h3 style={{ fontFamily: C.f, fontWeight: 700, fontSize: 17, marginBottom: 10 }}>{title}</h3>
                                 <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.65 }}>{desc}</p>
                                 {hoverData && (
-                                    <div className="thv">
+                                    <div className="thv" style={{ minWidth: 280 }}>
                                         <div className="thv-grid">
                                             <div className="thv-row">
-                                                <div className="thv-title">Fiziki Şəxs (qeydiyyatsız)</div>
-                                                <div style={{ fontSize: 13, color: '#D1D5DB' }}>Yaşayış sahəsi (fiziki kirayəçi)</div>
-                                                <div className="thv-sub">→ 10% ÖMV</div>
+                                                <div className="thv-title" style={{ color: C.gold, fontSize: 13, fontWeight: 700, textTransform: 'none', letterSpacing: 'normal' }}>Fiziki Şəxs:</div>
+                                                <div style={{ fontSize: 13, color: '#D1D5DB' }}>Yaşayış sahəsi</div>
+                                                <div className="thv-sub" style={{ marginTop: 0 }}>→ 10% ÖMV (2026-dan)</div>
+                                                <div style={{ fontSize: 13, color: '#D1D5DB', marginTop: 4 }}>Qeyri-yaşayış</div>
+                                                <div className="thv-sub" style={{ marginTop: 0 }}>→ 14% ÖMV</div>
                                             </div>
                                             <div className="thv-row">
-                                                <div className="thv-title">Fiziki Şəxs (VÖEN-li)</div>
-                                                <div style={{ fontSize: 13, color: '#D1D5DB' }}>Qeyri-yaşayış sahəsi</div>
-                                                <div className="thv-sub">→ 14% ÖMV</div>
+                                                <div className="thv-title" style={{ color: C.gold, fontSize: 13, fontWeight: 700, textTransform: 'none', letterSpacing: 'normal' }}>Fərdi Sahibkar:</div>
+                                                <div style={{ fontSize: 13, color: '#D1D5DB' }}>Sadələşdirilmiş vergi</div>
+                                                <div className="thv-sub" style={{ marginTop: 0 }}>→ 4% (Bakı) / 2% (digər şəhər)</div>
+                                                <div style={{ fontSize: 13, color: '#8899B0' }}>ÖMV tutulmur</div>
                                             </div>
                                             <div className="thv-row" style={{ borderBottom: 'none', paddingBottom: 0 }}>
-                                                <div className="thv-title">Hüquqi Şəxs</div>
-                                                <div style={{ fontSize: 13, color: '#D1D5DB' }}>ƏDV ödəyicisi / Qeyri-ƏDV</div>
-                                                <div className="thv-sub">→ Avtomatik hesablama</div>
+                                                <div className="thv-title" style={{ color: C.gold, fontSize: 13, fontWeight: 700, textTransform: 'none', letterSpacing: 'normal' }}>Hüquqi Şəxs (Şirkət):</div>
+                                                <div style={{ fontSize: 13, color: '#D1D5DB', marginTop: 4 }}>Mənfəət vergisi <span style={{ color: C.gold, fontWeight: 600 }}>→ 20%</span></div>
+                                                <div style={{ fontSize: 13, color: '#D1D5DB' }}>ƏDV (dövriyyə 200k+ AZN) <span style={{ color: C.gold, fontWeight: 600 }}>→ 18%</span></div>
                                             </div>
                                         </div>
                                     </div>
