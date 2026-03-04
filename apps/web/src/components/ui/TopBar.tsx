@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useAuthStore } from '@/store/auth';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { LogOut, User as UserIcon, Menu, Bell, AlertCircle, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
+import { LogOut, User as UserIcon, Menu, Bell, AlertCircle, AlertTriangle, Clock, CheckCircle, Sun, Moon } from 'lucide-react';
 import { Button } from './Button';
 
 function timeAgo(dateInput: Date | string) {
@@ -27,6 +27,19 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
 
     // Notifications State
     const [isNotifOpen, setIsNotifOpen] = React.useState(false);
+
+    // Theme toggle
+    const [isDark, setIsDark] = React.useState(() => {
+        const saved = localStorage.getItem('theme');
+        if (saved) return saved === 'dark';
+        return true; // default dark
+    });
+    React.useEffect(() => {
+        const html = document.documentElement;
+        html.classList.remove('dark', 'light');
+        html.classList.add(isDark ? 'dark' : 'light');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    }, [isDark]);
 
     const { data: notifData } = useQuery({
         queryKey: ['notifications'],
@@ -104,7 +117,14 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
             </h2>
 
             <div className="flex items-center gap-3 md:gap-4">
-                {/* Notification Bell */}
+                {/* Theme Toggle */}
+                <button
+                    onClick={() => setIsDark(d => !d)}
+                    className="p-2 rounded-lg text-muted hover:text-gold hover:bg-gold/10 transition-colors"
+                    title={isDark ? 'Aydınlıq rejim' : 'Tünd rejim'}
+                >
+                    {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                </button>
                 <div className="relative">
                     <button
                         onClick={() => setIsNotifOpen(!isNotifOpen)}

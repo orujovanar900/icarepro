@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Download, Save, RefreshCw, Upload, FileText, CheckCircle2, Edit2, Printer } from 'lucide-react';
+import { Loader2, Download, Save, RefreshCw, Upload, FileText, CheckCircle2, Edit2, Printer, ScanLine, X, CheckCheck } from 'lucide-react';
 import { Document, Packer, Paragraph, AlignmentType } from "docx";
 import { saveAs } from "file-saver";
 import * as mammoth from "mammoth";
@@ -259,6 +259,14 @@ export function SanadUstasi() {
     const [isEditing, setIsEditing] = useState(false);
     const [pageMargins, setPageMargins] = useState({ top: 25, right: 20, bottom: 25, left: 20 });
     const [selectedCell, setSelectedCell] = useState<{ element: HTMLElement, rowIdx: number, colIdx: number, table: HTMLTableElement } | null>(null);
+
+    // Contract scanner state
+    const [isScanModalOpen, setIsScanModalOpen] = useState(false);
+    const [isScanning, setIsScanning] = useState(false);
+    const [isConfirming, setIsConfirming] = useState(false);
+    const [scanError, setScanError] = useState('');
+    const [scanResult, setScanResult] = useState<any>(null);
+    const scanFileInputRef = useRef<HTMLInputElement>(null);
 
     const bottomRef = useRef<HTMLDivElement>(null);
     const printAreaRef = useRef<HTMLDivElement>(null);
@@ -694,6 +702,137 @@ export function SanadUstasi() {
 
     const fallback = (v: any, p = "__________") => v || p;
 
+    // ── Contract Scanner ──
+    const handleScanContract = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setScanError('');
+        setScanResult(null);
+        setIsScanning(true);
+
+        try {
+            let textContent = '';
+            if (file.type === 'application/pdf') {
+                const formData = new FormData();
+                formData.append('file', file);
+                const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/documents/extract-pdf`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'Authorization': `Bearer ${useAuthStore.getState().token}` }
+                });
+                if (!response.ok) throw new Error('PDF extract failed');
+                const data = await response.json();
+                textContent = data.text || '';
+            } else if (file.name.endsWith('.docx')) {
+                const arrayBuffer = await file.arrayBuffer();
+                const result = await mammoth.convertToHtml({ arrayBuffer });
+                textContent = result.value.replace(/<[^>]+>/g, ' ');
+            } else {
+                textContent = await file.text();
+            }
+
+            if (!textContent.trim()) throw new Error('No text extracted');
+
+            const apiKey = import.meta.env['VITE_ANTHROPIC_API_KEY'];
+            if (!apiKey) throw new Error('API key missing');
+
+            const res = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': apiKey,
+                    'anthropic-version': '2023-06-01',
+                    'anthropic-dangerous-direct-browser-access': 'true'
+                },
+                body: JSON.stringify({
+                    model: 'claude-haiku-4-5-20251001',
+                    max_tokens: 800,
+                    system: 'Extract from rental contract. Return ONLY valid JSON, no other text. Fields: tenantName, finOrVoen, phone, propertyAddress, monthlyRent, startDate (ISO), endDate (ISO), depositAmount. If unknown, use empty string.',
+                    messages: [{ role: 'user', content: textContent.slice(0, 8000) }]
+                })
+            });
+
+            if (!res.ok) throw new Error(`Claude API: ${res.status}`);
+            const data = await res.json();
+            const raw = data.content?.[0]?.text || '{}';
+            const jsonMatch = raw.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) throw new Error('No JSON in response');
+            setScanResult(JSON.parse(jsonMatch[0]));
+        } catch (err: any) {
+            setScanError('Məlumatları oxumaq mümkün olmadı, əl ilə daxil edin');
+            console.error('Scan error:', err);
+        } finally {
+            setIsScanning(false);
+            if (scanFileInputRef.current) scanFileInputRef.current.value = '';
+        }
+    };
+
+    const handleConfirmScan = async () => {
+        if (!scanResult) return;
+        setIsConfirming(true);
+        try {
+            // 1. Find or create tenant
+            let tenantId = '';
+            const tenantsRes = await api.get(`/tenants?search=${encodeURIComponent(scanResult.tenantName || '')}`);
+            const existing = tenantsRes?.data?.data?.[0];
+            if (existing) {
+                tenantId = existing.id;
+            } else if (scanResult.tenantName) {
+                const newTenant = await api.post('/tenants', {
+                    tenantType: 'fiziki',
+                    firstName: scanResult.tenantName.split(' ')[0] || scanResult.tenantName,
+                    lastName: scanResult.tenantName.split(' ').slice(1).join(' ') || '',
+                    fin: scanResult.finOrVoen || '',
+                    phone: scanResult.phone || '',
+                });
+                tenantId = newTenant?.data?.data?.id || '';
+            }
+
+            // 2. Find or create property
+            let propertyId = '';
+            if (scanResult.propertyAddress) {
+                const propsRes = await api.get(`/properties?search=${encodeURIComponent(scanResult.propertyAddress)}`);
+                const existingProp = propsRes?.data?.data?.[0];
+                if (existingProp) {
+                    propertyId = existingProp.id;
+                } else {
+                    const newProp = await api.post('/properties', {
+                        number: `SCAN-${Date.now()}`,
+                        name: scanResult.propertyAddress.slice(0, 50),
+                        building: scanResult.propertyAddress,
+                        address: scanResult.propertyAddress,
+                        area: 0,
+                        status: 'OCCUPIED',
+                    });
+                    propertyId = newProp?.data?.data?.id || '';
+                }
+            }
+
+            // 3. Create contract
+            if (tenantId && propertyId && scanResult.startDate && scanResult.endDate) {
+                await api.post('/contracts', {
+                    tenantId,
+                    propertyId,
+                    monthlyRent: Number(scanResult.monthlyRent) || 0,
+                    startDate: scanResult.startDate,
+                    endDate: scanResult.endDate,
+                    depositAmount: Number(scanResult.depositAmount) || 0,
+                    rentalType: 'NETTO',
+                    number: `SCAN-${Date.now()}`,
+                });
+            }
+
+            setIsScanModalOpen(false);
+            setScanResult(null);
+            alert('Müqavilə uğurla idxal edildi! İcarəçi, Obyekt və Müqavilə yaradıldı.');
+        } catch (err: any) {
+            console.error('Confirm error:', err);
+            alert(err?.response?.data?.error || 'Xəta baş verdi. Əl ilə əlavə edin.');
+        } finally {
+            setIsConfirming(false);
+        }
+    };
+
     if (isContractLoading) {
         return (
             <div className="flex h-screen items-center justify-center bg-[#070B12] text-white">
@@ -744,6 +883,14 @@ export function SanadUstasi() {
                         accept=".txt,.pdf,.docx,.doc"
                         className="hidden"
                     />
+                    {/* Contract Scanner Button */}
+                    <button
+                        onClick={() => { setIsScanModalOpen(true); setScanResult(null); setScanError(''); }}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer border border-[#C9A84C]/30 text-[#C9A84C] bg-[#C9A84C]/10 hover:bg-[#C9A84C]/20 transition-colors"
+                    >
+                        <ScanLine className="w-3.5 h-3.5" />
+                        Müqaviləni skan et
+                    </button>
                     <button
                         onClick={() => fileInputRef.current?.click()}
                         className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer border border-[#192840] text-white bg-[#1A2840] hover:bg-[#20324c] transition-colors"
@@ -1182,6 +1329,103 @@ export function SanadUstasi() {
                     }
                 }
             `}} />
+
+            {/* ── Contract Scanner Modal ── */}
+            {isScanModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+                    <div className="bg-[#0C1220] border border-[#192840] rounded-2xl w-full max-w-lg mx-4 shadow-2xl">
+                        <div className="flex items-center justify-between p-5 border-b border-[#192840]">
+                            <div className="flex items-center gap-2.5">
+                                <ScanLine className="w-5 h-5 text-[#C9A84C]" />
+                                <span className="font-semibold text-white text-sm">Müqaviləni Skan et</span>
+                            </div>
+                            <button onClick={() => setIsScanModalOpen(false)} className="text-[#4A6080] hover:text-white">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-5 space-y-4">
+                            {!scanResult && !isScanning && (
+                                <>
+                                    <p className="text-sm text-[#8899B0]">Müqavilə faylını yükləyin. AI məlumatları avtomatik oxuyacaq.</p>
+                                    <label className="block">
+                                        <div className="border-2 border-dashed border-[#192840] hover:border-[#C9A84C]/50 rounded-xl p-8 text-center cursor-pointer transition-colors group">
+                                            <Upload className="w-10 h-10 mx-auto mb-3 text-[#4A6080] group-hover:text-[#C9A84C] transition-colors" />
+                                            <p className="text-sm text-[#8899B0] group-hover:text-white transition-colors">PDF, DOC, DOCX, TXT faylını seçin</p>
+                                            <p className="text-xs text-[#4A6080] mt-1">max 10MB</p>
+                                        </div>
+                                        <input
+                                            ref={scanFileInputRef}
+                                            type="file"
+                                            accept=".pdf,.doc,.docx,.txt"
+                                            className="hidden"
+                                            onChange={handleScanContract}
+                                        />
+                                    </label>
+                                </>
+                            )}
+
+                            {isScanning && (
+                                <div className="flex flex-col items-center py-8 gap-3">
+                                    <Loader2 className="w-10 h-10 text-[#C9A84C] animate-spin" />
+                                    <p className="text-sm text-[#8899B0]">Müqavilə skan edilir...</p>
+                                    <p className="text-xs text-[#4A6080]">AI oxuyur və məlumatları çıxarır</p>
+                                </div>
+                            )}
+
+                            {scanError && !isScanning && (
+                                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-sm text-red-400">
+                                    ⚠ {scanError}
+                                </div>
+                            )}
+
+                            {scanResult && !isScanning && (
+                                <div className="space-y-3">
+                                    <p className="text-xs text-[#C9A84C] font-medium uppercase tracking-wide">Oxunan məlumatlar - yoxlayın və redaktə edin</p>
+                                    {[
+                                        { label: 'Kirayəçi adı', key: 'tenantName' },
+                                        { label: 'FİN / VÖEN', key: 'finOrVoen' },
+                                        { label: 'Telefon', key: 'phone' },
+                                        { label: 'Obyekt ünvanı', key: 'propertyAddress' },
+                                        { label: 'Aylıq icarə (AZN)', key: 'monthlyRent' },
+                                        { label: 'Başlanma tarixi', key: 'startDate' },
+                                        { label: 'Bitmə tarixi', key: 'endDate' },
+                                        { label: 'Depozit (AZN)', key: 'depositAmount' },
+                                    ].map(f => (
+                                        <div key={f.key}>
+                                            <label className="text-xs text-[#4A6080] block mb-1">{f.label}</label>
+                                            <input
+                                                value={scanResult[f.key] || ''}
+                                                onChange={e => setScanResult((r: any) => ({ ...r, [f.key]: e.target.value }))}
+                                                className="w-full bg-[#131F30] border border-[#192840] text-[#E8F0FE] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#C9A84C]/50"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-5 border-t border-[#192840] flex gap-3">
+                            {scanResult && !isScanning && (
+                                <button
+                                    onClick={handleConfirmScan}
+                                    disabled={isConfirming}
+                                    className="flex-1 flex items-center justify-center gap-2 bg-[#C9A84C] hover:bg-[#F0C96A] text-black font-semibold py-2.5 rounded-xl text-sm transition-colors disabled:opacity-50"
+                                >
+                                    {isConfirming ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCheck className="w-4 h-4" />}
+                                    {isConfirming ? 'Yaradılır...' : 'Təsdiqlə və Yarat'}
+                                </button>
+                            )}
+                            <button
+                                onClick={() => { setIsScanModalOpen(false); setScanResult(null); setScanError(''); }}
+                                className="flex-1 border border-[#192840] text-[#8899B0] hover:text-white py-2.5 rounded-xl text-sm transition-colors"
+                            >
+                                Ləğv et
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -33,8 +33,12 @@ export function Properties() {
     const limit = 20;
 
     // Add property form state
-    const [form, setForm] = useState({ number: '', name: '', building: '', address: '', area: '', status: 'VACANT' });
+    const [form, setForm] = useState({ number: '', name: '', propertyType: 'MENZEL', address: '', area: '', status: 'VACANT' });
     const [isSaving, setIsSaving] = useState(false);
+
+    // Extra filters
+    const [typeFilter, setTypeFilter] = useState('');
+    const [sortFilter, setSortFilter] = useState('');
 
     // Report Modal State
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -84,16 +88,16 @@ export function Properties() {
 
     const handleAddProperty = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!form.number || !form.name || !form.building || !form.address || !form.area) {
-            addToast({ message: 'Bütnün saheləri doldurun', type: 'error' });
+        if (!form.number || !form.name || !form.address || !form.area) {
+            addToast({ message: 'Bütün sahələri doldurun', type: 'error' });
             return;
         }
         setIsSaving(true);
         try {
-            await api.post('/properties', { ...form, area: Number(form.area) });
+            await api.post('/properties', { ...form, building: form.address, area: Number(form.area) });
             addToast({ message: 'Obyekt əlavə edildi ✓', type: 'success' });
             setIsModalOpen(false);
-            setForm({ number: '', name: '', building: '', address: '', area: '', status: 'VACANT' });
+            setForm({ number: '', name: '', propertyType: 'MENZEL', address: '', area: '', status: 'VACANT' });
             queryClient.invalidateQueries({ queryKey: ['properties'] });
         } catch (error: any) {
             addToast({ message: error.response?.data?.error || 'Xəta baş verdi', type: 'error' });
@@ -208,6 +212,23 @@ export function Properties() {
             {/* Add Property Modal */}
             <Modal isOpen={isModalOpen} onClose={() => !isSaving && setIsModalOpen(false)} title="Yeni Obyekt">
                 <form onSubmit={handleAddProperty} className="space-y-4">
+                    {/* Property type chips */}
+                    <div>
+                        <label className="text-xs font-medium text-muted uppercase tracking-wide block mb-2">Növ</label>
+                        <div className="flex gap-2 flex-wrap">
+                            {[{ v: 'MENZEL', l: '🏠 Mənzil' }, { v: 'OFIS', l: '📋 Ofis' }, { v: 'OBYEKT', l: '🏪 Obyekt' }, { v: 'DIGER', l: '📌 Digər' }].map(t => (
+                                <button
+                                    key={t.v}
+                                    type="button"
+                                    onClick={() => setForm(f => ({ ...f, propertyType: t.v }))}
+                                    className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${form.propertyType === t.v
+                                        ? 'bg-gold text-black border-gold'
+                                        : 'bg-surface text-muted border-border hover:border-gold'
+                                        }`}
+                                >{t.l}</button>
+                            ))}
+                        </div>
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         <Input
                             label="Nömrə *"
@@ -223,16 +244,10 @@ export function Properties() {
                         />
                     </div>
                     <Input
-                        label="Bina *"
-                        value={form.building}
-                        onChange={e => setForm(f => ({ ...f, building: e.target.value }))}
-                        placeholder="Neftçilər pr. 15"
-                    />
-                    <Input
                         label="Ünvan *"
                         value={form.address}
                         onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
-                        placeholder="Bakı, Nərimanov rayonu"
+                        placeholder="Bakı, Nərimanov r., Neftçilər pr. 15"
                     />
                     <div className="grid grid-cols-2 gap-4">
                         <Input
@@ -287,37 +302,87 @@ export function Properties() {
 
             {/* Filters */}
             <Card variant="elevated">
-                <CardContent className="p-4 flex flex-col sm:flex-row gap-3 items-center justify-between">
-                    <div className="relative w-full max-w-md">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-                        <Input
-                            placeholder="Obyekt adı, nömrəsi və ya ünvanı..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="pl-9"
-                        />
+                <CardContent className="p-4 space-y-3">
+                    <div className="flex flex-col sm:flex-row gap-3 items-center">
+                        <div className="relative w-full max-w-md">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                            <Input
+                                placeholder="Obyekt adı, nömrəsi və ya ünvanı..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="pl-9"
+                            />
+                        </div>
+                        <div className="flex gap-2 w-full sm:w-auto flex-wrap">
+                            <Select
+                                className="w-36"
+                                value={statusFilter}
+                                onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+                                options={[
+                                    { label: 'Status: Hamısı', value: '' },
+                                    { label: 'Boş', value: 'VACANT' },
+                                    { label: 'Tutulub', value: 'OCCUPIED' },
+                                    { label: 'Təmirdə', value: 'UNDER_REPAIR' },
+                                ]}
+                            />
+                            <Select
+                                className="w-36"
+                                value={typeFilter}
+                                onChange={e => { setTypeFilter(e.target.value); setPage(1); }}
+                                options={[
+                                    { label: 'Növ: Hamısı', value: '' },
+                                    { label: 'Mənzil', value: 'MENZEL' },
+                                    { label: 'Ofis', value: 'OFIS' },
+                                    { label: 'Obyekt', value: 'OBYEKT' },
+                                    { label: 'Digər', value: 'DIGER' },
+                                ]}
+                            />
+                            <Select
+                                className="w-44"
+                                value={sortFilter}
+                                onChange={e => setSortFilter(e.target.value)}
+                                options={[
+                                    { label: 'Sırala: Tarix', value: '' },
+                                    { label: 'Qiymət: Yüksək → Aşağı', value: 'rent_desc' },
+                                    { label: 'Qiymət: Aşağı → Yüksək', value: 'rent_asc' },
+                                    { label: 'Sahə: Böyük → Kiçik', value: 'area_desc' },
+                                    { label: 'Sahə: Kiçik → Böyük', value: 'area_asc' },
+                                ]}
+                            />
+                            <Button
+                                variant={showDeleted ? undefined : 'outline'}
+                                onClick={() => { setShowDeleted(!showDeleted); setPage(1); }}
+                                className={showDeleted ? 'bg-red/10 text-red border-red/20 hover:bg-red/20 whitespace-nowrap' : 'whitespace-nowrap'}
+                            >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                {showDeleted ? 'Aktivləri' : 'Silinmişlər'}
+                            </Button>
+                        </div>
                     </div>
-                    <div className="flex gap-2 w-full sm:w-auto">
-                        <Select
-                            className="w-full sm:w-40"
-                            value={statusFilter}
-                            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-                            options={[
-                                { label: 'Hamısı', value: '' },
-                                { label: 'Boş', value: 'VACANT' },
-                                { label: 'Tutulub', value: 'OCCUPIED' },
-                                { label: 'Təmirdə', value: 'UNDER_REPAIR' },
-                            ]}
-                        />
-                        <Button
-                            variant={showDeleted ? undefined : 'outline'}
-                            onClick={() => { setShowDeleted(!showDeleted); setPage(1); }}
-                            className={showDeleted ? 'bg-red/10 text-red border-red/20 hover:bg-red/20 whitespace-nowrap' : 'whitespace-nowrap'}
-                        >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            {showDeleted ? 'Aktivləri' : 'Silinmişlər'}
-                        </Button>
-                    </div>
+                    {/* Active filter chips */}
+                    {(statusFilter || typeFilter || sortFilter) && (
+                        <div className="flex gap-2 flex-wrap items-center">
+                            <span className="text-xs text-muted">Aktiv filtrlər:</span>
+                            {statusFilter && (
+                                <button onClick={() => setStatusFilter('')} className="flex items-center gap-1 bg-gold/10 text-gold border border-gold/30 px-2.5 py-1 rounded-full text-xs font-medium hover:bg-gold/20">
+                                    {statusFilter === 'VACANT' ? 'Boş' : statusFilter === 'OCCUPIED' ? 'Tutulub' : 'Təmirdə'} ×
+                                </button>
+                            )}
+                            {typeFilter && (
+                                <button onClick={() => setTypeFilter('')} className="flex items-center gap-1 bg-gold/10 text-gold border border-gold/30 px-2.5 py-1 rounded-full text-xs font-medium hover:bg-gold/20">
+                                    {typeFilter === 'MENZEL' ? 'Mənzil' : typeFilter === 'OFIS' ? 'Ofis' : typeFilter === 'OBYEKT' ? 'Obyekt' : 'Digər'} ×
+                                </button>
+                            )}
+                            {sortFilter && (
+                                <button onClick={() => setSortFilter('')} className="flex items-center gap-1 bg-gold/10 text-gold border border-gold/30 px-2.5 py-1 rounded-full text-xs font-medium hover:bg-gold/20">
+                                    {sortFilter.replace('_', ' ')} ×
+                                </button>
+                            )}
+                            <button onClick={() => { setStatusFilter(''); setTypeFilter(''); setSortFilter(''); }} className="text-xs text-muted hover:text-red ml-1">
+                                Sıfırla
+                            </button>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 

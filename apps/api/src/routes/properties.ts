@@ -211,6 +211,58 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
 
         return reply.code(204).send()
     })
+
+    // POST /properties/:id/documents — upload "Digər sənədlər" to Supabase
+    fastify.post('/:id/documents', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const exists = await fastify.prisma.property.findFirst({ where: { id, ...withOrg(req) } })
+        if (!exists) return reply.code(404).send({ success: false, error: 'Property not found' })
+
+        const data = await req.file()
+        if (!data) return reply.code(400).send({ success: false, error: 'No file uploaded' })
+
+        const allowed = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png']
+        if (!allowed.includes(data.mimetype)) {
+            return reply.code(400).send({ success: false, error: 'Yalnız PDF, DOC, DOCX, JPG, PNG yükləyə bilərsiniz' })
+        }
+
+        const fileBuffer = await data.toBuffer()
+        if (fileBuffer.length > 4 * 1024 * 1024) {
+            return reply.code(400).send({ success: false, error: 'Maksimum fayl ölçüsü 4MB olmalıdır' })
+        }
+
+        const safeName = data.filename.replace(/[^a-zA-Z0-9._-]/g, '_')
+        const path = `${req.user.organizationId}/${id}/other/${Date.now()}_${safeName}`
+
+        const { error } = await supabase.storage
+            .from('property-documents')
+            .upload(path, fileBuffer, { contentType: data.mimetype, upsert: false })
+
+        if (error) {
+            fastify.log.error(error)
+            return reply.code(500).send({ success: false, error: 'Upload failed' })
+        }
+
+        const { data: { publicUrl } } = supabase.storage.from('property-documents').getPublicUrl(path)
+
+        // Store as a JSON note on the property (use misc field or separate table)
+        // We'll use PropertyPhoto table with a special caption prefix for now
+        const doc = await fastify.prisma.propertyPhoto.create({
+            data: { propertyId: id, url: publicUrl, caption: `DOC::${data.filename}` },
+        })
+
+        return reply.code(201).send({ success: true, data: { id: doc.id, url: publicUrl, name: data.filename } })
+    })
+
+    // DELETE /properties/:id/documents/:docId
+    fastify.delete('/:id/documents/:docId', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
+        const { id, docId } = req.params as { id: string, docId: string }
+        await fastify.prisma.propertyPhoto.delete({
+            where: { id: docId, propertyId: id, property: { ...withOrg(req) } }
+        }).catch(() => null)
+        return reply.code(204).send()
+    })
 }
 
 export default propertiesRoutes
+

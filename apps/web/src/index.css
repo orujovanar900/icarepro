@@ -3,7 +3,9 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
+  /* ── DARK THEME (default) ── */
+  :root,
+  html.dark {
     color-scheme: dark;
     --color-bg: #080C14;
     --color-surface: #0F1929;
@@ -19,9 +21,31 @@
     --color-muted: #64748B;
   }
 
+  /* ── LIGHT THEME ── */
+  html.light {
+    color-scheme: light;
+    --color-bg: #F5F7FA;
+    --color-surface: #FFFFFF;
+    --color-card: #EEF0F5;
+    --color-border: rgba(0,0,0,0.10);
+    --color-gold: #C9A84C;
+    --color-gold2: #B8922E;
+    --color-blue: #3B82F6;
+    --color-green: #10B981;
+    --color-red: #EF4444;
+    --color-orange: #F97316;
+    --color-text: #0D1117;
+    --color-muted: #6B7280;
+  }
+
+  html {
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
   body {
     font-family: 'Plus Jakarta Sans', sans-serif;
     @apply bg-bg text-text antialiased;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   /* Fix for native date/time pickers to show a bright icon on dark background */
@@ -56,7 +80,6 @@
   }
 
   @media (max-width: 768px) {
-
     button,
     .btn {
       min-height: 44px;

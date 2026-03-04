@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Building, MapPin, Maximize, ArrowLeft, Calendar, User, FileText, Zap, Camera, Trash2, UploadCloud, Loader2, ChevronLeft, ChevronRight, X, ExternalLink } from 'lucide-react';
+import { Building, MapPin, Maximize, ArrowLeft, Calendar, User, FileText, Zap, Camera, Trash2, UploadCloud, Loader2, ChevronLeft, ChevronRight, X, ExternalLink, Download, FilePlus } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -54,6 +54,7 @@ export function PropertyDetail() {
     const photosRef = useRef<any[]>([]);
     const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
     const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+    const [isUploadingOther, setIsUploadingOther] = useState(false);
 
     // Keyboard nav for lightbox - must be declared before early returns (React rules)
     useEffect(() => {
@@ -103,7 +104,10 @@ export function PropertyDetail() {
     }
 
     const property = data;
-    photosRef.current = property?.photos || [];
+    const allPhotos: any[] = property?.photos || [];
+    const realPhotos = allPhotos.filter((p: any) => !p.caption?.startsWith('DOC::'));
+    const otherDocs = allPhotos.filter((p: any) => p.caption?.startsWith('DOC::'));
+    photosRef.current = realPhotos;
     const activeContract = property.contracts?.find((c: any) => c.status === 'ACTIVE');
 
     const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,6 +174,40 @@ export function PropertyDetail() {
         }
     };
 
+    const handleUploadOtherDoc = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (!files.length || !id) return;
+        setIsUploadingOther(true);
+        let succeeded = 0;
+        for (const file of files) {
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                await api.post(`/properties/${id}/documents`, formData);
+                succeeded++;
+            } catch (error: any) {
+                addToast({ message: error.response?.data?.error || `${file.name}: xəta`, type: 'error' });
+            }
+        }
+        if (succeeded > 0) {
+            addToast({ message: `${succeeded} sənəd yükləndi`, type: 'success' });
+            queryClient.invalidateQueries({ queryKey: ['property', id] });
+        }
+        setIsUploadingOther(false);
+        e.target.value = '';
+    };
+
+    const handleDeleteOtherDoc = async (docId: string) => {
+        if (!confirm('Sənədi silmək istədiyinizə əminsiniz?')) return;
+        try {
+            await api.delete(`/properties/${id}/documents/${docId}`);
+            addToast({ message: 'Sənəd silindi', type: 'success' });
+            queryClient.invalidateQueries({ queryKey: ['property', id] });
+        } catch {
+            addToast({ message: 'Xəta baş verdi', type: 'error' });
+        }
+    };
+
     return (
         <div className="flex-1 space-y-6 p-6 max-w-5xl mx-auto pb-24">
             {/* Header */}
@@ -201,7 +239,7 @@ export function PropertyDetail() {
                             }`}
                     >
                         {tab === 'details' && 'Təfərrüatlar'}
-                        {tab === 'photos' && `Fotolar (${property.photos?.length || 0}/5)`}
+                        {tab === 'photos' && `Fotolar (${realPhotos.length}/5)`}
                         {tab === 'history' && 'İcarəçi Tarixçəsi'}
                     </button>
                 ))}
@@ -308,6 +346,72 @@ export function PropertyDetail() {
                             </CardContent>
                         </Card>
                     )}
+
+                    {/* Diğər sənədlər */}
+                    <Card variant="elevated">
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="flex items-center gap-2">
+                                    <FilePlus className="w-5 h-5 text-gold" />
+                                    Diğər sənədlər
+                                </CardTitle>
+                                <label className={`cursor-pointer ${isUploadingOther ? 'opacity-50 pointer-events-none' : ''}`}>
+                                    <div className="flex items-center gap-2 bg-gold/10 hover:bg-gold/20 text-gold px-3 py-1.5 rounded-lg transition-colors font-medium text-sm">
+                                        {isUploadingOther ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UploadCloud className="w-3.5 h-3.5" />}
+                                        Sənəd əlavə et
+                                    </div>
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        multiple
+                                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                        onChange={handleUploadOtherDoc}
+                                    />
+                                </label>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            {otherDocs.length === 0 ? (
+                                <div className="text-center py-8 text-muted border border-dashed border-border rounded-xl">
+                                    <FileText className="w-10 h-10 mx-auto mb-2 opacity-20" />
+                                    <p className="text-sm">Hələlik sənəd yoxdur.</p>
+                                    <p className="text-xs text-muted/60 mt-1">PDF, DOC, DOCX, JPG, PNG · max 4MB</p>
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-border">
+                                    {otherDocs.map((doc: any) => {
+                                        const fileName = doc.caption?.replace('DOC::', '') || 'Sənəd';
+                                        const ext = fileName.split('.').pop()?.toLowerCase() || '';
+                                        const isImage = ['jpg', 'jpeg', 'png'].includes(ext);
+                                        return (
+                                            <div key={doc.id} className="flex items-center gap-3 py-3">
+                                                <div className="w-9 h-9 rounded-lg bg-gold/10 flex items-center justify-center shrink-0">
+                                                    {isImage ? <Camera className="w-4 h-4 text-gold" /> : <FileText className="w-4 h-4 text-gold" />}
+                                                </div>
+                                                <span className="flex-1 text-sm text-text truncate">{fileName}</span>
+                                                <a
+                                                    href={doc.url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="p-1.5 text-muted hover:text-blue-400 transition-colors rounded"
+                                                    title="Yüklə"
+                                                >
+                                                    <Download className="w-4 h-4" />
+                                                </a>
+                                                <button
+                                                    onClick={() => handleDeleteOtherDoc(doc.id)}
+                                                    className="p-1.5 text-muted hover:text-red transition-colors rounded"
+                                                    title="Sil"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 </div>
             )}
 

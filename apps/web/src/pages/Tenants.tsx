@@ -20,10 +20,12 @@ const getTenantName = (t: any): string => {
     return t.companyName || '—';
 };
 
-type TabKey = 'all' | 'fiziki' | 'huquqi' | 'blacklist';
+type TabKey = 'all' | 'fiziki' | 'huquqi' | 'aktiv' | 'passiv' | 'blacklist';
 
 const TABS: { key: TabKey; label: string }[] = [
     { key: 'all', label: 'Hamısı' },
+    { key: 'aktiv', label: '🟢 Aktiv' },
+    { key: 'passiv', label: '⚪ Passiv' },
     { key: 'fiziki', label: '👤 Fiziki Şəxs' },
     { key: 'huquqi', label: '🏢 Hüquqi Şəxs' },
     { key: 'blacklist', label: '🚫 Qara siyahı' },
@@ -81,12 +83,13 @@ export function Tenants() {
     const canAdd = ['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'].includes(user?.role || '');
     const isOwner = user?.role === 'OWNER';
 
-    // Attach debt from contracts query
+    // Attach debt and active status from contracts query
     const tenants = rawTenants.map((t: any) => {
         const debt = activeContracts
             .filter((c: any) => c.tenantId === t.id)
             .reduce((sum: number, c: any) => sum + (c.debt || 0), 0);
-        return { ...t, calculatedDebt: debt, fullName: getTenantName(t) };
+        const hasActiveContract = activeContracts.some((c: any) => c.tenantId === t.id);
+        return { ...t, calculatedDebt: debt, fullName: getTenantName(t), hasActiveContract };
     });
 
     // Client-side tab filter
@@ -94,6 +97,8 @@ export function Tenants() {
         if (activeTab === 'fiziki') return t.tenantType === 'fiziki';
         if (activeTab === 'huquqi') return t.tenantType === 'huquqi';
         if (activeTab === 'blacklist') return t.isBlacklisted;
+        if (activeTab === 'aktiv') return t.hasActiveContract;
+        if (activeTab === 'passiv') return !t.hasActiveContract;
         return true;
     });
 
@@ -205,12 +210,18 @@ export function Tenants() {
                                                             </span>
                                                             <div>
                                                                 <p className="font-bold text-text">{t.fullName}</p>
-                                                                {t.isBlacklisted && (
-                                                                    <Badge variant="danger" className="text-xs">🚫 Qara siyahı</Badge>
-                                                                )}
-                                                                {showDeleted && (
-                                                                    <Badge variant="arxiv" className="text-xs ml-1 bg-red/10 text-red border-red/20">Silinib</Badge>
-                                                                )}
+                                                                <div className="flex gap-1 flex-wrap mt-0.5">
+                                                                    {t.hasActiveContract
+                                                                        ? <Badge variant="aktiv" className="text-xs">Aktiv</Badge>
+                                                                        : <Badge variant="arxiv" className="text-xs">Passiv</Badge>
+                                                                    }
+                                                                    {t.isBlacklisted && (
+                                                                        <Badge variant="danger" className="text-xs">🚫 Qara siyahı</Badge>
+                                                                    )}
+                                                                    {showDeleted && (
+                                                                        <Badge variant="arxiv" className="text-xs bg-red/10 text-red border-red/20">Silinib</Badge>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </TableCell>
