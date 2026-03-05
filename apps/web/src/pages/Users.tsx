@@ -211,9 +211,16 @@ export function Users() {
                                                 <TableCell className="font-medium text-text">{u.name}</TableCell>
                                                 <TableCell className="text-sm text-muted">{u.email}</TableCell>
                                                 <TableCell>
-                                                    <Badge variant={u.role === 'OWNER' ? 'draft' : u.role === 'TENANT' ? 'arxiv' : 'aktiv'}>
-                                                        {translateRole(u.role)}
-                                                    </Badge>
+                                                    <div className="flex items-center gap-2">
+                                                        <Badge variant={u.role === 'OWNER' ? 'draft' : u.role === 'TENANT' ? 'arxiv' : 'aktiv'}>
+                                                            {translateRole(u.role)}
+                                                        </Badge>
+                                                        {user?.role === 'SUPERADMIN' && (
+                                                            <Button variant="ghost" size="sm" onClick={() => openEditModal(u)} className="h-6 px-2 text-[10px] text-gold hover:text-gold hover:bg-gold/10">
+                                                                Dəyiş
+                                                            </Button>
+                                                        )}
+                                                    </div>
                                                 </TableCell>
                                                 <TableCell className="text-sm text-muted">
                                                     {new Date(u.createdAt).toLocaleDateString('az-AZ')}
@@ -263,9 +270,16 @@ export function Users() {
                                                 <span className="text-xs text-muted">Yaradılıb: {new Date(u.createdAt).toLocaleDateString('az-AZ')}</span>
                                             </div>
                                             <div className="flex flex-col items-end gap-2">
-                                                <Badge variant={u.role === 'OWNER' ? 'draft' : u.role === 'TENANT' ? 'arxiv' : 'aktiv'}>
-                                                    {translateRole(u.role)}
-                                                </Badge>
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant={u.role === 'OWNER' ? 'draft' : u.role === 'TENANT' ? 'arxiv' : 'aktiv'}>
+                                                        {translateRole(u.role)}
+                                                    </Badge>
+                                                    {user?.role === 'SUPERADMIN' && (
+                                                        <Button variant="ghost" size="sm" onClick={() => openEditModal(u)} className="h-5 px-1.5 text-[10px] text-gold hover:text-gold hover:bg-gold/10">
+                                                            Dəyiş
+                                                        </Button>
+                                                    )}
+                                                </div>
                                                 {u.isActive ? (
                                                     <span className="text-[10px] font-bold uppercase tracking-wider text-green">AKTİV</span>
                                                 ) : (
