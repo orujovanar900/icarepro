@@ -149,6 +149,31 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.send({ success: true, data: updatedOrg })
     })
 
+    // PATCH /admin/users/:userId/role
+    fastify.patch('/users/:userId/role', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+        const { userId } = req.params as { userId: string }
+        const { role } = req.body as { role: string }
+
+        const validRoles = ['SUPERADMIN', 'OWNER', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR', 'TENANT']
+        if (!validRoles.includes(role)) {
+            return reply.code(400).send({ success: false, error: 'Invalid role' })
+        }
+
+        const user = await fastify.prisma.user.findUnique({ where: { id: userId } })
+        if (!user) return reply.code(404).send({ success: false, error: 'User not found' })
+
+        const updatedUser = await fastify.prisma.user.update({
+            where: { id: userId },
+            data: {
+                role: role as any,
+                jwtVersion: { increment: 1 } // force re-login closely tied to role change
+            },
+            select: { id: true, email: true, name: true, role: true, isActive: true }
+        })
+
+        return reply.send({ success: true, data: updatedUser })
+    })
+
     // DELETE /admin/organizations/:id
     fastify.delete('/organizations/:id', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }

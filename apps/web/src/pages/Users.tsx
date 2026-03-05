@@ -344,6 +344,10 @@ export function Users() {
                         value={formRole}
                         onChange={(e) => setFormRole(e.target.value)}
                         options={[
+                            ...(user?.role === 'SUPERADMIN' ? [
+                                { label: 'Superadmin', value: 'SUPERADMIN' },
+                                { label: 'Owner (Sahib)', value: 'OWNER' }
+                            ] : []),
                             { label: 'Menecer', value: 'MANAGER' },
                             { label: 'Kassir', value: 'CASHIER' },
                             { label: 'Mühasib', value: 'ACCOUNTANT' },

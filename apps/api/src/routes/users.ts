@@ -14,14 +14,14 @@ const schema = {
     body: z.object({
         email: z.string().email(),
         name: z.string().min(2),
-        role: z.enum(['OWNER', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR', 'TENANT']).optional(),
+        role: z.enum(['SUPERADMIN', 'OWNER', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR', 'TENANT']).optional(),
         phone: z.string().optional()
     }),
 }
 
 const updateSchema = z.object({
     name: z.string().min(1).optional(),
-    role: z.enum(['OWNER', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR', 'TENANT']).optional(),
+    role: z.enum(['SUPERADMIN', 'OWNER', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR', 'TENANT']).optional(),
     isActive: z.boolean().optional(),
     password: z.string().min(8).optional(),
     telegramChatId: z.string().optional(),
@@ -165,6 +165,7 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
             data: {
                 ...rest,
                 ...(password ? { passwordHash: await bcrypt.hash(password, BCRYPT_ROUNDS) } : {}),
+                ...(rest.role ? { jwtVersion: { increment: 1 } } : {}), // force re-login closely tied to role change
             },
             select: { id: true, email: true, name: true, role: true, isActive: true, createdAt: true, telegramChatId: true, phone: true, avatarUrl: true },
         })

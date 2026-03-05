@@ -1,15 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Building2, Mail, Users, Home, ArrowLeft, Activity, CalendarDays, KeyRound, UserCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { translateRole } from '@/utils/roles';
+import { Modal } from '@/components/ui/Modal';
+import { Select } from '@/components/ui/Select';
+import { useToastStore } from '@/store/toast';
 
 export function AdminOrganizationDetail() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const addToast = useToastStore((s) => s.addToast);
+    const queryClient = useQueryClient();
+
+    // Role Edit Modal State
+    const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState<any>(null);
+    const [newRole, setNewRole] = useState<string>('');
 
     const { data: orgData, isLoading } = useQuery({
         queryKey: ['admin-organization', id],
@@ -19,10 +30,37 @@ export function AdminOrganizationDetail() {
         }
     });
 
+    const roleMutation = useMutation({
+        mutationFn: async ({ userId, role }: { userId: string, role: string }) => {
+            const res = await api.patch(`/admin/users/${userId}/role`, { role });
+            return res.data;
+        },
+        onSuccess: () => {
+            addToast({ message: 'İstifadəçi rolu uğurla dəyişdirildi', type: 'success' });
+            queryClient.invalidateQueries({ queryKey: ['admin-organization', id] });
+            setIsRoleModalOpen(false);
+        },
+        onError: (err: any) => {
+            addToast({ message: err.response?.data?.error || 'Xəta baş verdi', type: 'error' });
+        }
+    });
+
     if (isLoading) return <div className="p-6">Yüklənir...</div>;
 
     const org = orgData?.data;
     if (!org) return <div className="p-6">Təşkilat tapılmadı.</div>;
+
+    const handleOpenRoleModal = (user: any) => {
+        setEditingUser(user);
+        setNewRole(user.role);
+        setIsRoleModalOpen(true);
+    };
+
+    const handleRoleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingUser) return;
+        roleMutation.mutate({ userId: editingUser.id, role: newRole });
+    };
 
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -68,8 +106,11 @@ export function AdminOrganizationDetail() {
                                         <p className="text-xs text-muted flex items-center gap-1"><Mail className="w-3 h-3" /> {u.email}</p>
                                     </div>
                                 </div>
-                                <div className="text-right">
+                                <div className="text-right flex items-center gap-2">
                                     <Badge className="bg-bg text-muted border-border">{translateRole(u.role)}</Badge>
+                                    <Button variant="ghost" size="sm" onClick={() => handleOpenRoleModal(u)} className="h-7 px-2 text-xs text-gold hover:text-gold hover:bg-gold/10">
+                                        Dəyiş
+                                    </Button>
                                 </div>
                             </div>
                         ))}
@@ -138,6 +179,35 @@ export function AdminOrganizationDetail() {
                     </CardContent>
                 </Card>
             </div>
+
+            <Modal
+                isOpen={isRoleModalOpen}
+                onClose={() => setIsRoleModalOpen(false)}
+                title={`Rol Dəyişdir: ${editingUser?.name || ''}`}
+            >
+                <form onSubmit={handleRoleSubmit} className="space-y-4">
+                    <Select
+                        label="Yeni Rol"
+                        value={newRole}
+                        onChange={(e) => setNewRole(e.target.value)}
+                        options={[
+                            { label: 'Superadmin', value: 'SUPERADMIN' },
+                            { label: 'Owner (Sahib)', value: 'OWNER' },
+                            { label: 'Menecer', value: 'MANAGER' },
+                            { label: 'Kassir', value: 'CASHIER' },
+                            { label: 'Mühasib', value: 'ACCOUNTANT' },
+                            { label: 'Administrator', value: 'ADMINISTRATOR' },
+                            { label: 'İcarəçi', value: 'TENANT' },
+                        ]}
+                    />
+                    <div className="flex justify-end gap-3 pt-4 border-t border-border mt-4">
+                        <Button type="button" variant="outline" onClick={() => setIsRoleModalOpen(false)}>Ləğv et</Button>
+                        <Button type="submit" disabled={roleMutation.isPending || newRole === editingUser?.role}>
+                            {roleMutation.isPending ? 'Dəyişdirilir...' : 'Dəyişdir'}
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 }
