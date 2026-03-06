@@ -22,20 +22,22 @@ function timeAgo(dateInput: Date | string) {
 const AVATAR_COLORS = ["#7C3AED", "#2563EB", "#059669", "#D97706", "#DC2626", "#0891B2", "#7C3AED", "#BE185D"];
 
 export function getInitials(name: string | undefined | null): string {
-    if (!name) return 'U';
-    const words = name.trim().split(' ').filter(w => w.length > 0);
-    if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
-    return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+    const safeName = name ?? '';
+    const words = safeName.trim().split(' ').filter(w => w.length > 0);
+    if (words.length === 0) return 'U';
+    if (words.length === 1) return (words[0]?.substring(0, 2) ?? 'U').toUpperCase();
+    return ((words[0]?.[0] ?? '') + (words[words.length - 1]?.[0] ?? '')).toUpperCase();
 }
 
 export function getAvatarColor(name: string | undefined | null): string {
-    if (!name) return AVATAR_COLORS[0];
+    const safeName = name ?? '';
+    if (!safeName) return AVATAR_COLORS[0] ?? '#7C3AED';
     let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    for (let i = 0; i < safeName.length; i++) {
+        hash = safeName.charCodeAt(i) + ((hash << 5) - hash);
     }
     const index = Math.abs(hash) % AVATAR_COLORS.length;
-    return AVATAR_COLORS[index];
+    return AVATAR_COLORS[index] ?? '#7C3AED';
 }
 
 import { useLocation, useNavigate, Link } from 'react-router-dom';
