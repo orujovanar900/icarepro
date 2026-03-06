@@ -19,26 +19,7 @@ function timeAgo(dateInput: Date | string) {
     }
 }
 
-const AVATAR_COLORS = ["#7C3AED", "#2563EB", "#059669", "#D97706", "#DC2626", "#0891B2", "#7C3AED", "#BE185D"];
 
-export function getInitials(name: string | undefined | null): string {
-    const safeName = name ?? '';
-    const words = safeName.trim().split(' ').filter(w => w.length > 0);
-    if (words.length === 0) return 'U';
-    if (words.length === 1) return (words[0]?.substring(0, 2) ?? 'U').toUpperCase();
-    return ((words[0]?.[0] ?? '') + (words[words.length - 1]?.[0] ?? '')).toUpperCase();
-}
-
-export function getAvatarColor(name: string | undefined | null): string {
-    const safeName = name ?? '';
-    if (!safeName) return AVATAR_COLORS[0] ?? '#7C3AED';
-    let hash = 0;
-    for (let i = 0; i < safeName.length; i++) {
-        hash = safeName.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const index = Math.abs(hash) % AVATAR_COLORS.length;
-    return AVATAR_COLORS[index] ?? '#7C3AED';
-}
 
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 
@@ -46,6 +27,20 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
     const { user, logout } = useAuthStore();
     const location = useLocation();
     const navigate = useNavigate();
+
+    // User Avatar Logic
+    const userName = user?.name ?? 'İstifadəçi';
+    const nameParts = userName.split(' ');
+    const firstInitial = nameParts[0]?.[0] ?? '';
+    const secondInitial = nameParts[1]?.[0] ?? '';
+    const initials: string = (firstInitial + secondInitial).toUpperCase() || userName.slice(0, 2).toUpperCase();
+
+    let nameHash = 0;
+    for (let i = 0; i < userName.length; i++) {
+        nameHash = userName.charCodeAt(i) + ((nameHash << 5) - nameHash);
+    }
+    const avatarColors = ["#7C3AED", "#2563EB", "#059669", "#D97706", "#DC2626", "#0891B2", "#7C3AED", "#BE185D"];
+    const bgColor: string = avatarColors[Math.abs(nameHash) % avatarColors.length] ?? '#7C3AED';
 
     // Notifications State
     const [isNotifOpen, setIsNotifOpen] = React.useState(false);
@@ -238,9 +233,9 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
                 >
                     <div
                         className="flex h-10 w-10 items-center justify-center rounded-full text-white font-bold text-sm shadow-sm"
-                        style={{ backgroundColor: getAvatarColor(user?.name || '') }}
+                        style={{ backgroundColor: bgColor }}
                     >
-                        {getInitials(user?.name || '')}
+                        {initials}
                     </div>
                     <div className="hidden md:flex flex-col items-start gap-0.5">
                         <span className="text-sm font-semibold text-text leading-none">
