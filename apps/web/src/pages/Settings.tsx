@@ -202,10 +202,10 @@ export function Settings() {
                 <h1 className="text-3xl font-extrabold font-heading text-text">Tənzimləmələr</h1>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="flex flex-col gap-6">
 
                 {/* ── Profile ── */}
-                <Card variant="elevated" className="md:col-span-2">
+                <Card variant="elevated">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <User className="w-5 h-5 text-gold" /> Profil Məlumatları
@@ -289,7 +289,7 @@ export function Settings() {
 
                 {/* ── Org Info (OWNER only) ── */}
                 {user?.role === 'OWNER' && (
-                    <Card variant="default" className="md:col-span-2">
+                    <Card variant="default">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Building className="w-5 h-5 text-gold" /> Təşkilat Məlumatı

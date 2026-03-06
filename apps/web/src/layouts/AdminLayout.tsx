@@ -1,0 +1,25 @@
+import * as React from 'react';
+import { Outlet } from 'react-router-dom';
+import { Sidebar } from '@/components/ui/Sidebar';
+import { TopBar } from '@/components/ui/TopBar';
+import { ToastContainer } from '@/components/ui/Toast';
+import { PageSkeleton } from '@/components/ui/PageSkeleton';
+
+export function AdminLayout() {
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
+    return (
+        <div className="flex h-screen overflow-hidden bg-bg text-text">
+            <Sidebar isMobileOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
+            <div className="flex flex-1 flex-col overflow-hidden">
+                <TopBar onMenuClick={() => setIsMobileMenuOpen(true)} />
+                <main className="flex-1 overflow-y-auto bg-bg p-4 md:p-6 relative main-content">
+                    <React.Suspense fallback={<PageSkeleton />}>
+                        <Outlet />
+                    </React.Suspense>
+                </main>
+            </div>
+            <ToastContainer />
+        </div>
+    );
+}

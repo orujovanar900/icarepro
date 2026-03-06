@@ -7,9 +7,12 @@ import { useAuthStore } from '@/store/auth';
  * If the user is already authenticated, redirect them to /dashboard.
  */
 export function PublicRoute() {
-    const { isAuthenticated } = useAuthStore();
+    const { isAuthenticated, user } = useAuthStore();
 
-    if (isAuthenticated) {
+    if (isAuthenticated && user) {
+        if (user.role === 'SUPERADMIN') {
+            return <Navigate to="/admin" replace />;
+        }
         return <Navigate to="/dashboard" replace />;
     }
 

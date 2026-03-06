@@ -20,6 +20,11 @@ export function Users() {
     const queryClient = useQueryClient();
     const addToast = useToastStore((state) => state.addToast);
 
+    // Filters & Sorting
+    const [search, setSearch] = useState('');
+    const [roleFilter, setRoleFilter] = useState('ALL');
+    const [statusFilter, setStatusFilter] = useState('ALL');
+
     // Main fetch
     const [page, setPage] = useState(1);
     const limit = 20;
@@ -38,6 +43,21 @@ export function Users() {
     const users = usersData?.data || [];
     const totalCount = usersData?.meta?.total || 0;
     const totalPages = Math.ceil(totalCount / limit);
+
+    // Apply Client-Side Filters for SuperAdmin (or Owner if they want it)
+    const filteredUsers = users.filter((u: any) => {
+        const matchesSearch = search === '' ||
+            u.name.toLowerCase().includes(search.toLowerCase()) ||
+            u.email.toLowerCase().includes(search.toLowerCase());
+
+        const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
+
+        const matchesStatus = statusFilter === 'ALL' ||
+            (statusFilter === 'ACTIVE' && u.isActive) ||
+            (statusFilter === 'INACTIVE' && !u.isActive);
+
+        return matchesSearch && matchesRole && matchesStatus;
+    });
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -178,6 +198,44 @@ export function Users() {
                 </Button>
             </div>
 
+            {user?.role === 'SUPERADMIN' && (
+                <Card className="mb-6">
+                    <CardContent className="p-4 flex flex-col sm:flex-row gap-4">
+                        <Input
+                            placeholder="Ad və ya email..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="flex-1"
+                        />
+                        <Select
+                            value={roleFilter}
+                            onChange={(e) => setRoleFilter(e.target.value)}
+                            options={[
+                                { label: 'Bütün Rollar', value: 'ALL' },
+                                { label: 'Superadmin', value: 'SUPERADMIN' },
+                                { label: 'Sahib (Owner)', value: 'OWNER' },
+                                { label: 'Menecer', value: 'MANAGER' },
+                                { label: 'Kassir', value: 'CASHIER' },
+                                { label: 'Mühasib', value: 'ACCOUNTANT' },
+                                { label: 'Administrator', value: 'ADMINISTRATOR' },
+                                { label: 'İcarəçi', value: 'TENANT' }
+                            ]}
+                            className="sm:w-48 shrink-0"
+                        />
+                        <Select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            options={[
+                                { label: 'Bütün Statuslar', value: 'ALL' },
+                                { label: 'Aktiv', value: 'ACTIVE' },
+                                { label: 'Deaktiv', value: 'INACTIVE' }
+                            ]}
+                            className="sm:w-48 shrink-0"
+                        />
+                    </CardContent>
+                </Card>
+            )}
+
             <Card variant="default">
                 <CardContent className="p-0">
                     {isLoading ? (
@@ -206,7 +264,7 @@ export function Users() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {users.map((u: any) => (
+                                        {filteredUsers.map((u: any) => (
                                             <TableRow key={u.id}>
                                                 <TableCell className="font-medium text-text">{u.name}</TableCell>
                                                 <TableCell className="text-sm text-muted">{u.email}</TableCell>
@@ -261,7 +319,7 @@ export function Users() {
 
                             {/* Mobile Card List View */}
                             <div className="md:hidden flex flex-col divide-y divide-border">
-                                {users.map((u: any) => (
+                                {filteredUsers.map((u: any) => (
                                     <div key={`mob-${u.id}`} className="p-4 bg-surface flex flex-col gap-3">
                                         <div className="flex justify-between items-start">
                                             <div>

@@ -52,7 +52,9 @@ export function Login() {
             addToast({ type: 'success', message: 'Uğurla daxil oldunuz!' });
 
             // Role-based redirect
-            if (user.role === 'OWNER') {
+            if (user.role === 'SUPERADMIN') {
+                navigate('/admin');
+            } else if (user.role === 'OWNER') {
                 navigate('/dashboard');
             } else if (user.role === 'STAFF') {
                 navigate('/contracts');

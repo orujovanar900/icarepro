@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from './layouts/AppLayout';
+import { AdminLayout } from './layouts/AdminLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { PageSkeleton } from './components/ui/PageSkeleton';
 import { SupportChat } from './components/SupportChat';
@@ -91,12 +92,15 @@ export default function App() {
                                     <Route path="/settings/billing" element={<Billing />} />
                                 </Route>
 
-                                {/* SUPERADMIN ONLY routes */}
-                                <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN']} />}>
-                                    <Route path="/admin" element={<SuperAdminDashboard />} />
-                                    <Route path="/admin/users" element={<AdminOrganizations />} />
-                                    <Route path="/admin/organizations/:id" element={<AdminOrganizationDetail />} />
-                                </Route>
+                            </Route>
+                        </Route>
+
+                        {/* SUPERADMIN Admin Layout */}
+                        <Route element={<AdminLayout />}>
+                            <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN']} />}>
+                                <Route path="/admin" element={<SuperAdminDashboard />} />
+                                <Route path="/admin/users" element={<AdminOrganizations />} />
+                                <Route path="/admin/organizations/:id" element={<AdminOrganizationDetail />} />
                             </Route>
                         </Route>
 

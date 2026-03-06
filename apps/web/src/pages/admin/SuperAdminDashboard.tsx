@@ -5,7 +5,7 @@ import { useToastStore } from '@/store/toast';
 import { Link } from 'react-router-dom';
 import {
     Building2, Users, Home, TrendingUp, AlertCircle, Activity,
-    Calendar, PencilLine, CheckCircle2, Clock, XCircle, Gift
+    Calendar, PencilLine, CheckCircle2, Clock, XCircle, Gift, Info, FileText, UserCheck
 } from 'lucide-react';
 import {
     PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
@@ -115,7 +115,30 @@ export function SuperAdminDashboard() {
         if (action === 'SUSPENDED') return <XCircle className="w-4 h-4 text-red-400" />;
         if (action === 'GRACE_STARTED') return <Clock className="w-4 h-4 text-yellow-400" />;
         if (action === 'ACTIVATED') return <CheckCircle2 className="w-4 h-4 text-green-400" />;
+        if (action === 'CREATE_CONTRACT' || action === 'UPDATE_CONTRACT' || action === 'DELETE_CONTRACT') return <FileText className="w-4 h-4 text-blue-400" />;
+        if (action === 'CREATE_PROPERTY' || action === 'UPDATE_PROPERTY' || action === 'DELETE_PROPERTY') return <Home className="w-4 h-4 text-blue-400" />;
+        if (action === 'CREATE_TENANT') return <UserCheck className="w-4 h-4 text-blue-400" />;
         return <Activity className="w-4 h-4 text-blue-400" />;
+    };
+
+    const getReadableAction = (action: string) => {
+        const map: Record<string, string> = {
+            UPDATE_CONTRACT: 'Müqavilə yeniləndi',
+            CREATE_CONTRACT: 'Yeni müqavilə yaradıldı',
+            DELETE_CONTRACT: 'Müqavilə silindi',
+            CREATE_PROPERTY: 'Yeni obyekt əlavə edildi',
+            UPDATE_PROPERTY: 'Obyekt məlumatları dəyişdirildi',
+            DELETE_PROPERTY: 'Obyekt silindi',
+            CREATE_TENANT: 'Yeni kirayəçi əlavə edildi',
+            USER_LOGIN: 'İstifadəçi daxil oldu',
+            PLAN_CHANGED: 'Abunəlik planı dəyişdirildi',
+            SUSPENDED: 'Hesab dayandırıldı',
+            ACTIVATED: 'Hesab aktivləşdirildi',
+            REGISTER: 'Yeni qeydiyyat',
+            CREATE_PAYMENT: 'Ödəniş əlavə edildi',
+            GRACE_STARTED: 'Möhlət dövrü başladı',
+        };
+        return map[action] || action;
     };
 
     const timeAgo = (dateStr: string) => {
@@ -162,6 +185,17 @@ export function SuperAdminDashboard() {
                         <CardTitle className="text-base flex items-center gap-2">
                             <Gift className="w-4 h-4 text-gold" />
                             Plan bölgüsü
+                            <div className="group relative ml-auto flex items-center">
+                                <Info className="w-4 h-4 text-muted hover:text-text transition-colors cursor-help" />
+                                <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block w-72 bg-surface border border-border rounded-lg p-3 text-sm text-white shadow-xl z-50">
+                                    <p className="font-bold text-gold mb-1">MRR (Monthly Recurring Revenue)</p>
+                                    <p className="text-xs text-muted leading-relaxed">
+                                        Aylıq Təkrarlanan Gəlir. Aktiv abunəliklərdən əldə edilən ümumi aylıq gəliri göstərir.<br /><br />
+                                        Hesablama: (Başlanğıc × 29) + (Biznes × 69) + (Korporativ × 149) AZN
+                                    </p>
+                                    <div className="absolute right-1.5 -bottom-1.5 w-3 h-3 bg-surface border-b border-r border-border transform rotate-45"></div>
+                                </div>
+                            </div>
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -229,6 +263,17 @@ export function SuperAdminDashboard() {
                     <CardTitle className="text-base flex items-center gap-2">
                         <TrendingUp className="w-4 h-4 text-gold" />
                         MRR Trendi (son 12 ay)
+                        <div className="group relative ml-2 flex items-center">
+                            <Info className="w-4 h-4 text-muted hover:text-text transition-colors cursor-help" />
+                            <div className="absolute left-1/2 -ml-36 bottom-full mb-2 hidden group-hover:block w-72 bg-surface border border-border rounded-lg p-3 text-sm text-white shadow-xl z-50">
+                                <p className="font-bold text-gold mb-1">MRR (Monthly Recurring Revenue)</p>
+                                <p className="text-xs text-muted leading-relaxed">
+                                    Aylıq Təkrarlanan Gəlir. Aktiv abunəliklərdən əldə edilən ümumi aylıq gəliri göstərir.<br /><br />
+                                    Hesablama: (Başlanğıc × 29) + (Biznes × 69) + (Korporativ × 149) AZN
+                                </p>
+                                <div className="absolute left-1/2 -ml-1.5 -bottom-1.5 w-3 h-3 bg-surface border-b border-r border-border transform rotate-45"></div>
+                            </div>
+                        </div>
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -339,12 +384,9 @@ export function SuperAdminDashboard() {
                                     <div className="mt-0.5">{getActivityIcon(log.action)}</div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm text-text font-medium truncate">
-                                            <span className="text-gold">{log.orgName}</span>
+                                            <span className="text-gold"><Building2 className="inline w-3 h-3 mr-1 mb-0.5" />{log.orgName}</span>
                                             {' — '}
-                                            {log.action === 'PLAN_CHANGED' ? 'Plan dəyişdirildi' :
-                                                log.action === 'SUSPENDED' ? 'Hesab dayandırıldı' :
-                                                    log.action === 'ACTIVATED' ? 'Aktivləşdirildi' :
-                                                        log.action === 'GRACE_STARTED' ? 'Möhlət dövrü başladı' : log.action}
+                                            {getReadableAction(log.action)}
                                         </p>
                                         {log.meta?.newPlan && (
                                             <p className="text-xs text-muted">→ {PLAN_LABELS[log.meta.newPlan] || log.meta.newPlan}</p>
@@ -361,10 +403,13 @@ export function SuperAdminDashboard() {
             {/* ── SECTION 6: Top Organizations ── */}
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-gold" />
-                        Ən aktiv təşkilatlar
-                    </CardTitle>
+                    <div>
+                        <CardTitle className="text-base flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-gold" />
+                            Ən aktiv təşkilatlar
+                        </CardTitle>
+                        <p className="text-xs text-muted mt-1">Obyekt və müqavilə sayına görə sıralanır</p>
+                    </div>
                 </CardHeader>
                 <CardContent className="p-0">
                     <div className="overflow-x-auto">
@@ -376,7 +421,16 @@ export function SuperAdminDashboard() {
                                     <th className="p-4 text-left font-medium">Plan</th>
                                     <th className="p-4 text-right font-medium">Obyekt</th>
                                     <th className="p-4 text-right font-medium">Müqavilə</th>
-                                    <th className="p-4 text-left font-medium">Qeydiyyat</th>
+                                    <th className="p-4 text-right font-medium">
+                                        <div className="flex items-center justify-end gap-1 group relative cursor-help">
+                                            <span>Aktivlik</span>
+                                            <Info className="w-3.5 h-3.5 mb-0.5" />
+                                            <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block w-48 bg-surface border border-border rounded-lg p-2 text-xs text-white shadow-xl z-50 normal-case text-left">
+                                                Aktivlik skoru = Obyekt sayı × 2 + Müqavilə sayı × 3 + Ödəniş sayı
+                                                <div className="absolute right-2 -bottom-1.5 w-3 h-3 bg-surface border-b border-r border-border transform rotate-45"></div>
+                                            </div>
+                                        </div>
+                                    </th>
                                     <th className="p-4 text-right font-medium"></th>
                                 </tr>
                             </thead>
@@ -397,7 +451,14 @@ export function SuperAdminDashboard() {
                                         </td>
                                         <td className="p-4 text-right font-bold text-text">{org.propertiesCount}</td>
                                         <td className="p-4 text-right text-muted">{org.contractsCount}</td>
-                                        <td className="p-4 text-muted text-xs">{new Date(org.createdAt).toLocaleDateString('az-AZ')}</td>
+                                        <td className="p-4 text-right">
+                                            <div className="flex justify-end items-center gap-2">
+                                                <div className="w-20 bg-surface border border-border rounded-full h-2 overflow-hidden">
+                                                    <div className="bg-gold h-full" style={{ width: `${Math.min(100, (org.propertiesCount * 2 + org.contractsCount * 3) / 2)}%` }}></div>
+                                                </div>
+                                                <span className="text-xs font-mono">{org.propertiesCount * 2 + org.contractsCount * 3 + (org.paymentsCount || 0)}</span>
+                                            </div>
+                                        </td>
                                         <td className="p-4 text-right">
                                             <Button
                                                 variant="ghost"

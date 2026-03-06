@@ -35,7 +35,6 @@ const allNavItems = [
     { name: 'admin-dashboard', path: '/admin', icon: LayoutDashboard, label: 'Dashboard', adminOnly: true },
     { name: 'admin-orgs', path: '/admin/users', icon: Building2, label: 'Təşkilatlar', adminOnly: true },
     { name: 'admin-users', path: '/users', icon: Users, label: 'İstifadəçilər', adminOnly: true },
-    { name: 'admin-billing', path: '/settings/billing', icon: CreditCard, label: 'Planlar & Abunəlik', adminOnly: true },
     { name: 'admin-settings', path: '/settings', icon: Settings, label: 'Sistem Parametrləri', adminOnly: true },
 ];
 
@@ -81,7 +80,7 @@ export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: bool
                     <div className="flex flex-col justify-center">
                         <Link to="/" className="text-3xl font-heading tracking-tight flex items-center gap-1.5 hover:opacity-80 transition-opacity">
                             <span className="text-gold font-extrabold">İcarə</span>
-                            <span className="text-white font-normal">Pro</span>
+                            <span className="text-[#1A1D2E] dark:text-white font-normal">Pro</span>
                         </Link>
                         <span className="text-[11px] text-gold/70 italic mt-0.5">"Mülkünüzü ağıllı idarə edin"</span>
                     </div>
@@ -123,6 +122,11 @@ export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: bool
                         </NavLink>
                     ))}
                 </nav>
+                <div className="p-4 flex justify-center border-t border-border">
+                    <span className="text-[11px] text-muted opacity-60 font-mono">
+                        v{typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '1.0.0'}
+                    </span>
+                </div>
             </aside>
         </>
     );

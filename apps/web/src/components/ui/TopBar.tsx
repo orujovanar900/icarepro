@@ -19,6 +19,25 @@ function timeAgo(dateInput: Date | string) {
     }
 }
 
+const AVATAR_COLORS = ["#7C3AED", "#2563EB", "#059669", "#D97706", "#DC2626", "#0891B2", "#7C3AED", "#BE185D"];
+
+export function getInitials(name: string | undefined | null): string {
+    if (!name) return 'U';
+    const words = name.trim().split(' ').filter(w => w.length > 0);
+    if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
+    return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+}
+
+export function getAvatarColor(name: string | undefined | null): string {
+    if (!name) return AVATAR_COLORS[0];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % AVATAR_COLORS.length;
+    return AVATAR_COLORS[index];
+}
+
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 
 export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
@@ -106,7 +125,7 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
                 </button>
                 <div className="flex flex-col justify-center mt-1">
                     <Link to="/" className="text-xl font-extrabold font-heading text-gold hover:opacity-80 transition-opacity leading-tight">
-                        İcarə <span className="text-white font-light">Pro</span>
+                        İcarə <span className="text-[#1A1D2E] dark:text-white font-light">Pro</span>
                     </Link>
                     <span className="text-[10px] text-gold/70 italic leading-none">"Mülkünüzü ağıllı idarə edin"</span>
                 </div>
@@ -118,15 +137,19 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
             </h2>
 
             <div className="flex items-center gap-3 md:gap-4">
-                {/* Theme Toggle */}
+                {/* iOS Style Theme Toggle */}
                 <button
                     onClick={() => setIsDark(d => !d)}
-                    className="p-2 rounded-lg text-muted hover:text-gold hover:bg-gold/10 transition-colors"
+                    className="relative flex items-center justify-center p-1"
                     title={isDark ? 'Aydınlıq rejim' : 'Tünd rejim'}
                 >
-                    {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                    <Sun className="h-4 w-4 text-muted mr-1.5" />
+                    <div className={`relative w-11 h-6 rounded-full transition-colors duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${isDark ? 'bg-[#C9A84C]' : 'bg-[#E5E7EB]'}`}>
+                        <div className={`absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${isDark ? 'translate-x-[20px]' : 'translate-x-[2px]'}`} />
+                    </div>
+                    <Moon className="h-4 w-4 text-muted ml-1.5" />
                 </button>
-                <div className="relative">
+                <div className="relative ml-2">
                     <button
                         onClick={() => setIsNotifOpen(!isNotifOpen)}
                         className="relative p-2 text-muted hover:text-text focus:outline-none"
@@ -209,24 +232,31 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
 
                 <button
                     onClick={() => navigate('/profile')}
-                    className="flex items-center gap-2 hover:bg-surface-hover p-1.5 rounded-lg transition-colors"
+                    className="flex items-center gap-3 hover:bg-surface-hover p-1.5 pr-3 rounded-xl transition-colors"
                 >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gold/20 text-gold overflow-hidden">
-                        {(user as any)?.avatarUrl ? (
-                            <img src={(user as any).avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                    <div
+                        className="flex h-10 w-10 items-center justify-center rounded-full text-white font-bold text-sm shadow-sm"
+                        style={{ backgroundColor: getAvatarColor(user?.name || '') }}
+                    >
+                        {getInitials(user?.name || '')}
+                    </div>
+                    <div className="hidden md:flex flex-col items-start gap-0.5">
+                        <span className="text-sm font-semibold text-text leading-none">
+                            {user?.name}
+                        </span>
+                        {user?.role === 'SUPERADMIN' ? (
+                            <span className="bg-gold px-2 py-0.5 rounded-full text-[10px] font-medium text-white uppercase leading-none mt-0.5" style={{ letterSpacing: '0.02em' }}>
+                                Super Admin
+                            </span>
                         ) : (
-                            user?.name?.charAt(0) || <UserIcon className="h-4 w-4" />
+                            <span className="text-[11px] text-muted leading-none">
+                                {translateRole(user?.role)}
+                            </span>
                         )}
                     </div>
-                    <span className="text-sm font-medium hidden sm:inline-block">
-                        {user?.name}
-                    </span>
-                    <span className="rounded bg-border px-1.5 py-0.5 text-xs text-muted md:ml-2">
-                        {translateRole(user?.role)}
-                    </span>
                 </button>
 
-                <div className="hidden md:block h-6 w-px bg-border" />
+                <div className="hidden md:block h-8 w-px bg-border mx-1" />
 
                 <Button variant="ghost" size="sm" onClick={logout} className="hidden md:flex text-muted hover:text-red">
                     <LogOut className="mr-2 h-4 w-4" />
