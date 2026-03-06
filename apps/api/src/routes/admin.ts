@@ -66,7 +66,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
             const plan = org.subscriptionPlan
             planCounts[plan] = (planCounts[plan] || 0) + 1
             mrr += PLAN_PRICES[plan] || 0
-            if (org.subscriptionStatus === 'ACTIVE' && PLAN_PRICES[plan] > 0) activePlans++
+            if (org.subscriptionStatus === 'ACTIVE' && (PLAN_PRICES[plan] || 0) > 0) activePlans++
             if (org.subscriptionStatus === 'GRACE_PERIOD') gracePeriodCount++
             if (org.subscriptionStatus === 'SUSPENDED') suspendedCount++
             if (plan === 'FREE_TRIAL') freeTrialCount++
