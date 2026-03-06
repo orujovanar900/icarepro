@@ -1,46 +1,162 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { authenticate } from '../middleware/authenticate.js'
 import { requireRole } from '../middleware/requireRole.js'
+import { z } from 'zod'
+
+const PLAN_PRICES: Record<string, number> = {
+    FREE_TRIAL: 0,
+    BASHLANQIC: 29,
+    BIZNES: 69,
+    KORPORATIV: 149,
+    PROFESSIONAL: 49,
+}
 
 const adminRoutes: FastifyPluginAsync = async (fastify) => {
-    // GET /admin/stats
+    // GET /admin/stats — Full SuperAdmin Dashboard Data
     fastify.get('/stats', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+        const now = new Date()
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59)
+        const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+
         const [
             totalOrganizations,
             totalProperties,
             totalContracts,
-            revenueResult,
-            recentSignups,
-            activeOrganizations
+            totalUsers,
+            suspendedOrgs,
+            newThisMonth,
+            newLastMonth,
+            allOrgs,
+            auditLogs,
         ] = await Promise.all([
             fastify.prisma.organization.count(),
             fastify.prisma.property.count(),
             fastify.prisma.contract.count(),
-            fastify.prisma.payment.aggregate({
-                _sum: { amount: true }
+            fastify.prisma.user.count(),
+            fastify.prisma.organization.count({ where: { subscriptionStatus: 'SUSPENDED' } }),
+            fastify.prisma.organization.count({ where: { createdAt: { gte: startOfMonth } } }),
+            fastify.prisma.organization.count({ where: { createdAt: { gte: startOfLastMonth, lte: endOfLastMonth } } }),
+            fastify.prisma.organization.findMany({
+                include: {
+                    users: { where: { role: 'OWNER' }, select: { email: true, name: true } },
+                    _count: { select: { properties: true, contracts: true, users: true } }
+                },
+                orderBy: { createdAt: 'desc' }
             }),
-            fastify.prisma.organization.count({
-                where: {
-                    createdAt: {
-                        gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-                    }
-                }
-            }),
-            fastify.prisma.organization.count({
-                where: { isActive: true }
+            fastify.prisma.auditLog.findMany({
+                take: 20,
+                orderBy: { createdAt: 'desc' },
+                include: { organization: { select: { name: true } } }
             })
         ])
+
+        // Plan distribution
+        const planCounts: Record<string, number> = {}
+        let mrr = 0
+        let activePlans = 0
+        let gracePeriodCount = 0
+        let suspendedCount = 0
+        let freeTrialCount = 0
+        const topOrgs: any[] = []
+        const expiringInWeek: any[] = []
+
+        for (const org of allOrgs) {
+            const plan = org.subscriptionPlan
+            planCounts[plan] = (planCounts[plan] || 0) + 1
+            mrr += PLAN_PRICES[plan] || 0
+            if (org.subscriptionStatus === 'ACTIVE' && PLAN_PRICES[plan] > 0) activePlans++
+            if (org.subscriptionStatus === 'GRACE_PERIOD') gracePeriodCount++
+            if (org.subscriptionStatus === 'SUSPENDED') suspendedCount++
+            if (plan === 'FREE_TRIAL') freeTrialCount++
+            if (
+                org.planExpiresAt &&
+                org.planExpiresAt > now &&
+                org.planExpiresAt! <= sevenDaysFromNow &&
+                org.subscriptionStatus === 'ACTIVE'
+            ) {
+                const daysLeft = Math.ceil((org.planExpiresAt!.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                expiringInWeek.push({
+                    id: org.id,
+                    name: org.name,
+                    plan: org.subscriptionPlan,
+                    daysLeft,
+                    expiresAt: org.planExpiresAt,
+                })
+            }
+        }
+
+        // Top 10 by property count
+        const sorted = [...allOrgs].sort((a, b) => b._count.properties - a._count.properties).slice(0, 10)
+        for (const org of sorted) {
+            topOrgs.push({
+                id: org.id,
+                name: org.name,
+                ownerEmail: org.users[0]?.email || 'N/A',
+                plan: org.subscriptionPlan,
+                propertiesCount: org._count.properties,
+                contractsCount: org._count.contracts,
+                createdAt: org.createdAt
+            })
+        }
+
+        // Monthly registrations (last 12 months)
+        const monthlyRegistrations: { month: string, count: number }[] = []
+        const mrrTrend: { month: string, mrr: number }[] = []
+        for (let i = 11; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+            const dEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59)
+            const label = d.toLocaleDateString('az-AZ', { month: 'short', year: '2-digit' })
+            const count = allOrgs.filter(o => o.createdAt >= d && o.createdAt <= dEnd).length
+            monthlyRegistrations.push({ month: label, count })
+            // For MRR trend, compute based on orgs created before that period
+            const orgsAtMonth = allOrgs.filter(o => o.createdAt <= dEnd)
+            const mrrAtMonth = orgsAtMonth.reduce((acc, o) => acc + (PLAN_PRICES[o.subscriptionPlan] || 0), 0)
+            mrrTrend.push({ month: label, mrr: mrrAtMonth })
+        }
+
+        // New registrations growth
+        const growthPct = newLastMonth === 0 ? 100 : Math.round(((newThisMonth - newLastMonth) / newLastMonth) * 100)
+
+        // Plan distribution for donut chart
+        const planDistribution = Object.entries(planCounts).map(([plan, count]) => ({
+            plan,
+            count,
+            price: PLAN_PRICES[plan] || 0,
+        }))
 
         return reply.send({
             success: true,
             data: {
-                totalOrganizations,
-                totalProperties,
-                totalContracts,
-                totalRevenue: Number(revenueResult._sum.amount || 0),
-                newSignupsThisMonth: recentSignups,
-                activeOrganizations,
-                inactiveOrganizations: totalOrganizations - activeOrganizations
+                overview: {
+                    totalOrganizations,
+                    activePlans,
+                    newThisMonth,
+                    newThisMonthGrowth: growthPct,
+                    totalUsers,
+                    totalProperties,
+                    suspendedCount,
+                },
+                mrr,
+                planDistribution,
+                monthlyRegistrations,
+                mrrTrend,
+                health: {
+                    active: activePlans,
+                    gracePeriod: gracePeriodCount,
+                    suspended: suspendedCount,
+                    freeTrial: freeTrialCount,
+                },
+                expiringInWeek,
+                recentActivity: auditLogs.map((log: any) => ({
+                    id: log.id,
+                    action: log.action,
+                    meta: log.meta,
+                    orgName: log.organization?.name || 'N/A',
+                    createdAt: log.createdAt,
+                })),
+                topOrganizations: topOrgs,
             }
         })
     })
@@ -125,7 +241,13 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
     // PATCH /admin/organizations/:id/subscription
     fastify.patch('/organizations/:id/subscription', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
-        const { status, expiresAt, additionalDays } = req.body as { status: string, expiresAt?: string, additionalDays?: number }
+        const { status, expiresAt, additionalDays, subscriptionPlan, note } = req.body as {
+            status?: string,
+            expiresAt?: string,
+            additionalDays?: number,
+            subscriptionPlan?: string,
+            note?: string
+        }
 
         const org = await fastify.prisma.organization.findUnique({ where: { id } })
         if (!org) return reply.code(404).send({ success: false, error: 'Təşkilat tapılmadı' })
@@ -137,14 +259,45 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
             planExp = new Date(Date.now() + additionalDays * 24 * 60 * 60 * 1000)
         }
 
+        // Map subscriptionPlan to old OrgPlan enum for compatibility
+        const planToOrgPlan: Record<string, string> = {
+            FREE_TRIAL: 'FREE',
+            BASHLANQIC: 'PRO',
+            BIZNES: 'PRO',
+            KORPORATIV: 'ENTERPRISE',
+            PROFESSIONAL: 'PRO',
+        }
+
+        const updateData: any = {
+            planExpiresAt: planExp,
+            ...(status ? {
+                subscriptionStatus: status as any,
+                ...(status === 'GRACE_PERIOD' && org.subscriptionStatus !== 'GRACE_PERIOD' ? { gracePeriodStartedAt: new Date() } : {})
+            } : {}),
+            ...(subscriptionPlan ? {
+                subscriptionPlan: subscriptionPlan as any,
+                plan: (planToOrgPlan[subscriptionPlan] || 'FREE') as any,
+            } : {}),
+        }
+
         const updatedOrg = await fastify.prisma.organization.update({
             where: { id },
-            data: {
-                subscriptionStatus: status as any,
-                planExpiresAt: planExp,
-                ...(status === 'GRACE_PERIOD' && org.subscriptionStatus !== 'GRACE_PERIOD' ? { gracePeriodStartedAt: new Date() } : {})
-            }
+            data: updateData
         })
+
+        // Log to audit if plan changes
+        if (subscriptionPlan) {
+            await fastify.prisma.auditLog.create({
+                data: {
+                    organizationId: id,
+                    userId: req.user.sub,
+                    action: 'PLAN_CHANGED',
+                    entityType: 'organization',
+                    entityId: id,
+                    metadata: { newPlan: subscriptionPlan, note: note || null } as any,
+                }
+            })
+        }
 
         return reply.send({ success: true, data: updatedOrg })
     })
@@ -166,7 +319,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
             where: { id: userId },
             data: {
                 role: role as any,
-                jwtVersion: { increment: 1 } // force re-login closely tied to role change
+                jwtVersion: { increment: 1 }
             },
             select: { id: true, email: true, name: true, role: true, isActive: true }
         })
@@ -177,18 +330,12 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
     // DELETE /admin/organizations/:id
     fastify.delete('/organizations/:id', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
-
-        // In a real application, you might want to mark as deleted rather than hard deleting,
-        // or ensure cascading deletes are handled properly by Prisma.
-        // Assuming Prisma handles cascading deletes for this example if needed, or we just rely on it.
         try {
-            await fastify.prisma.organization.delete({
-                where: { id }
-            })
+            await fastify.prisma.organization.delete({ where: { id } })
             return reply.send({ success: true })
         } catch (error) {
             console.error(error)
-            return reply.code(500).send({ success: false, error: 'Failed to delete organization. Ensure all related records are deleted first or cascading is enabled.' })
+            return reply.code(500).send({ success: false, error: 'Failed to delete organization.' })
         }
     })
 }

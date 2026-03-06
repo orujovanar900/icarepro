@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { Building2, Mail, Users, Home, ArrowLeft, Activity, CalendarDays, KeyRound, UserCheck } from 'lucide-react';
+import { Building2, Mail, Users, Home, ArrowLeft, Activity, CalendarDays, KeyRound, UserCheck, PencilLine } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -10,6 +10,7 @@ import { translateRole } from '@/utils/roles';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { useToastStore } from '@/store/toast';
+import { PlanModal, PLAN_LABELS } from '@/components/admin/PlanModal';
 
 export function AdminOrganizationDetail() {
     const { id } = useParams<{ id: string }>();
@@ -21,6 +22,7 @@ export function AdminOrganizationDetail() {
     const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<any>(null);
     const [newRole, setNewRole] = useState<string>('');
+    const [planModalOrg, setPlanModalOrg] = useState<any>(null);
 
     const { data: orgData, isLoading } = useQuery({
         queryKey: ['admin-organization', id],
@@ -79,7 +81,12 @@ export function AdminOrganizationDetail() {
                             <Badge variant={org.isActive ? 'aktiv' : 'danger'} className="text-xs">
                                 {org.isActive ? 'Aktiv' : 'Deaktiv edilib'}
                             </Badge>
-                            <Badge className="bg-surface border-border text-muted text-xs">Plan: {org.plan}</Badge>
+                            <Badge className="bg-surface border-border text-muted text-xs flex items-center gap-1">
+                                Plan: {PLAN_LABELS[org.subscriptionPlan] || org.subscriptionPlan}
+                                <button onClick={() => setPlanModalOrg(org)} className="ml-1 text-gold hover:text-white transition-colors" title="Plan dəyiş">
+                                    <PencilLine className="w-3 h-3" />
+                                </button>
+                            </Badge>
                             <span className="text-sm text-muted ml-2">ID: {org.id}</span>
                         </div>
                     </div>
@@ -208,6 +215,8 @@ export function AdminOrganizationDetail() {
                     </div>
                 </form>
             </Modal>
+
+            {planModalOrg && <PlanModal org={planModalOrg} onClose={() => setPlanModalOrg(null)} />}
         </div>
     );
 }

@@ -13,45 +13,53 @@ import {
     Settings,
     Sparkles,
     X,
-    BarChart4,
+    Building2,
     ShieldCheck,
     CreditCard
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const allNavItems = [
-    { name: 'İdarə Paneli', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Müqavilələr', path: '/contracts', icon: FileText },
-    { name: 'Obyektlər', path: '/properties', icon: Home },
-    { name: 'İcarəçilər', path: '/tenants', icon: UserCheck },
-    { name: 'Mədaxil', path: '/income', icon: TrendingUp },
-    { name: 'Məxaric', path: '/expenses', icon: Receipt },
-    { name: '✦ Sənəd Ustası AI', path: '/sanad-ustasi', icon: Sparkles, isSpecial: true },
-    { name: 'İstifadəçilər', path: '/users', icon: Users },
-    { name: 'Parametrlər', path: '/settings', icon: Settings },
-    { name: 'Abonəlik Planı', path: '/settings/billing', icon: CreditCard },
-    { name: 'Ümumi Statistika', path: '/admin/stats', icon: BarChart4 },
-    { name: 'Təşkilatlar', path: '/admin/users', icon: ShieldCheck },
+    // OWNER/MANAGER items
+    { name: 'dashboard', path: '/dashboard', icon: LayoutDashboard, label: 'İdarə Paneli' },
+    { name: 'contracts', path: '/contracts', icon: FileText, label: 'Müqavilələr' },
+    { name: 'properties', path: '/properties', icon: Home, label: 'Obyektlər' },
+    { name: 'tenants', path: '/tenants', icon: UserCheck, label: 'İcarəçilər' },
+    { name: 'income', path: '/income', icon: TrendingUp, label: 'Mədaxil' },
+    { name: 'expenses', path: '/expenses', icon: Receipt, label: 'Məxaric' },
+    { name: 'sanad', path: '/sanad-ustasi', icon: Sparkles, label: '✦ Sənəd Ustası AI', isSpecial: true },
+    { name: 'users', path: '/users', icon: Users, label: 'İstifadəçilər' },
+    { name: 'settings', path: '/settings', icon: Settings, label: 'Parametrlər' },
+    { name: 'billing', path: '/settings/billing', icon: CreditCard, label: 'Abonəlik Planı' },
+    // SUPERADMIN items
+    { name: 'admin-dashboard', path: '/admin', icon: LayoutDashboard, label: 'Dashboard', adminOnly: true },
+    { name: 'admin-orgs', path: '/admin/users', icon: Building2, label: 'Təşkilatlar', adminOnly: true },
+    { name: 'admin-users', path: '/users', icon: Users, label: 'İstifadəçilər', adminOnly: true },
+    { name: 'admin-billing', path: '/settings/billing', icon: CreditCard, label: 'Planlar & Abunəlik', adminOnly: true },
+    { name: 'admin-settings', path: '/settings', icon: Settings, label: 'Sistem Parametrləri', adminOnly: true },
 ];
 
 export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: boolean; onClose?: () => void }) {
     const { user } = useAuthStore();
 
     const navItems = React.useMemo(() => {
-        const allowedMenu = {
-            SUPERADMIN: ['Ümumi Statistika', 'Təşkilatlar', 'Parametrlər', 'Abonəlik Planı'],
-            OWNER: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'İcarəçilər', 'Mədaxil', 'Məxaric', '✦ Sənəd Ustası AI', 'İstifadəçilər', 'Parametrlər', 'Abonəlik Planı'],
-            MANAGER: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'İcarəçilər', 'Mədaxil', 'Məxaric', '✦ Sənəd Ustası AI', 'İstifadəçilər', 'Parametrlər'],
-            CASHIER: ['İdarə Paneli', 'Mədaxil', 'Məxaric'],
-            ACCOUNTANT: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'İcarəçilər', '✦ Sənəd Ustası AI'],
-            ADMINISTRATOR: ['İdarə Paneli', 'Müqavilələr', 'Obyektlər', 'İcarəçilər', '✦ Sənəd Ustası AI'],
+        const role = user?.role || 'TENANT';
+
+        if (role === 'SUPERADMIN') {
+            return allNavItems.filter(item => item.adminOnly);
+        }
+
+        const allowedByRole: Record<string, string[]> = {
+            OWNER: ['dashboard', 'contracts', 'properties', 'tenants', 'income', 'expenses', 'sanad', 'users', 'settings', 'billing'],
+            MANAGER: ['dashboard', 'contracts', 'properties', 'tenants', 'income', 'expenses', 'sanad', 'users', 'settings'],
+            CASHIER: ['dashboard', 'income', 'expenses'],
+            ACCOUNTANT: ['dashboard', 'contracts', 'properties', 'tenants', 'sanad'],
+            ADMINISTRATOR: ['dashboard', 'contracts', 'properties', 'tenants', 'sanad'],
             TENANT: [],
         };
 
-        const role = user?.role || 'TENANT';
-        const allowed = allowedMenu[role as keyof typeof allowedMenu] || [];
-
-        return allNavItems.filter(item => (allowed as string[]).includes(item.name));
+        const allowed = allowedByRole[role] || [];
+        return allNavItems.filter(item => !item.adminOnly && allowed.includes(item.name));
     }, [user?.role]);
 
     return (
@@ -85,8 +93,9 @@ export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: bool
                 <nav className="flex-1 space-y-1 p-4">
                     {navItems.map((item) => (
                         <NavLink
-                            key={item.path}
+                            key={item.path + item.name}
                             to={item.path}
+                            end={item.path === '/admin'}
                             className={({ isActive }) =>
                                 cn(
                                     'group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors',
@@ -108,7 +117,7 @@ export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: bool
                                                 : isActive ? 'text-gold' : 'text-muted group-hover:text-text'
                                         )}
                                     />
-                                    {item.name}
+                                    {item.label}
                                 </>
                             )}
                         </NavLink>

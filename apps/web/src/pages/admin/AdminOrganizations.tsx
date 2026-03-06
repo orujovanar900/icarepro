@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { Shield, Building2, Users, Search, AlertCircle, X, ArrowUpDown, Play, Pause, Clock } from 'lucide-react';
+import { Shield, Building2, Users, Search, AlertCircle, X, ArrowUpDown, Play, Pause, Clock, PencilLine } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -9,10 +9,14 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { useToastStore } from '@/store/toast';
 import { Link } from 'react-router-dom';
+import { PlanModal } from '@/components/admin/PlanModal';
 
 export function AdminOrganizations() {
     const queryClient = useQueryClient();
     const addToast = useToastStore((s) => s.addToast);
+
+    // Plan Modal
+    const [planModalOrg, setPlanModalOrg] = useState<any>(null);
 
     // Filters
     const [search, setSearch] = useState('');
@@ -315,6 +319,15 @@ export function AdminOrganizations() {
                                                     <Pause className="w-4 h-4" />
                                                 </Button>
                                             )}
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-8 px-2 text-gold hover:bg-gold/10 hover:text-gold cursor-pointer"
+                                                onClick={() => setPlanModalOrg(org)}
+                                                title="Plan dəyiş"
+                                            >
+                                                <PencilLine className="w-4 h-4" />
+                                            </Button>
                                         </div>
                                     </td>
                                 </tr>
@@ -330,6 +343,8 @@ export function AdminOrganizations() {
                     </table>
                 </div>
             </Card>
+
+            {planModalOrg && <PlanModal org={planModalOrg} onClose={() => setPlanModalOrg(null)} />}
         </div>
     );
 }

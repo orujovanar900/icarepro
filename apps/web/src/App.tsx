@@ -32,7 +32,7 @@ const Suspended = React.lazy(() => import('./pages/Suspended').then(m => ({ defa
 
 // Superadmin Pages
 const AdminOrganizations = React.lazy(() => import('./pages/admin/AdminOrganizations').then(m => ({ default: m.AdminOrganizations })));
-const AdminStats = React.lazy(() => import('./pages/admin/AdminStats').then(m => ({ default: m.AdminStats })));
+const SuperAdminDashboard = React.lazy(() => import('./pages/admin/SuperAdminDashboard').then(m => ({ default: m.SuperAdminDashboard })));
 const AdminOrganizationDetail = React.lazy(() => import('./pages/admin/AdminOrganizationDetail').then(m => ({ default: m.AdminOrganizationDetail })));
 
 export default function App() {
@@ -93,7 +93,7 @@ export default function App() {
 
                                 {/* SUPERADMIN ONLY routes */}
                                 <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN']} />}>
-                                    <Route path="/admin/stats" element={<AdminStats />} />
+                                    <Route path="/admin" element={<SuperAdminDashboard />} />
                                     <Route path="/admin/users" element={<AdminOrganizations />} />
                                     <Route path="/admin/organizations/:id" element={<AdminOrganizationDetail />} />
                                 </Route>
