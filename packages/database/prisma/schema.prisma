@@ -34,6 +34,9 @@ enum UserRole {
   ACCOUNTANT
   ADMINISTRATOR
   TENANT
+  AGENTLIK
+  AGENT
+  ICARECI
 }
 
 enum OrgPlan {
@@ -145,6 +148,7 @@ model Organization {
   expenses      Expense[]
   auditLogs     AuditLog[]
   meterReadings MeterReading[]
+  listings      Listing[]
 
   @@map("organizations")
 }
@@ -172,6 +176,8 @@ model User {
   expenses     Expense[]
   auditLogs    AuditLog[]
   tenant       Tenant?
+  queueEntries QueueEntry[]
+  favorites    ListingFavorite[]
 
   @@unique([organizationId, email])
   @@map("users")
@@ -196,6 +202,7 @@ model Property {
   contracts     Contract[]
   photos        PropertyPhoto[]
   meterReadings MeterReading[]
+  listings      Listing[]
 
   @@unique([organizationId, number])
   @@map("properties")
@@ -401,4 +408,115 @@ model ContractDocument {
   contract Contract @relation(fields: [contractId], references: [id])
 
   @@map("contract_documents")
+}
+
+// ─────────────────────────────────────────
+// Növbəli İcarə — Listing System
+// ─────────────────────────────────────────
+
+model Listing {
+  id                String    @id @default(cuid())
+  organizationId    String
+  propertyId        String?
+  title             String
+  description       String?
+  type              String    // MENZIL | OFIS | MAGAZA | ANBAR | KOMERSIYA | TORPAQ
+  district          String?
+  address           String
+  floor             Int?
+  totalFloors       Int?
+  area              Float?
+  rooms             Int?
+  basePrice         Float     // hidden from public responses
+  availStatus       String    @default("BOSHDUR") // BOSHDUR | BOSHALIR | INSAAT
+  contractStartDate DateTime?
+  contractEndDate   DateTime?
+  expectedFreeDate  DateTime?
+  publisherType     String?   // SAHIBI | AGENT | AGENTLIK
+  publisherName     String?
+  isVip             Boolean   @default(false)
+  isPushed          Boolean   @default(false)
+  isPanorama        Boolean   @default(false)
+  status            String    @default("PENDING") // PENDING | ACTIVE | REJECTED | DEACTIVATED
+  moderatedAt       DateTime?
+  moderatedBy       String?
+  rejectionReason   String?
+  amenities         String[]
+  photos            String[]
+  lat               Float?
+  lng               Float?
+  deletedAt         DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organization  Organization    @relation(fields: [organizationId], references: [id])
+  property      Property?       @relation(fields: [propertyId], references: [id])
+  queueEntries  QueueEntry[]
+  reports       ListingReport[]
+  favorites     ListingFavorite[]
+
+  @@index([status])
+  @@index([district])
+  @@index([type])
+  @@index([availStatus])
+  @@map("listings")
+}
+
+model QueueEntry {
+  id            String   @id @default(cuid())
+  listingId     String
+  userId        String?
+  fullName      String
+  phone         String
+  email         String?
+  employStatus  String?
+  persons       Int?
+  hasPets       Boolean  @default(false)
+  isSmoker      Boolean  @default(false)
+  companyName   String?
+  voen          String?
+  contactPerson String?
+  employeeCount Int?
+  activityType  String?
+  priceOffer    Float
+  desiredMonths Int?
+  position      Int
+  status        String   @default("ACTIVE") // ACTIVE | SELECTED | WITHDRAWN | EXPIRED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  listing Listing @relation(fields: [listingId], references: [id])
+  user    User?   @relation(fields: [userId], references: [id])
+
+  @@index([listingId])
+  @@index([status])
+  @@map("queue_entries")
+}
+
+model ListingReport {
+  id          String   @id @default(cuid())
+  listingId   String
+  reporterId  String?
+  reason      String
+  description String?
+  status      String   @default("PENDING") // PENDING | REVIEWED | RESOLVED
+  createdAt   DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id])
+
+  @@map("listing_reports")
+}
+
+model ListingFavorite {
+  id        String   @id @default(cuid())
+  listingId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([listingId, userId])
+  @@index([userId])
+  @@map("listing_favorites")
 }

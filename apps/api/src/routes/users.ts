@@ -14,14 +14,14 @@ const schema = {
     body: z.object({
         email: z.string().email(),
         name: z.string().min(2),
-        role: z.enum(['SUPERADMIN', 'OWNER', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR', 'TENANT']).optional(),
+        role: z.enum(['SUPERADMIN', 'OWNER', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR', 'TENANT', 'AGENTLIK', 'AGENT', 'ICARECI']).optional(),
         phone: z.string().optional()
     }),
 }
 
 const updateSchema = z.object({
     name: z.string().min(1).optional(),
-    role: z.enum(['SUPERADMIN', 'OWNER', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR', 'TENANT']).optional(),
+    role: z.enum(['SUPERADMIN', 'OWNER', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR', 'TENANT', 'AGENTLIK', 'AGENT', 'ICARECI']).optional(),
     isActive: z.boolean().optional(),
     password: z.string().min(8).optional(),
     telegramChatId: z.string().optional(),
@@ -182,6 +182,41 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
         if (!exists) return reply.code(404).send({ success: false, error: 'User not found' })
         await fastify.prisma.user.update({ where: { id }, data: { isActive: false } })
         return reply.code(204).send()
+    })
+
+    // GET /users/me/queue — all ACTIVE queue entries for current user
+    fastify.get('/me/queue', { preHandler: [authenticate] }, async (req, reply) => {
+        const entries = await fastify.prisma.queueEntry.findMany({
+            where: { userId: req.user.sub, status: 'ACTIVE' },
+            include: {
+                listing: {
+                    select: {
+                        id: true, title: true, address: true, district: true,
+                        type: true, availStatus: true, photos: true, status: true,
+                    },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        })
+        return reply.send({ success: true, data: entries })
+    })
+
+    // GET /users/me/favorites — all favorited listings for current user
+    fastify.get('/me/favorites', { preHandler: [authenticate] }, async (req, reply) => {
+        const favorites = await fastify.prisma.listingFavorite.findMany({
+            where: { userId: req.user.sub },
+            include: {
+                listing: {
+                    select: {
+                        id: true, title: true, address: true, district: true,
+                        type: true, availStatus: true, photos: true, status: true,
+                        rooms: true, area: true, isVip: true,
+                    },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        })
+        return reply.send({ success: true, data: favorites })
     })
 }
 

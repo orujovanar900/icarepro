@@ -240,6 +240,23 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
             entityId: contract.id,
         })
 
+        // Sync: update linked listing when contract is created for a property
+        if (rest.propertyId) {
+            const activeListing = await fastify.prisma.listing.findFirst({
+                where: { propertyId: rest.propertyId as string, status: 'ACTIVE', deletedAt: null },
+            })
+            if (activeListing) {
+                await fastify.prisma.listing.update({
+                    where: { id: activeListing.id },
+                    data: {
+                        contractStartDate: new Date(startDate),
+                        contractEndDate: new Date(endDate),
+                        ...(activeListing.availStatus === 'BOSHDUR' ? { availStatus: 'BOSHALIR' } : {}),
+                    },
+                })
+            }
+        }
+
         return reply.code(201).send({ success: true, data: contract })
     })
 

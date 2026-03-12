@@ -127,3 +127,71 @@ export async function sendFinalDeletionWarning(to: string, orgName: string) {
     `
   });
 }
+
+// ─────────────────────────────────────────
+// Növbəli İcarə emails
+// ─────────────────────────────────────────
+
+export async function sendQueueConfirmation(to: string, data: {
+  fullName: string,
+  address: string,
+  position: number,
+  queueCount: number
+}) {
+  await resend.emails.send({
+    from: 'icare@icarepro.az',
+    to,
+    subject: `Növbə Təsdiqi — Mövqe #${data.position}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+        <h2 style="color:#C9A84C">Növbəyə Qeydiyyat Təsdiqləndi</h2>
+        <p>Hörmətli <b>${data.fullName}</b>,</p>
+        <p>Siz aşağıdakı elan üçün növbəyə yazıldınız:</p>
+        <p>Ünvan: <b>${data.address}</b></p>
+        <p>Növbə mövqeyiniz: <b style="color:#C9A84C">#${data.position}</b></p>
+        <p>Ümumi növbə sayı: <b>${data.queueCount}</b></p>
+        <p style="color:#888;font-size:13px">Sahibkar sizinlə əlaqə saxlayacaq.</p>
+      </div>
+    `
+  });
+}
+
+export async function sendListingApproved(to: string, data: {
+  title: string,
+  address: string
+}) {
+  await resend.emails.send({
+    from: 'icare@icarepro.az',
+    to,
+    subject: `Elanınız Təsdiqləndi — ${data.title}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+        <h2 style="color:#C9A84C">Elan Təsdiqləndi</h2>
+        <p>Elanınız "<b>${data.title}</b>" təsdiqləndi və indi aktivdir.</p>
+        <p>Ünvan: <b>${data.address}</b></p>
+        <a href="${process.env['FRONTEND_URL'] || 'https://icarepro.az'}/listings">Elanı bax →</a>
+      </div>
+    `
+  });
+}
+
+export async function sendListingRejected(to: string, data: {
+  title: string,
+  address: string,
+  reason: string
+}) {
+  await resend.emails.send({
+    from: 'icare@icarepro.az',
+    to,
+    subject: `Elanınız Rədd Edildi — ${data.title}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+        <h2 style="color:#e53e3e">Elan Rədd Edildi</h2>
+        <p>Elanınız "<b>${data.title}</b>" rədd edildi.</p>
+        <p>Ünvan: <b>${data.address}</b></p>
+        <p>Səbəb: <b>${data.reason}</b></p>
+        <p style="color:#888;font-size:13px">Düzəlişlər edərək yenidən göndərə bilərsiniz.</p>
+      </div>
+    `
+  });
+}

@@ -240,6 +240,26 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
         const exists = await fastify.prisma.property.findFirst({ where: { id, ...withOrg(req) } })
         if (!exists) return reply.code(404).send({ success: false, error: 'Property not found' })
         await fastify.prisma.property.update({ where: { id }, data: { deletedAt: new Date() } })
+
+        // Sync: update linked listing to BOSHALIR
+        const activeListing = await fastify.prisma.listing.findFirst({
+            where: { propertyId: id, status: 'ACTIVE', deletedAt: null },
+        })
+        if (activeListing) {
+            const lastContract = await fastify.prisma.contract.findFirst({
+                where: { propertyId: id, status: 'ACTIVE' },
+                orderBy: { endDate: 'desc' },
+                select: { endDate: true },
+            })
+            await fastify.prisma.listing.update({
+                where: { id: activeListing.id },
+                data: {
+                    availStatus: 'BOSHALIR',
+                    ...(lastContract ? { contractEndDate: lastContract.endDate } : {}),
+                },
+            })
+        }
+
         return reply.code(204).send()
     })
 

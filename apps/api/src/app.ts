@@ -20,6 +20,8 @@ import auditLogRoutes from './routes/audit-log.js'
 import meterReadingsRoutes from './routes/meter-readings.js'
 import hesabatRoutes from './routes/hesabat.js'
 import adminRoutes from './routes/admin.js'
+import listingsRoutes from './routes/listings.js'
+import queueRoutes from './routes/queue.js'
 
 import './types.js'
 import './cron/alerts.js'
@@ -110,6 +112,8 @@ export async function buildApp() {
     await app.register(meterReadingsRoutes, { prefix: '/meter-readings' })
     await app.register(hesabatRoutes, { prefix: '/hesabat' })
     await app.register(adminRoutes, { prefix: '/admin' })
+    await app.register(listingsRoutes, { prefix: '/listings' })
+    await app.register(queueRoutes, { prefix: '/queue' })
 
     return app
 }

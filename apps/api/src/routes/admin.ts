@@ -307,7 +307,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
         const { userId } = req.params as { userId: string }
         const { role } = req.body as { role: string }
 
-        const validRoles = ['SUPERADMIN', 'OWNER', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR', 'TENANT']
+        const validRoles = ['SUPERADMIN', 'OWNER', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR', 'TENANT', 'AGENTLIK', 'AGENT', 'ICARECI']
         if (!validRoles.includes(role)) {
             return reply.code(400).send({ success: false, error: 'Invalid role' })
         }
@@ -337,6 +337,114 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
             console.error(error)
             return reply.code(500).send({ success: false, error: 'Failed to delete organization.' })
         }
+    })
+
+    // ══════════════════════════════════════
+    // Listing Moderation
+    // ══════════════════════════════════════
+
+    // GET /admin/listings/stats — must be before /:id route
+    fastify.get('/listings/stats', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (_req, reply) => {
+        const [total, pending, active, rejected, totalQueues] = await Promise.all([
+            fastify.prisma.listing.count({ where: { deletedAt: null } }),
+            fastify.prisma.listing.count({ where: { status: 'PENDING', deletedAt: null } }),
+            fastify.prisma.listing.count({ where: { status: 'ACTIVE', deletedAt: null } }),
+            fastify.prisma.listing.count({ where: { status: 'REJECTED', deletedAt: null } }),
+            fastify.prisma.queueEntry.count({ where: { status: 'ACTIVE' } }),
+        ])
+        const avgQueueSize = active > 0 ? parseFloat((totalQueues / active).toFixed(2)) : 0
+        return reply.send({ success: true, data: { total, pending, active, rejected, totalQueues, avgQueueSize } })
+    })
+
+    // GET /admin/listings
+    fastify.get('/listings', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+        const q = req.query as Record<string, string>
+        const statusFilter = q['status'] ?? 'PENDING'
+        const where: any = statusFilter === 'ALL' ? { deletedAt: null } : { status: statusFilter, deletedAt: null }
+
+        const listings = await fastify.prisma.listing.findMany({
+            where,
+            include: {
+                organization: { select: { id: true, name: true } },
+                _count: { select: { queueEntries: { where: { status: 'ACTIVE' } } } },
+            },
+            orderBy: { createdAt: 'desc' },
+        })
+        return reply.send({ success: true, data: listings })
+    })
+
+    // PATCH /admin/listings/:id/moderate
+    fastify.patch('/listings/:id/moderate', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const { action, reason } = req.body as { action: string; reason?: string }
+
+        if (!['approve', 'reject'].includes(action)) {
+            return reply.code(400).send({ success: false, error: 'action approve və ya reject olmalıdır' })
+        }
+
+        const listing = await fastify.prisma.listing.findFirst({
+            where: { id, deletedAt: null },
+            include: {
+                organization: {
+                    select: { users: { where: { role: 'OWNER' }, select: { email: true }, take: 1 } },
+                },
+            },
+        })
+        if (!listing) return reply.code(404).send({ success: false, error: 'Elan tapılmadı' })
+
+        const newStatus = action === 'approve' ? 'ACTIVE' : 'REJECTED'
+        const updated = await fastify.prisma.listing.update({
+            where: { id },
+            data: {
+                status: newStatus,
+                moderatedAt: new Date(),
+                moderatedBy: req.user.sub,
+                ...(action === 'reject' && reason ? { rejectionReason: reason } : {}),
+            },
+        })
+
+        const ownerEmail = listing.organization.users[0]?.email
+        if (ownerEmail) {
+            const { sendListingApproved, sendListingRejected } = await import('../services/email.js')
+            if (action === 'approve') {
+                sendListingApproved(ownerEmail, { title: listing.title, address: listing.address }).catch(() => null)
+            } else {
+                sendListingRejected(ownerEmail, {
+                    title: listing.title,
+                    address: listing.address,
+                    reason: reason ?? 'Göstərilmədi',
+                }).catch(() => null)
+            }
+        }
+
+        return reply.send({ success: true, data: updated })
+    })
+
+    // GET /admin/reports
+    fastify.get('/reports', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+        const q = req.query as Record<string, string>
+        const statusFilter = q['status'] ?? 'PENDING'
+        const where: any = statusFilter === 'ALL' ? {} : { status: statusFilter }
+
+        const reports = await fastify.prisma.listingReport.findMany({
+            where,
+            include: { listing: { select: { id: true, title: true, address: true } } },
+            orderBy: { createdAt: 'desc' },
+        })
+        return reply.send({ success: true, data: reports })
+    })
+
+    // PATCH /admin/reports/:id
+    fastify.patch('/reports/:id', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const { action } = req.body as { action: string }
+
+        const newStatus = action === 'resolve' ? 'RESOLVED' : 'REVIEWED'
+        const report = await fastify.prisma.listingReport.update({
+            where: { id },
+            data: { status: newStatus },
+        })
+        return reply.send({ success: true, data: report })
     })
 }
 

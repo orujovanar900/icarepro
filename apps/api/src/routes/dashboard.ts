@@ -35,6 +35,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
             totalProperties,
             expiringContractsRaw,
             prevMonthlyIncomeAgg,
+            activeListings,
         ] = await Promise.all([
             fastify.prisma.payment.aggregate({
                 _sum: { amount: true },
@@ -68,6 +69,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
                 _sum: { amount: true },
                 where: { ...org, paymentDate: { gte: prevMonthStart, lte: prevMonthEnd } },
             }),
+            fastify.prisma.listing.count({ where: { ...org, status: 'ACTIVE', deletedAt: null } }),
         ])
 
         const monthlyIncome = Number(monthlyIncomeAgg._sum.amount ?? 0)
@@ -196,6 +198,7 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
                 debtors,
                 monthlyChart,
                 expiringContracts,
+                activeListings,
             },
         })
     })
