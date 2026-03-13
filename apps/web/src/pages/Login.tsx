@@ -52,9 +52,14 @@ export function Login() {
             addToast({ type: 'success', message: 'Uğurla daxil oldunuz!' });
 
             // Role-based redirect
+            // ICARECI → personal cabinet; portal users → kabinet; dashboard users → dashboard
             if (user.role === 'SUPERADMIN') {
                 navigate('/admin');
+            } else if (user.role === 'ICARECI') {
+                navigate('/kabinet');
             } else if (user.role === 'OWNER') {
+                navigate('/dashboard');
+            } else if (['AGENT', 'AGENTLIK'].includes(user.role)) {
                 navigate('/dashboard');
             } else if (user.role === 'STAFF') {
                 navigate('/contracts');

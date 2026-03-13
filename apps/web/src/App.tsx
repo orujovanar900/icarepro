@@ -9,6 +9,12 @@ import { PublicRoute } from './components/PublicRoute';
 import { GlobalErrorBoundary } from './components/GlobalErrorBoundary';
 
 const Landing = React.lazy(() => import('./pages/Landing').then(m => ({ default: m.Landing })));
+const Portal = React.lazy(() => import('./pages/Portal').then(m => ({ default: m.Portal })));
+const ListingDetail = React.lazy(() => import('./pages/ListingDetail').then(m => ({ default: m.ListingDetail })));
+const MapPage = React.lazy(() => import('./pages/MapPage').then(m => ({ default: m.MapPage })));
+const Kabinet = React.lazy(() => import('./pages/Kabinet').then(m => ({ default: m.Kabinet })));
+const CreateListing = React.lazy(() => import('./pages/CreateListing').then(m => ({ default: m.CreateListing })));
+const SearchResults = React.lazy(() => import('./pages/SearchResults').then(m => ({ default: m.SearchResults })));
 const Login = React.lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
 const Register = React.lazy(() => import('./pages/Register').then(m => ({ default: m.Register })));
 const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
@@ -30,11 +36,14 @@ const Settings = React.lazy(() => import('./pages/Settings').then(m => ({ defaul
 const Billing = React.lazy(() => import('./pages/Billing').then(m => ({ default: m.Billing })));
 const NotFound = React.lazy(() => import('./pages/NotFound').then(m => ({ default: m.NotFound })));
 const Suspended = React.lazy(() => import('./pages/Suspended').then(m => ({ default: m.Suspended })));
+const DashboardElanlar = React.lazy(() => import('./pages/DashboardElanlar').then(m => ({ default: m.DashboardElanlar })));
+const CreateDashboardListing = React.lazy(() => import('./pages/CreateDashboardListing').then(m => ({ default: m.CreateDashboardListing })));
 
 // Superadmin Pages
 const AdminOrganizations = React.lazy(() => import('./pages/admin/AdminOrganizations').then(m => ({ default: m.AdminOrganizations })));
 const SuperAdminDashboard = React.lazy(() => import('./pages/admin/SuperAdminDashboard').then(m => ({ default: m.SuperAdminDashboard })));
 const AdminOrganizationDetail = React.lazy(() => import('./pages/admin/AdminOrganizationDetail').then(m => ({ default: m.AdminOrganizationDetail })));
+const AdminListings = React.lazy(() => import('./pages/admin/AdminListings').then(m => ({ default: m.AdminListings })));
 
 export default function App() {
     return (
@@ -43,8 +52,16 @@ export default function App() {
                 <SupportChat />
                 <Suspense fallback={<PageSkeleton />}>
                     <Routes>
-                        {/* Always-public landing page */}
-                        <Route path="/" element={<Landing />} />
+                        {/* Portal — main marketplace page */}
+                        <Route path="/" element={<Portal />} />
+                        {/* Landing / About page */}
+                        <Route path="/haqqinda" element={<Landing />} />
+                        {/* Public portal routes */}
+                        <Route path="/elan/:id" element={<ListingDetail />} />
+                        <Route path="/xerite" element={<MapPage />} />
+                        <Route path="/kabinet" element={<Kabinet />} />
+                        <Route path="/elan-elave-et" element={<CreateListing />} />
+                        <Route path="/elanlar" element={<SearchResults />} />
 
                         {/* Public Routes — redirect to /dashboard if already logged in */}
                         <Route element={<PublicRoute />}>
@@ -57,7 +74,7 @@ export default function App() {
                         <Route path="/reset-password" element={<ResetPassword />} />
 
                         {/* Protected Routes directly hitting the AppLayout */}
-                        <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
+                        <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'AGENT', 'AGENTLIK', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
                             <Route path="/suspended" element={<Suspended />} />
 
                             {/* Full Screen AI Chat Interface */}
@@ -92,6 +109,12 @@ export default function App() {
                                     <Route path="/settings/billing" element={<Billing />} />
                                 </Route>
 
+                                {/* Listing management — OWNER, AGENT, AGENTLIK, MANAGER */}
+                                <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'AGENT', 'AGENTLIK', 'MANAGER']} />}>
+                                    <Route path="/dashboard/elanlar" element={<DashboardElanlar />} />
+                                    <Route path="/dashboard/elanlar/yeni" element={<CreateDashboardListing />} />
+                                </Route>
+
                             </Route>
                         </Route>
 
@@ -101,6 +124,7 @@ export default function App() {
                                 <Route path="/admin" element={<SuperAdminDashboard />} />
                                 <Route path="/admin/users" element={<AdminOrganizations />} />
                                 <Route path="/admin/organizations/:id" element={<AdminOrganizationDetail />} />
+                                <Route path="/admin/elanlar" element={<AdminListings />} />
                             </Route>
                         </Route>
 

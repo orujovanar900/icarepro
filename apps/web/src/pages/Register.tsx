@@ -9,7 +9,16 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/Card';
-import { Eye, EyeOff, Building2, Check, X } from 'lucide-react';
+import { Eye, EyeOff, Check, X } from 'lucide-react';
+
+type SelectedRole = 'OWNER' | 'AGENT' | 'AGENTLIK' | 'ICARECI';
+
+const ROLE_CARDS: { role: SelectedRole; emoji: string; title: string; subtitle: string }[] = [
+    { role: 'OWNER',    emoji: '🏠', title: 'Əmlak Sahibiyəm',  subtitle: 'Öz mülkümü icarəyə verirəm' },
+    { role: 'AGENT',    emoji: '🤝', title: 'Müstəqil Agentəm', subtitle: 'Əmlak agentliyi xidməti' },
+    { role: 'AGENTLIK', emoji: '🏢', title: 'Agentlik / Şirkət', subtitle: 'Korporativ icarə idarəçiliyi' },
+    { role: 'ICARECI',  emoji: '🔑', title: 'İcarəçiyəm',        subtitle: 'Əmlak axtarıram' },
+];
 
 const passwordRules = [
     { label: 'Minimum 8 simvol', test: (p: string) => p.length >= 8 },
@@ -21,7 +30,6 @@ const passwordRules = [
 
 const registerSchema = z
     .object({
-        entityType: z.enum(['INDIVIDUAL', 'COMPANY']),
         name: z.string().min(2, 'Ad Soyad ən azı 2 simvol olmalıdır.'),
         email: z.string().email('Düzgün e-poçt ünvanı daxil edin.'),
         organizationName: z.string().optional(),
@@ -33,15 +41,6 @@ const registerSchema = z
             .regex(/[0-9]/, 'Şifrədə ən azı 1 rəqəm olmalıdır.')
             .regex(/[^a-zA-Z0-9]/, 'Şifrədə ən azı 1 xüsusi simvol olmalıdır.'),
         confirmPassword: z.string().min(1, 'Şifrəni təkrarlayın.'),
-    })
-    .refine((data) => {
-        if (data.entityType === 'COMPANY' && (!data.organizationName || data.organizationName.length < 2)) {
-            return false;
-        }
-        return true;
-    }, {
-        message: 'Şirkət adı ən azı 2 simvol olmalıdır.',
-        path: ['organizationName'],
     })
     .refine((d) => d.password === d.confirmPassword, {
         message: 'Şifrələr uyğun gəlmir.',
@@ -57,39 +56,46 @@ export function Register() {
     const [isLoading, setIsLoading] = React.useState(false);
     const [showPass, setShowPass] = React.useState(false);
     const [showConfirm, setShowConfirm] = React.useState(false);
+    const [selectedRole, setSelectedRole] = React.useState<SelectedRole>('OWNER');
 
     const {
         register,
         handleSubmit,
         watch,
-        setValue,
         formState: { errors },
     } = useForm<RegisterFormValues>({
         resolver: zodResolver(registerSchema),
-        defaultValues: {
-            entityType: 'INDIVIDUAL',
-        }
     });
 
-    const selectedEntityType = watch('entityType');
     const passwordValue = watch('password') ?? '';
     const hasTypedPassword = passwordValue.length > 0;
+    const isAgentlik = selectedRole === 'AGENTLIK';
 
     const onSubmit = async (data: RegisterFormValues) => {
+        if (isAgentlik && (!data.organizationName || data.organizationName.trim().length < 2)) {
+            addToast({ type: 'error', message: 'Şirkət adı ən azı 2 simvol olmalıdır.' });
+            return;
+        }
         try {
             setIsLoading(true);
             const response = await api.post('/auth/register', {
-                entityType: data.entityType,
+                role: selectedRole,
+                entityType: isAgentlik ? 'COMPANY' : 'INDIVIDUAL',
                 name: data.name,
                 email: data.email,
                 password: data.password,
-                organizationName: data.entityType === 'COMPANY' ? data.organizationName : data.name,
+                organizationName: isAgentlik ? data.organizationName : data.name,
             });
 
             const { user, token } = response.data.data;
             login({ user, token });
             addToast({ type: 'success', message: 'Hesabınız uğurla yaradıldı! Xoş gəlmisiniz 🎉' });
-            navigate('/dashboard');
+
+            if (selectedRole === 'ICARECI') {
+                navigate('/kabinet');
+            } else {
+                navigate('/dashboard');
+            }
         } catch (error: any) {
             addToast({
                 type: 'error',
@@ -105,7 +111,7 @@ export function Register() {
             {/* Background decoration */}
             <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gold/10 via-bg to-bg" />
 
-            <div className="w-full max-w-md space-y-8">
+            <div className="w-full max-w-lg space-y-6">
                 <div className="text-center">
                     <h1 className="text-5xl font-heading tracking-tight flex items-center justify-center gap-2">
                         <span className="text-gold font-extrabold">İcarə</span>
@@ -120,37 +126,46 @@ export function Register() {
                 <Card variant="elevated" className="border-border/50 bg-surface/50 backdrop-blur-md">
                     <form onSubmit={handleSubmit(onSubmit)}>
                         <CardHeader>
-                            <CardTitle className="text-2xl text-center flex items-center justify-center gap-2">
-                                <Building2 className="w-6 h-6 text-gold" />
-                                Qeydiyyat
+                            <CardTitle className="text-xl text-center">
+                                Hesab növünüzü seçin
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            {/* Entity Type Toggle */}
-                            <div className="flex bg-surface border border-border/50 rounded-lg p-1">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setValue('entityType', 'INDIVIDUAL');
-                                        setValue('organizationName', '');
-                                    }}
-                                    className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all ${selectedEntityType === 'INDIVIDUAL'
-                                        ? 'bg-gold text-[#0A0B0F] shadow-sm'
-                                        : 'text-muted hover:text-text hover:bg-white/5'
-                                        }`}
-                                >
-                                    Fiziki Şəxs
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setValue('entityType', 'COMPANY')}
-                                    className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all ${selectedEntityType === 'COMPANY'
-                                        ? 'bg-gold text-[#0A0B0F] shadow-sm'
-                                        : 'text-muted hover:text-text hover:bg-white/5'
-                                        }`}
-                                >
-                                    Hüquqi Şəxs
-                                </button>
+                        <CardContent className="space-y-5">
+                            {/* Role Selection Cards */}
+                            <div className="grid grid-cols-2 gap-2.5">
+                                {ROLE_CARDS.map(({ role, emoji, title, subtitle }) => {
+                                    const isSelected = selectedRole === role;
+                                    return (
+                                        <button
+                                            key={role}
+                                            type="button"
+                                            onClick={() => setSelectedRole(role)}
+                                            className={`relative flex flex-col items-start gap-1 rounded-xl border-2 p-3.5 text-left transition-all focus:outline-none ${
+                                                isSelected
+                                                    ? 'border-gold bg-gold/10 shadow-sm'
+                                                    : 'border-border/40 bg-surface hover:border-gold/40 hover:bg-white/5'
+                                            }`}
+                                        >
+                                            {isSelected && (
+                                                <span className="absolute right-2.5 top-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-gold">
+                                                    <Check size={11} strokeWidth={3} className="text-[#0A0B0F]" />
+                                                </span>
+                                            )}
+                                            <span className="text-2xl leading-none">{emoji}</span>
+                                            <span className={`text-sm font-semibold leading-snug ${isSelected ? 'text-gold' : 'text-text'}`}>
+                                                {title}
+                                            </span>
+                                            <span className="text-[11px] text-muted leading-snug">{subtitle}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Divider */}
+                            <div className="flex items-center gap-3">
+                                <div className="flex-1 h-px bg-border/40" />
+                                <span className="text-xs text-muted">Məlumatlarınızı daxil edin</span>
+                                <div className="flex-1 h-px bg-border/40" />
                             </div>
 
                             <Input
@@ -168,11 +183,11 @@ export function Register() {
                                 error={errors.email?.message}
                             />
 
-                            {selectedEntityType === 'COMPANY' && (
+                            {isAgentlik && (
                                 <Input
-                                    label="Şirkət adı"
+                                    label="Şirkət / Agentlik adı"
                                     type="text"
-                                    placeholder="Əliyev MMC"
+                                    placeholder="Əliyev Daşınmaz Əmlak MMC"
                                     {...register('organizationName')}
                                     error={errors.organizationName?.message}
                                 />
@@ -196,7 +211,7 @@ export function Register() {
                                 }
                             />
 
-                            {/* Password strength checklist — shown as soon as user starts typing */}
+                            {/* Password strength checklist */}
                             {hasTypedPassword && (
                                 <div className="rounded-lg border border-border/40 bg-surface/60 px-4 py-3 space-y-1.5">
                                     {passwordRules.map((rule) => {
@@ -242,7 +257,6 @@ export function Register() {
                                 Hesab yarat
                             </Button>
 
-                            {/* Terms & Conditions */}
                             <p className="text-[11px] text-muted text-center leading-relaxed px-2">
                                 Qeydiyyatdan keçməklə{' '}
                                 <a

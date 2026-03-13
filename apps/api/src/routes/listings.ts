@@ -123,6 +123,13 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
       const amenityList = q['amenities'].split(',').map(a => a.trim()).filter(Boolean)
       if (amenityList.length) where.amenities = { hasEvery: amenityList }
     }
+    if (q['search']) {
+      where.OR = [
+        { title: { contains: q['search'], mode: 'insensitive' } },
+        { address: { contains: q['search'], mode: 'insensitive' } },
+        { district: { contains: q['search'], mode: 'insensitive' } },
+      ]
+    }
 
     const [listings, total] = await Promise.all([
       fastify.prisma.listing.findMany({
@@ -130,6 +137,7 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
         select: {
           id: true, title: true, type: true, district: true, address: true,
           floor: true, totalFloors: true, area: true, rooms: true,
+          basePrice: true,
           availStatus: true, contractEndDate: true, expectedFreeDate: true,
           publisherType: true, publisherName: true,
           isVip: true, isPushed: true, isPanorama: true,
@@ -173,7 +181,7 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
       heatLevel: computeHeatLevel(countMap.get(l.id) ?? 0),
     }))
 
-    return reply.send({ success: true, data, meta: { total, page, limit } })
+    return reply.send({ success: true, data, meta: { total, page, limit, pages: Math.ceil(total / limit) } })
   })
 
   // GET /listings/mine — must be BEFORE /:id to avoid conflict

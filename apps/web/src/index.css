@@ -38,6 +38,22 @@
     --color-muted: #6B7280;
   }
 
+  /* ── PORTAL LIGHT THEME — applied via .portal-light wrapper ── */
+  .portal-light {
+    color-scheme: light;
+    --color-bg: #F5F0E8;
+    --color-surface: #FFFFFF;
+    --color-card: #FFFFFF;
+    --color-border: rgba(0,0,0,0.08);
+    --color-text: #1A1A2E;
+    --color-muted: #6B7280;
+    --color-gold: #C9A84C;
+    --portal-accent: #E8620A;
+    --portal-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    background-color: #F5F0E8;
+    color: #1A1A2E;
+  }
+
   html {
     transition: background-color 0.3s ease, color 0.3s ease;
   }

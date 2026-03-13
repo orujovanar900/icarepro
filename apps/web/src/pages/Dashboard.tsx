@@ -7,7 +7,7 @@ import {
 import {
     Wallet, TrendingUp, AlertCircle, Calendar, ArrowRight, Users, Search,
     ArrowUpRight, ArrowDownRight, MapPin, Clock, Plus, X,
-    AlertTriangle, CalendarX, Building2, LineChart, Lock
+    AlertTriangle, CalendarX, Building2, LineChart, Lock, Store
 } from 'lucide-react';
 import { usePlan, FeatureGate } from '@/utils/planGates';
 import { UpgradeModal } from '@/components/UpgradeModal';
@@ -724,6 +724,46 @@ function DashboardContent() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Portal Listing Stats */}
+            {(dashboard?.activeListings ?? 0) > 0 || isDashboardLoading ? (
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 mt-4">
+                    <Card variant="elevated" style={{ height: '100px', border: '1px solid rgba(255, 255, 255, 0.12)' }} className="flex flex-col justify-center">
+                        <CardHeader className="pb-1 flex flex-row items-center justify-between">
+                            <CardTitle className="text-sm font-medium text-muted">Aktiv Elanlar</CardTitle>
+                            <div className="h-8 w-8 rounded flex items-center justify-center" style={{ backgroundColor: 'rgba(201, 168, 76, 0.1)' }}>
+                                <Store className="h-5 w-5" style={{ color: '#C9A84C' }} />
+                            </div>
+                        </CardHeader>
+                        <CardContent className="py-0">
+                            {isDashboardLoading ? (
+                                <div className="h-7 w-16 bg-surface animate-pulse rounded" />
+                            ) : (
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-2xl font-bold" style={{ color: '#C9A84C' }}>{dashboard?.activeListings ?? 0}</span>
+                                    <button onClick={() => navigate('/listings/mine')} className="text-xs text-muted hover:text-gold transition-colors">Elanlarıma bax →</button>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <Card variant="elevated" style={{ height: '100px', border: '1px solid rgba(255, 255, 255, 0.12)' }} className="flex flex-col justify-center">
+                        <CardHeader className="pb-1 flex flex-row items-center justify-between">
+                            <CardTitle className="text-sm font-medium text-muted">Cəmi Növbə Qeydləri</CardTitle>
+                            <div className="h-8 w-8 rounded flex items-center justify-center" style={{ backgroundColor: 'rgba(96, 165, 250, 0.1)' }}>
+                                <Users className="h-5 w-5" style={{ color: '#60a5fa' }} />
+                            </div>
+                        </CardHeader>
+                        <CardContent className="py-0">
+                            {isDashboardLoading ? (
+                                <div className="h-7 w-16 bg-surface animate-pulse rounded" />
+                            ) : (
+                                <span className="text-2xl font-bold" style={{ color: '#60a5fa' }}>{dashboard?.totalQueueEntries ?? 0}</span>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+            ) : null}
 
             {/* Map and Debtors Side by Side Layout */}
             <div className="grid gap-6 grid-cols-1 lg:grid-cols-3 mt-6">

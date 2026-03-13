@@ -19,6 +19,7 @@ const loginSchema = z.object({
 
 const registerSchema = z.object({
     entityType: z.enum(['INDIVIDUAL', 'COMPANY']).optional(),
+    role: z.enum(['OWNER', 'AGENT', 'AGENTLIK', 'ICARECI']).optional(),
     name: z.string().min(2),
     email: z.string().email(),
     password: z.string().min(6),
@@ -70,10 +71,15 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         const body = registerSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
 
-        const { name, email, password, organizationName, entityType } = body.data
+        const { name, email, password, organizationName, entityType, role: requestedRole } = body.data
 
-        // If INDIVIDUAL or organizationName is omitted, use the user's name as their org
-        const finalOrgName = (entityType === 'INDIVIDUAL' || !organizationName) ? name : organizationName;
+        // Determine role: ICARECI/AGENT get personal orgs too; AGENTLIK gets company org
+        const userRole = requestedRole ?? 'OWNER'
+
+        // Org name: AGENTLIK uses company name, everyone else uses personal name
+        const finalOrgName = (userRole === 'AGENTLIK' && organizationName) ? organizationName
+            : (entityType === 'COMPANY' && organizationName) ? organizationName
+            : name;
 
         // Check for duplicate email
         const existing = await fastify.prisma.user.findFirst({ where: { email } })
@@ -106,7 +112,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
                     name,
                     email,
                     passwordHash,
-                    role: 'OWNER',
+                    role: userRole as any,
                     organizationId: org.id,
                     isActive: true,
                     jwtVersion: 1,

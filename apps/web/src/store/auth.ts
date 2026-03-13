@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
-type Role = 'SUPERADMIN' | 'OWNER' | 'MANAGER' | 'CASHIER' | 'ACCOUNTANT' | 'ADMINISTRATOR' | 'TENANT';
+type Role = 'SUPERADMIN' | 'OWNER' | 'MANAGER' | 'CASHIER' | 'ACCOUNTANT' | 'ADMINISTRATOR' | 'TENANT' | 'AGENTLIK' | 'AGENT' | 'ICARECI';
 
 interface User {
     id: string;
