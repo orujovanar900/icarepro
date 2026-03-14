@@ -63,8 +63,12 @@ export async function buildApp() {
         secret: process.env['COOKIE_SECRET'] ?? process.env['JWT_SECRET'] ?? 'cookie-secret',
     })
 
+    const jwtSecret = process.env['JWT_SECRET'] ?? 'jwt-secret-change-me'
+    if (jwtSecret === 'jwt-secret-change-me') {
+        app.log.warn('⚠️  JWT_SECRET is using the insecure default value. Set a strong secret in .env before deploying to production.')
+    }
     await app.register(jwt, {
-        secret: process.env['JWT_SECRET'] ?? 'jwt-secret-change-me',
+        secret: jwtSecret,
         sign: { expiresIn: process.env['JWT_EXPIRES_IN'] ?? '7d' },
         cookie: { cookieName: 'token', signed: false },
     })

@@ -215,6 +215,16 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
             return reply.code(400).send({ success: false, error: 'Either tenantId or newTenant must be provided' })
         }
         if (newTenant) {
+            // Guard: prevent duplicate tenant by email within this org
+            if (newTenant.email) {
+                const existing = await fastify.prisma.tenant.findFirst({
+                    where: { email: newTenant.email, ...withOrg(req) },
+                    select: { id: true },
+                })
+                if (existing) {
+                    return reply.code(409).send({ success: false, error: 'Bu e-poçt ünvanı ilə icarəçi artıq mövcuddur' })
+                }
+            }
             const createdTenant = await fastify.prisma.tenant.create({
                 data: { ...newTenant, ...withOrg(req) } as never,
             })
@@ -557,15 +567,17 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
             newResetDate = new Date(now.getFullYear(), now.getMonth(), 1);
         }
 
-        const L: Record<string, { senadUstasi: boolean, senadLimit: number | null }> = {
-            FREE_TRIAL: { senadUstasi: false, senadLimit: 0 },
-            FREE: { senadUstasi: false, senadLimit: 0 },
-            BASHLANQIC: { senadUstasi: false, senadLimit: 0 },
-            PROFESSIONAL: { senadUstasi: true, senadLimit: 30 },
-            BIZNES: { senadUstasi: true, senadLimit: 30 },
-            KORPORATIV: { senadUstasi: true, senadLimit: null }
-        };
-        const planLimits = L[org.plan] || { senadUstasi: false, senadLimit: 0 };
+        const PLAN_LIMITS = {
+            FREE_TRIAL:   { senadUstasi: false, senadLimit: 0    as number | null },
+            FREE:         { senadUstasi: false, senadLimit: 0    as number | null },
+            BASHLANQIC:   { senadUstasi: false, senadLimit: 0    as number | null },
+            PROFESSIONAL: { senadUstasi: true,  senadLimit: 30   as number | null },
+            BIZNES:       { senadUstasi: true,  senadLimit: 30   as number | null },
+            KORPORATIV:   { senadUstasi: true,  senadLimit: null as number | null },
+        } as const satisfies Record<string, { senadUstasi: boolean; senadLimit: number | null }>;
+        // Fallback handles any unknown future plan safely without hiding missing entries
+        const planLimits = (PLAN_LIMITS as Record<string, { senadUstasi: boolean; senadLimit: number | null }>)[org.plan]
+            ?? { senadUstasi: false, senadLimit: 0 };
 
         if (!planLimits.senadUstasi || (planLimits.senadLimit !== null && usedCount >= planLimits.senadLimit)) {
             return reply.code(403).send({ success: false, error: 'Plan limit reached for Sənəd Ustası' });

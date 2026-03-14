@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { authenticate } from '../middleware/authenticate.js'
 import { requireRole } from '../middleware/requireRole.js'
+import { writeAuditLog } from '../utils/audit.js'
 import { z } from 'zod'
 
 const PLAN_PRICES: Record<string, number> = {
@@ -419,6 +420,20 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
                 moderatedAt: new Date(),
                 moderatedBy: req.user.sub,
                 ...(action === 'reject' && reason ? { rejectionReason: reason } : {}),
+            },
+        })
+
+        // Audit trail — always record who moderated what and when
+        await writeAuditLog(fastify.prisma, {
+            organizationId: listing.organizationId,
+            userId: req.user.sub,
+            action: action === 'approve' ? 'LISTING_APPROVED' : 'LISTING_REJECTED',
+            entityType: 'Listing',
+            entityId: listing.id,
+            metadata: {
+                moderatedBy: req.user.sub,
+                newStatus,
+                ...(action === 'reject' && reason ? { reason } : {}),
             },
         })
 

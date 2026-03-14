@@ -258,6 +258,9 @@ model Tenant {
   contracts       Contract[]
 
   @@unique([organizationId, voen])
+  // NULL values are considered distinct in PostgreSQL UNIQUE, so multiple fiziki
+  // tenants with fin=null are allowed, but two with the same fin in same org are not.
+  @@unique([organizationId, fin])
   @@map("tenants")
 }
 
@@ -356,7 +359,7 @@ model AuditLog {
   createdAt      DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id])
-  user         User         @relation(fields: [userId], references: [id])
+  user         User         @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@map("audit_logs")
 }
@@ -457,6 +460,7 @@ model Listing {
   favorites     ListingFavorite[]
 
   @@index([status])
+  @@index([status, deletedAt]) // composite: eliminates full scans on public marketplace queries
   @@index([district])
   @@index([type])
   @@index([availStatus])

@@ -522,8 +522,10 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const fields = data.fields as Record<string, any>
-    const listingId = fields['listingId']?.value ?? 'temp'
-    const ext = data.filename.split('.').pop() ?? 'jpg'
+    // Sanitize to alphanumeric + hyphens only to prevent path traversal in Supabase storage
+    const rawListingId = String(fields['listingId']?.value ?? 'temp')
+    const listingId = rawListingId.replace(/[^a-zA-Z0-9-]/g, '') || 'temp'
+    const ext = (data.filename.split('.').pop() ?? 'jpg').replace(/[^a-zA-Z0-9]/g, '')
     const path = `${listingId}/${Date.now()}.${ext}`
 
     const { error } = await supabase.storage

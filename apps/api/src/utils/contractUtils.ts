@@ -47,9 +47,10 @@ export function calculateContractDebtAndExpected(contract: any, referenceDate: D
              } else if (isStartMonth) {
                   activeDaysInMonth = daysInMonth - start.getDate() + 1;
              } else if (isEndMonth) {
-                  // For the end month, if the contract is ACTIVE, do they owe the FULL month on the 1st?
-                  // The prompt says "Then Feb 1, Mar 1, Apr 1...". This implies full month billed on the 1st.
-                  activeDaysInMonth = contract.status === 'ACTIVE' ? daysInMonth : end.getDate();
+                  // Always bill only the actual days used in the end month.
+                  // Removed the ACTIVE-status override that was billing the full month even
+                  // for contracts ending mid-month (e.g. ending Mar 15 billed all 31 days of Mar).
+                  activeDaysInMonth = end.getDate();
              }
              
              expected += (Number(contract.monthlyRent) / daysInMonth) * activeDaysInMonth;
