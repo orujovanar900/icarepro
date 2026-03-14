@@ -327,14 +327,33 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.send({ success: true, data: updatedUser })
     })
 
-    // DELETE /admin/organizations/:id
+    // DELETE /admin/organizations/:id — soft delete (sets deletedAt + deactivates all users atomically)
     fastify.delete('/organizations/:id', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
+
+        const org = await fastify.prisma.organization.findUnique({
+            where: { id },
+            select: { id: true, deletedAt: true },
+        })
+        if (!org) return reply.code(404).send({ success: false, error: 'Organization not found.' })
+        if (org.deletedAt) return reply.code(409).send({ success: false, error: 'Organization is already deleted.' })
+
         try {
-            await fastify.prisma.organization.delete({ where: { id } })
+            await fastify.prisma.$transaction([
+                // Mark org as soft-deleted
+                fastify.prisma.organization.update({
+                    where: { id },
+                    data: { deletedAt: new Date(), isActive: false },
+                }),
+                // Deactivate all users so they cannot log in; bump jwtVersion to invalidate live tokens
+                fastify.prisma.user.updateMany({
+                    where: { organizationId: id },
+                    data: { isActive: false, jwtVersion: { increment: 1 } },
+                }),
+            ])
             return reply.send({ success: true })
         } catch (error) {
-            console.error(error)
+            fastify.log.error(error)
             return reply.code(500).send({ success: false, error: 'Failed to delete organization.' })
         }
     })

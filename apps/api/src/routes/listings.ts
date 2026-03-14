@@ -137,7 +137,7 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
         select: {
           id: true, title: true, type: true, district: true, address: true,
           floor: true, totalFloors: true, area: true, rooms: true,
-          basePrice: true,
+          // basePrice intentionally omitted — private landlord floor price, never public
           availStatus: true, contractEndDate: true, expectedFreeDate: true,
           publisherType: true, publisherName: true,
           isVip: true, isPushed: true, isPanorama: true,
@@ -349,6 +349,8 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
 
     const listing = await fastify.prisma.listing.findFirst({
       where: { id, status: 'ACTIVE', deletedAt: null },
+      // Explicitly exclude basePrice — tenants in the queue must not see the floor price
+      select: { id: true },
     })
     if (!listing) return reply.code(404).send({ success: false, error: 'Elan tapılmadı' })
 
@@ -366,7 +368,7 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.send({
       success: true,
       data: {
-        basePrice: listing.basePrice,
+        // basePrice intentionally omitted — tenants must not see the landlord's floor price
         entries: allEntries,
         myEntry,
       },

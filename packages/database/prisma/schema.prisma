@@ -124,8 +124,9 @@ model Organization {
   name      String
   slug      String   @unique
   plan      OrgPlan  @default(FREE)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
 
   subscriptionStatus   SubscriptionStatus @default(ACTIVE)
   subscriptionPlan     SubscriptionPlan   @default(FREE_TRIAL)

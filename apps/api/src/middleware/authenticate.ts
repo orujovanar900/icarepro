@@ -24,12 +24,12 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply) {
             },
         })
 
-        // Only invalidate if the DB has a jwtVersion AND it doesn't match the token.
-        // If jwtVersion is null (not yet set), allow any token through (backward compat).
         if (!user) {
             return reply.code(401).send({ success: false, error: 'Unauthorized' })
         }
-        if (user.jwtVersion !== null && user.jwtVersion !== (payload.jwtVersion ?? null)) {
+        // Strict version check: treat tokens without a jwtVersion field as version 0.
+        // Eliminates the null escape hatch that allowed pre-versioning tokens to bypass revocation.
+        if (user.jwtVersion !== (payload.jwtVersion ?? 0)) {
             return reply.code(401).send({ success: false, error: 'Session expired. Please log in again.' })
         }
 

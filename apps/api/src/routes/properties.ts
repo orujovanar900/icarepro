@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 import { createClient } from '@supabase/supabase-js'
 import { authenticate } from '../middleware/authenticate.js'
 import { requireRole } from '../middleware/requireRole.js'
@@ -322,9 +323,17 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
     fastify.delete('/:id/photos/:photoId', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
         const { id, photoId } = req.params as { id: string, photoId: string }
 
-        await fastify.prisma.propertyPhoto.delete({
-            where: { id: photoId, propertyId: id, property: { ...withOrg(req) } }
-        }).catch(() => null)
+        try {
+            await fastify.prisma.propertyPhoto.delete({
+                where: { id: photoId, propertyId: id, property: { ...withOrg(req) } }
+            })
+        } catch (err) {
+            if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+                return reply.code(404).send({ success: false, error: 'Şəkil tapılmadı' })
+            }
+            fastify.log.error(err)
+            return reply.code(500).send({ success: false, error: 'Şəkil silinərkən xəta baş verdi' })
+        }
 
         return reply.code(204).send()
     })
