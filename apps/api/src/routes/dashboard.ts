@@ -128,8 +128,9 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
             // Долг за выбранный месяц — из pre-fetched map
             const isInPeriod = c.startDate <= monthEnd && c.endDate >= monthStart
             if (isInPeriod) {
-                const monthPaid = monthPaymentMap.get(c.id) ?? 0
-                currentMonthDebt += Math.max(0, Number(c.monthlyRent as any) - (monthPaid as any))
+                const monthPaid = monthPaymentMap.get(c.id) ?? 0  // already number
+                const monthlyRent = Number(c.monthlyRent)          // Prisma Decimal → number
+                currentMonthDebt += Math.max(0, monthlyRent - monthPaid)
             }
 
             if (debt > 0) {

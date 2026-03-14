@@ -117,6 +117,32 @@ const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
                     error: 'periodMonth and periodYear are required',
                 })
             }
+            // Temporal validation: reject implausible period years
+            const currentYear = new Date().getFullYear()
+            if (rest.periodYear < currentYear - 2) {
+                return reply.code(400).send({
+                    success: false,
+                    error: `periodYear ${rest.periodYear} is too far in the past (max 2 years back)`,
+                })
+            }
+            if (rest.periodYear > currentYear + 1) {
+                return reply.code(400).send({
+                    success: false,
+                    error: `periodYear ${rest.periodYear} is too far in the future (max 1 year ahead)`,
+                })
+            }
+        }
+
+        // Validate paymentDate is not absurdly old or far in the future
+        const paymentDateObj = new Date(paymentDate)
+        const now = new Date()
+        const minDate = new Date(now.getFullYear() - 2, 0, 1)
+        const maxDate = new Date(now.getFullYear() + 1, 11, 31)
+        if (paymentDateObj < minDate || paymentDateObj > maxDate) {
+            return reply.code(400).send({
+                success: false,
+                error: 'paymentDate must be within a reasonable range (−2 years to +1 year from today)',
+            })
         }
 
         const payment = await fastify.prisma.payment.create({

@@ -272,8 +272,16 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
   // ══════════════════════════════════════
 
   fastify.post('/:id/queue', async (req, reply) => {
-    // Try JWT but don't fail if absent
+    // Try JWT but don't fail if absent — anonymous queue joins are allowed
     try { await req.jwtVerify() } catch { /* anonymous allowed */ }
+
+    // GAP 2 FIX: sanitize req.user — if token was present but malformed (missing sub
+    // or organizationId), treat the request as anonymous rather than letting a partial
+    // user object reach the ownership check below.
+    const rawUser = req.user as any
+    const authenticatedUser = (rawUser?.sub && rawUser?.organizationId)
+      ? { sub: rawUser.sub as string, organizationId: rawUser.organizationId as string }
+      : null
 
     const { id } = req.params as { id: string }
     const body = joinQueueSchema.safeParse(req.body)
@@ -289,15 +297,15 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ success: false, error: 'Təklifiniz minimum qiymətdən aşağıdır' })
     }
 
-    const userId = (req.user as any)?.sub ?? null
+    const userId = authenticatedUser?.sub ?? null
 
-    // Cannot join own listing
-    if (userId) {
-      const isOwn = await fastify.prisma.listing.findFirst({
-        where: { id, organizationId: (req.user as any).organizationId },
-        select: { id: true },
-      })
-      if (isOwn) {
+    // GAP 1 FIX: ownership check runs whenever the user IS authenticated — a fully
+    // anonymous request (no token at all) cannot be an org owner, so it passes through.
+    // Previously this used (req.user as any).organizationId which could be undefined if
+    // jwtVerify silently failed, causing the findFirst to match all listings with
+    // organizationId = undefined (no match) — the check appeared to work but was unreliable.
+    if (authenticatedUser) {
+      if (listing.organizationId === authenticatedUser.organizationId) {
         return reply.code(400).send({ success: false, error: 'Öz elanınıza növbəyə düşə bilməzsiniz' })
       }
     }
