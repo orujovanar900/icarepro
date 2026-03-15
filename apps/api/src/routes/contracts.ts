@@ -66,7 +66,9 @@ const createSchema = z.object({
     updateTenant: z.boolean().optional(),
 })
 
-const updateSchema = createSchema.partial()
+const updateSchema = createSchema.partial().extend({
+    status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED']).optional(),
+})
 
 
 const listQuerySchema = z.object({
@@ -231,6 +233,30 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
             tenantId = createdTenant.id
         }
 
+        // Property protection: block duplicate active contracts
+        if (rest.propertyId) {
+            const activeContract = await fastify.prisma.contract.findFirst({
+                where: { propertyId: rest.propertyId as string, status: 'ACTIVE', deletedAt: null },
+                select: { id: true, number: true },
+            })
+            if (activeContract) {
+                return reply.code(409).send({
+                    success: false,
+                    error: 'Bu obyekt üzrə artıq aktiv müqavilə mövcuddur',
+                    code: 'PROPERTY_ALREADY_OCCUPIED',
+                })
+            }
+        }
+
+        // Warn if a DRAFT contract exists for this property
+        let draftContract: { id: string; number: string } | null = null
+        if (rest.propertyId) {
+            draftContract = await fastify.prisma.contract.findFirst({
+                where: { propertyId: rest.propertyId as string, status: 'DRAFT', deletedAt: null },
+                select: { id: true, number: true },
+            })
+        }
+
         // Contract creation + audit log are atomic: if audit log insert fails,
         // the contract is rolled back too. Listing sync is intentionally outside
         // this transaction — it is best-effort and must not roll back a valid contract.
@@ -286,7 +312,11 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
             }
         }
 
-        return reply.code(201).send({ success: true, data: contract })
+        return reply.code(201).send({
+            success: true,
+            data: contract,
+            ...(draftContract ? { warning: 'Bu obyekt üzrə qaralama müqavilə mövcuddur' } : {}),
+        })
     })
 
     // PATCH /contracts/:id
@@ -310,6 +340,14 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
             data: data as never,
         })
 
+        // Sync property status when contract activates
+        if (body.data.status === 'ACTIVE' && contract.propertyId) {
+            await fastify.prisma.property.update({
+                where: { id: contract.propertyId },
+                data: { status: 'OCCUPIED' },
+            })
+        }
+
         await writeAuditLog(fastify.prisma, {
             organizationId: req.user.organizationId,
             userId: req.user.sub,
@@ -332,6 +370,14 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
             where: { id },
             data: { status: 'ARCHIVED' },
         })
+
+        // Sync property status when contract archived
+        if (contract.propertyId) {
+            await fastify.prisma.property.update({
+                where: { id: contract.propertyId },
+                data: { status: 'VACANT' },
+            })
+        }
 
         await writeAuditLog(fastify.prisma, {
             organizationId: req.user.organizationId,

@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client'
+import type { PrismaClient, Prisma } from '@prisma/client'
 import { logger } from '../logger.js'
 
 interface AuditParams {
@@ -10,10 +10,12 @@ interface AuditParams {
     metadata?: Record<string, unknown>
 }
 
+type PrismaClientOrTransaction = PrismaClient | Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'> | Parameters<Parameters<PrismaClient['$transaction']>[0]>[0]
+
 /**
  * Записывает действие в AuditLog без блокировки основного запроса.
  */
-export async function writeAuditLog(prisma: PrismaClient, params: AuditParams): Promise<void> {
+export async function writeAuditLog(prisma: PrismaClientOrTransaction, params: AuditParams): Promise<void> {
     try {
         await prisma.auditLog.create({
             data: {

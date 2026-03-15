@@ -168,17 +168,61 @@ const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
             }
         }
 
-        const payment = await fastify.prisma.payment.create({
-            data: {
-                ...rest,
-                ...withOrg(req),
-                amount,
-                paymentDate: new Date(paymentDate),
-                ...(periodStart ? { periodStart: new Date(periodStart) } : {}),
-                ...(periodEnd ? { periodEnd: new Date(periodEnd) } : {}),
-                createdBy: req.user.sub,
-            } as never,
+        // Look for existing UNPAID or PARTIAL record for this period
+        const existingUnpaid = contract.rentalType !== 'RESIDENTIAL_SHORT' && rest.periodMonth && rest.periodYear
+            ? await fastify.prisma.payment.findFirst({
+                where: {
+                    contractId: body.data.contractId,
+                    periodMonth: rest.periodMonth,
+                    periodYear: rest.periodYear,
+                    status: { in: ['UNPAID', 'PARTIAL'] },
+                    deletedAt: null,
+                },
+            })
+            : null
+
+        let payment
+        if (existingUnpaid) {
+            const expected = Number(existingUnpaid.expectedAmount ?? amount)
+            const newStatus: string = amount >= expected ? 'PAID' : 'PARTIAL'
+            payment = await fastify.prisma.payment.update({
+                where: { id: existingUnpaid.id },
+                data: {
+                    amount,
+                    status: newStatus as never,
+                    paymentDate: paymentDateObj,
+                    paymentType: rest.paymentType,
+                    note: rest.note ?? existingUnpaid.note,
+                },
+            })
+        } else {
+            // No UNPAID record — landlord recording before cron ran, status = PAID directly
+            payment = await fastify.prisma.payment.create({
+                data: {
+                    ...rest,
+                    ...withOrg(req),
+                    amount,
+                    paymentDate: paymentDateObj,
+                    status: 'PAID' as never,
+                    ...(periodStart ? { periodStart: new Date(periodStart) } : {}),
+                    ...(periodEnd ? { periodEnd: new Date(periodEnd) } : {}),
+                    createdBy: req.user.sub,
+                } as never,
+            })
+        }
+
+        // Calculate updated total debt for this org
+        const orgFilter = withOrg(req)
+        const unpaidOverdue = await fastify.prisma.payment.aggregate({
+            where: { ...orgFilter, status: { in: ['UNPAID', 'OVERDUE'] }, deletedAt: null },
+            _sum: { expectedAmount: true },
         })
+        const partialAgg = await fastify.prisma.payment.aggregate({
+            where: { ...orgFilter, status: 'PARTIAL', deletedAt: null },
+            _sum: { expectedAmount: true, amount: true },
+        })
+        const updatedDebt = Number(unpaidOverdue._sum.expectedAmount ?? 0)
+            + Math.max(0, Number(partialAgg._sum.expectedAmount ?? 0) - Number(partialAgg._sum.amount ?? 0))
 
         await writeAuditLog(fastify.prisma, {
             organizationId: req.user.organizationId,
@@ -189,7 +233,7 @@ const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
             metadata: { amount: body.data.amount, contractId: body.data.contractId },
         })
 
-        return reply.code(201).send({ success: true, data: payment })
+        return reply.code(201).send({ success: true, data: payment, updatedDebt })
     })
 
     // DELETE /payments/:id — OWNER & MANAGER (Soft delete)

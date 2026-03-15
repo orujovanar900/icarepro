@@ -23,6 +23,9 @@ import adminRoutes from './routes/admin.js'
 import listingsRoutes from './routes/listings.js'
 import queueRoutes from './routes/queue.js'
 
+import cron from 'node-cron'
+import { generateUnpaidRecords, markOverduePayments } from './cron/billingCron.js'
+
 import './types.js'
 import './cron/alerts.js'
 import './cron/subscriptions.js'
@@ -118,6 +121,18 @@ export async function buildApp() {
     await app.register(adminRoutes, { prefix: '/admin' })
     await app.register(listingsRoutes, { prefix: '/listings' })
     await app.register(queueRoutes, { prefix: '/queue' })
+
+    // Billing cron — runs daily at midnight
+    cron.schedule('0 0 * * *', async () => {
+        app.log.info('[BillingCron] Starting daily billing run')
+        try {
+            await generateUnpaidRecords(app.prisma)
+            await markOverduePayments(app.prisma)
+            app.log.info('[BillingCron] Daily billing run completed')
+        } catch (err) {
+            app.log.error({ err }, '[BillingCron] Daily billing run failed')
+        }
+    })
 
     return app
 }

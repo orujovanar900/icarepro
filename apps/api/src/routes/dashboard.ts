@@ -3,7 +3,6 @@ import { z } from 'zod'
 import { authenticate } from '../middleware/authenticate.js'
 import { sendZodError } from '../utils/zodError.js'
 import { withOrg } from '../utils/withOrg.js'
-import { calculateContractDebtAndExpected, getDueDateForPaymentIndex } from '../utils/contractUtils.js'
 const querySchema = z.object({
     month: z.coerce.number().int().min(1).max(12).default(new Date().getMonth() + 1),
     year: z.coerce.number().int().min(2020).default(new Date().getFullYear()),
@@ -98,11 +97,8 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
             : []
         const monthPaymentMap = new Map(monthPaymentsRaw.map((r: any) => [r.contractId, Number(r._sum.amount ?? 0)]))
 
-        // Долги по активным контрактам
-        let totalDebt = 0
-        let currentMonthDebt = 0
+        // Income forecast: sum of monthly rent for all active contracts
         let incomeForecast = 0
-
         const debtors: Array<{
             contractId: string
             contractNumber: string
@@ -113,42 +109,81 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
         }> = []
 
         for (const c of activeContracts) {
-            // Forecast logic: sum up monthly rent of valid active contracts
             incomeForecast += Number(c.monthlyRent)
+        }
 
-            const now = new Date()
-            const start = new Date(c.startDate)
-            const end = c.endDate < now ? new Date(c.endDate) : now
+        // NEW: Payment.status-based debt calculation
+        const organizationId = (withOrg(req) as { organizationId: string }).organizationId
+        const debtPayments = await fastify.prisma.payment.findMany({
+            where: {
+                organizationId,
+                status: { in: ['UNPAID', 'PARTIAL', 'OVERDUE'] },
+                deletedAt: null,
+            },
+            select: {
+                status: true,
+                amount: true,
+                expectedAmount: true,
+                contractId: true,
+                periodMonth: true,
+                periodYear: true,
+            },
+        })
 
-            const totalExpected = calculateContractDebtAndExpected(c, now)
-            const totalPaid = c.payments.reduce((s: number, p: any) => s + Number(p.amount), 0)
-            const debt = Math.max(0, totalExpected - totalPaid)
-            totalDebt += debt
+        const overdueDebt = debtPayments
+            .filter(p => p.status === 'OVERDUE')
+            .reduce((sum, p) => sum + Number(p.expectedAmount ?? 0), 0)
 
-            // Долг за выбранный месяц — из pre-fetched map
-            const isInPeriod = c.startDate <= monthEnd && c.endDate >= monthStart
-            if (isInPeriod) {
-                const monthPaid = monthPaymentMap.get(c.id) ?? 0  // already number
-                const monthlyRent = Number(c.monthlyRent)          // Prisma Decimal → number
-                currentMonthDebt += Math.max(0, monthlyRent - monthPaid)
-            }
+        const currentDebt = debtPayments
+            .filter(p => p.status === 'UNPAID')
+            .reduce((sum, p) => sum + Number(p.expectedAmount ?? 0), 0)
 
-            if (debt > 0) {
+        const partialDebt = debtPayments
+            .filter(p => p.status === 'PARTIAL')
+            .reduce((sum, p) => sum + Math.max(0, Number(p.expectedAmount ?? 0) - Number(p.amount)), 0)
+
+        const totalDebt = overdueDebt + currentDebt + partialDebt
+        const currentMonthDebt = currentDebt // kept for backwards compatibility
+
+        // Build debtors list from debt payments (grouped by contractId)
+        const debtByContract = new Map<string, number>()
+        for (const p of debtPayments) {
+            const existing = debtByContract.get(p.contractId) ?? 0
+            const owed = p.status === 'PARTIAL'
+                ? Math.max(0, Number(p.expectedAmount ?? 0) - Number(p.amount))
+                : Number(p.expectedAmount ?? 0)
+            debtByContract.set(p.contractId, existing + owed)
+        }
+
+        for (const c of activeContracts) {
+            const debtAmount = debtByContract.get(c.id) ?? 0
+            if (debtAmount > 0) {
+                const now = new Date()
+                // Estimate daysOverdue from oldest overdue payment for this contract
+                const oldestOverdue = debtPayments
+                    .filter(p => p.contractId === c.id && (p.status === 'OVERDUE') && p.periodYear && p.periodMonth)
+                    .sort((a, b) => {
+                        const aDate = new Date(a.periodYear!, a.periodMonth! - 1, 1)
+                        const bDate = new Date(b.periodYear!, b.periodMonth! - 1, 1)
+                        return aDate.getTime() - bDate.getTime()
+                    })[0]
+
                 let daysOverdue = 0
-                const monthsPaidFully = Math.floor(totalPaid / Number(c.monthlyRent))
-                const expectedDate = getDueDateForPaymentIndex(c, monthsPaidFully)
-
-                if (expectedDate < now) {
-                    const diffTime = Math.abs(now.getTime() - expectedDate.getTime())
-                    daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+                if (oldestOverdue?.periodYear && oldestOverdue?.periodMonth) {
+                    const overdueSince = new Date(oldestOverdue.periodYear, oldestOverdue.periodMonth - 1, 1)
+                    if (overdueSince < now) {
+                        daysOverdue = Math.floor((now.getTime() - overdueSince.getTime()) / (1000 * 60 * 60 * 24))
+                    }
                 }
 
                 debtors.push({
                     contractId: c.id,
                     contractNumber: c.number,
-                    tenantName: c.tenant.tenantType === 'fiziki' ? `${c.tenant.firstName || ''} ${c.tenant.lastName || ''}`.trim() : c.tenant.companyName || '',
+                    tenantName: c.tenant.tenantType === 'fiziki'
+                        ? `${c.tenant.firstName || ''} ${c.tenant.lastName || ''}`.trim()
+                        : c.tenant.companyName || '',
                     propertyName: c.property.name,
-                    debtAmount: debt,
+                    debtAmount,
                     daysOverdue,
                 })
             }
@@ -203,6 +238,9 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
                 prevMonthIncome,
                 monthlyExpenses,
                 totalDebt,
+                overdueDebt,
+                currentDebt,
+                partialDebt,
                 currentMonthDebt,
                 incomeForecast,
                 occupancyRate,
