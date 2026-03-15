@@ -1,3 +1,8 @@
+if (process.env['NODE_ENV'] === 'production') {
+    console.warn('seed-listings.ts skipped in production')
+    process.exit(0)
+}
+
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()

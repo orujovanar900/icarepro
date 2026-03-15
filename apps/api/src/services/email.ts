@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env['RESEND_API_KEY']);
+const FROM = process.env['EMAIL_FROM'] ?? 'icare@icarepro.az'
 
 export async function sendDebtAlert(to: string, data: {
   tenantName: string,
@@ -9,7 +10,7 @@ export async function sendDebtAlert(to: string, data: {
   contractNumber: string
 }) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: `⚠️ Borc xəbərdarlığı — ${data.tenantName}`,
     html: `
@@ -34,7 +35,7 @@ export async function sendExpiringContractAlert(to: string, data: {
   contractNumber: string
 }) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: `📅 Müqavilə başa çatır — ${data.daysLeft} gün qalıb`,
     html: `
@@ -53,7 +54,7 @@ export async function sendExpiringContractAlert(to: string, data: {
 
 export async function sendPasswordReset(to: string, resetUrl: string) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: '🔐 İcarəPro — Şifrə Sıfırlama',
     html: `
@@ -73,7 +74,7 @@ export async function sendPasswordReset(to: string, resetUrl: string) {
 
 export async function sendPlanExpiryWarning(to: string, orgName: string) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: `⚠️ İcarəPro — Abunəliyiniz bu gün bitir`,
     html: `
@@ -87,7 +88,7 @@ export async function sendPlanExpiryWarning(to: string, orgName: string) {
 
 export async function sendGracePeriodReminder(to: string, orgName: string, daysLeft: number) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: `⚠️ İcarəPro — Hesabınızın dayandırılmasına ${daysLeft} gün qalıb`,
     html: `
@@ -101,7 +102,7 @@ export async function sendGracePeriodReminder(to: string, orgName: string, daysL
 
 export async function sendSuspensionNotice(to: string, orgName: string) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: `⛔ İcarəPro — Hesabınız dayandırılıb`,
     html: `
@@ -116,7 +117,7 @@ export async function sendSuspensionNotice(to: string, orgName: string) {
 
 export async function sendFinalDeletionWarning(to: string, orgName: string) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: `🚨 İcarəPro — Məlumatlarınız 7 gün sonra SİLİNƏCƏK`,
     html: `
@@ -139,7 +140,7 @@ export async function sendQueueConfirmation(to: string, data: {
   queueCount: number
 }) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: `Növbə Təsdiqi — Mövqe #${data.position}`,
     html: `
@@ -161,7 +162,7 @@ export async function sendListingApproved(to: string, data: {
   address: string
 }) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: `Elanınız Təsdiqləndi — ${data.title}`,
     html: `
@@ -181,7 +182,7 @@ export async function sendListingRejected(to: string, data: {
   reason: string
 }) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: `Elanınız Rədd Edildi — ${data.title}`,
     html: `
@@ -205,7 +206,7 @@ export async function sendRenewalWarning(to: string, data: {
   contractId: string,
 }) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: `🔄 Müqavilə avtomatik yenilənəcək — ${data.contractNumber}`,
     html: `

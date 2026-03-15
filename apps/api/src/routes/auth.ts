@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import bcrypt from 'bcrypt'
 import crypto from 'crypto'
+import type { UserRole } from '@prisma/client'
 import { authenticate } from '../middleware/authenticate.js'
 import { requireRole } from '../middleware/requireRole.js'
 import { sendZodError } from '../utils/zodError.js'
@@ -112,7 +113,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
                     name,
                     email,
                     passwordHash,
-                    role: userRole as any,
+                    role: userRole as UserRole,
                     organizationId: org.id,
                     isActive: true,
                     jwtVersion: 1,

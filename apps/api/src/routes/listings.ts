@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
+import type { Prisma } from '@prisma/client'
 import { createClient } from '@supabase/supabase-js'
 import { authenticate } from '../middleware/authenticate.js'
 import { requireRole } from '../middleware/requireRole.js'
@@ -77,10 +78,11 @@ function computeHeatLevel(queueCount: number): string {
   return 'YUKSEK'
 }
 
-function stripBasePrice<T extends { basePrice?: unknown }>(listing: T): Omit<T, 'basePrice'> {
-  const { basePrice, ...rest } = listing as any
-  void basePrice
-  return rest
+function stripBasePrice<T extends Record<string, unknown>>(
+    listing: T
+): Omit<T, 'basePrice'> {
+    const { basePrice: _ignored, ...rest } = listing
+    return rest as Omit<T, 'basePrice'>
 }
 
 const KEY_FIELDS = ['title', 'address', 'basePrice', 'type', 'district', 'area', 'rooms', 'availStatus']
@@ -194,7 +196,9 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
       select: {
         id: true, title: true, type: true, district: true, address: true,
         area: true, rooms: true, availStatus: true, status: true,
-        basePrice: true, // owner can see their own floor price in /mine
+        // basePrice visible to owner on their own listings
+        // stripped from all public-facing responses via stripBasePrice()
+        basePrice: true,
         isVip: true, isPushed: true, isPanorama: true, photos: true,
         rejectionReason: true,
         createdAt: true, updatedAt: true,
@@ -472,7 +476,7 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
     if (!existing) return reply.code(404).send({ success: false, error: 'Elan tapılmadı' })
 
     const resetToModeration = isKeyFieldChanged(existing, body.data)
-    const updateData: any = {
+    const updateData: Prisma.ListingUncheckedUpdateInput = {
       ...body.data,
       ...(resetToModeration ? { status: 'PENDING', moderatedAt: null, moderatedBy: null, rejectionReason: null } : {}),
     }

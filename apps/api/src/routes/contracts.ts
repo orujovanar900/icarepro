@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
+import type { Prisma } from '@prisma/client'
 import { authenticate } from '../middleware/authenticate.js'
 import { requireRole } from '../middleware/requireRole.js'
 import { sendZodError } from '../utils/zodError.js'
@@ -259,7 +260,7 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
                 }
             }
             const createdTenant = await fastify.prisma.tenant.create({
-                data: { ...newTenant, ...withOrg(req) } as never,
+                data: { ...newTenant, ...withOrg(req) } as Prisma.TenantUncheckedCreateInput,
             })
             tenantId = createdTenant.id
         }

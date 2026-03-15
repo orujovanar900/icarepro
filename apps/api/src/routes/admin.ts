@@ -384,7 +384,18 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
 
         const listings = await fastify.prisma.listing.findMany({
             where,
-            include: {
+            select: {
+                id: true, title: true, type: true, district: true, address: true,
+                floor: true, totalFloors: true, area: true, rooms: true,
+                // basePrice intentionally included for SUPERADMIN moderation view
+                // never exposed in public-facing routes
+                basePrice: true,
+                availStatus: true, status: true, rejectionReason: true,
+                isVip: true, isPushed: true, isPanorama: true,
+                photos: true, lat: true, lng: true,
+                publisherType: true, publisherName: true,
+                moderatedAt: true, moderatedBy: true,
+                createdAt: true, updatedAt: true, deletedAt: true,
                 organization: { select: { id: true, name: true } },
                 _count: { select: { queueEntries: { where: { status: 'ACTIVE' } } } },
             },
