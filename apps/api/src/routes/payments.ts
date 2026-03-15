@@ -97,7 +97,7 @@ const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
         // Валидация периода в зависимости от типа контракта
         const contract = await fastify.prisma.contract.findFirst({
             where: { id: body.data.contractId, ...withOrg(req) },
-            select: { rentalType: true },
+            select: { rentalType: true, startDate: true },
         })
         if (!contract) return reply.code(404).send({ success: false, error: 'Contract not found' })
 
@@ -143,6 +143,29 @@ const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
                 success: false,
                 error: 'paymentDate must be within a reasonable range (−2 years to +1 year from today)',
             })
+        }
+
+        // Validate paymentDate is not before the contract started
+        if (paymentDateObj < contract.startDate) {
+            return reply.code(400).send({
+                success: false,
+                error: 'Ödəniş tarixi müqavilənin başlama tarixindən əvvəl ola bilməz',
+            })
+        }
+
+        // Validate periodMonth/periodYear is not before the contract's start month
+        if (contract.rentalType !== 'RESIDENTIAL_SHORT' && rest.periodMonth && rest.periodYear) {
+            const contractStartMonth = contract.startDate.getMonth() + 1
+            const contractStartYear = contract.startDate.getFullYear()
+            if (
+                rest.periodYear < contractStartYear ||
+                (rest.periodYear === contractStartYear && rest.periodMonth < contractStartMonth)
+            ) {
+                return reply.code(400).send({
+                    success: false,
+                    error: 'Ödəniş dövrü müqavilənin başlama tarixindən əvvəl ola bilməz',
+                })
+            }
         }
 
         const payment = await fastify.prisma.payment.create({

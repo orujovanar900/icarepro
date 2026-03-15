@@ -158,26 +158,32 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
         const yearStart = new Date(year, 0, 1)
         const yearEnd = new Date(year, 11, 31, 23, 59, 59)
 
-        const [yearPayments, yearExpensesAgg] = await Promise.all([
+        const [yearPayments, yearExpensesRaw] = await Promise.all([
             fastify.prisma.payment.groupBy({
                 by: ['periodMonth'],
                 _sum: { amount: true },
                 where: { ...org, periodYear: year },
                 orderBy: { periodMonth: 'asc' },
             }),
-            fastify.prisma.expense.aggregate({
-                _sum: { amount: true },
+            fastify.prisma.expense.findMany({
                 where: { ...org, date: { gte: yearStart, lte: yearEnd } },
+                select: { amount: true, date: true },
             }),
         ])
 
         const incomeByMonth = new Map(yearPayments.map((r: any) => [r.periodMonth ?? 0, Number(r._sum.amount ?? 0)]))
-        const totalYearExpenses = Number(yearExpensesAgg._sum.amount ?? 0)
+
+        // Group expenses by calendar month — Expense has no periodMonth field, only date
+        const expensesByMonth = new Map<number, number>()
+        for (const e of yearExpensesRaw) {
+            const m = new Date(e.date).getMonth() + 1
+            expensesByMonth.set(m, (expensesByMonth.get(m) ?? 0) + Number(e.amount))
+        }
 
         const monthlyChart = Array.from({ length: 12 }, (_, i) => ({
             month: i + 1,
             income: incomeByMonth.get(i + 1) ?? 0,
-            expenses: Math.round(totalYearExpenses / 12),
+            expenses: expensesByMonth.get(i + 1) ?? 0,
         }))
 
         const expiringContracts = expiringContractsRaw.map((c: any) => ({
