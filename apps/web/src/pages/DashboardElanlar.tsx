@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Eye, Pencil, Trash2, AlertCircle, Clock, CheckCircle2, XCircle, List } from 'lucide-react';
+import { Plus, Eye, Pencil, Trash2, AlertCircle, Clock, CheckCircle2, XCircle, List, Send, HandshakeIcon, X, FileText } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useToastStore } from '@/store/toast';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Select } from '@/components/ui/Select';
+import { Input } from '@/components/ui/Input';
 
 const STATUS_LABELS: Record<string, string> = {
+    DRAFT: 'Qaralama',
     PENDING: 'Gözləyir',
     ACTIVE: 'Aktiv',
+    CLOSING_PENDING: 'Bağlanır',
     REJECTED: 'Rədd edildi',
     DEACTIVATED: 'Deaktiv',
 };
@@ -18,12 +22,11 @@ const STATUS_LABELS: Record<string, string> = {
 const TYPE_LABELS: Record<string, string> = {
     MENZIL: 'Mənzil',
     OFIS: 'Ofis',
-    MAGAZA: 'Mağaza',
+    OBYEKT: 'Obyekt',
     ANBAR: 'Anbar',
-    KOMERSIYA: 'Komersiya',
+    GARAJ: 'Qaraj',
     TORPAQ: 'Torpaq',
     HEYET_EVI: 'Həyət evi',
-    VILLA: 'Villa',
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -34,16 +37,115 @@ function StatusBadge({ status }: { status: string }) {
             return <Badge variant="draft">{STATUS_LABELS[status] ?? status}</Badge>;
         case 'REJECTED':
             return <Badge variant="danger">{STATUS_LABELS[status] ?? status}</Badge>;
+        case 'DRAFT':
+            return <Badge variant="arxiv">{STATUS_LABELS[status] ?? status}</Badge>;
+        case 'CLOSING_PENDING':
+            // blue-ish — reuse draft badge tinted differently via inline
+            return (
+                <span style={{
+                    display: 'inline-flex', alignItems: 'center',
+                    padding: '2px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+                    background: 'rgba(59,130,246,0.12)', color: '#3B82F6',
+                    border: '1px solid rgba(59,130,246,0.25)',
+                }}>
+                    {STATUS_LABELS[status] ?? status}
+                </span>
+            );
         case 'DEACTIVATED':
         default:
             return <Badge variant="arxiv">{STATUS_LABELS[status] ?? status}</Badge>;
     }
 }
 
+/* ─── Cancel-deal modal ─── */
+interface CancelDealModalProps {
+    listingId: string;
+    onClose: () => void;
+    onSuccess: () => void;
+}
+
+function CancelDealModal({ listingId, onClose, onSuccess }: CancelDealModalProps) {
+    const addToast = useToastStore((s) => s.addToast);
+    const [availStatus, setAvailStatus] = useState('BOSHDUR');
+    const [expectedFreeDate, setExpectedFreeDate] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async () => {
+        setIsSubmitting(true);
+        try {
+            await api.patch(`/listings/${listingId}/cancel-deal`);
+            // Also update availability status
+            await api.patch(`/listings/${listingId}/availability`, {
+                availStatus,
+                ...(availStatus !== 'BOSHDUR' && expectedFreeDate ? { expectedFreeDate } : {}),
+            });
+            addToast({ message: 'Sövdələşmə ləğv edildi, elan yenidən aktivdir.', type: 'success' });
+            onSuccess();
+        } catch (err: any) {
+            addToast({ message: err.response?.data?.message || 'Xəta baş verdi', type: 'error' });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}>
+            <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: 24, width: '100%', maxWidth: 480, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text)' }}>Sövdələşməni ləğv et</h2>
+                    <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-muted)' }}>
+                        <X size={20} />
+                    </button>
+                </div>
+                <p style={{ fontSize: 14, color: 'var(--color-muted)', marginBottom: 20 }}>
+                    Elan yenidən "Aktiv" statusuna keçəcək. Seçilmiş namizəd növbəyə qaytarılacaq.
+                </p>
+
+                <div style={{ marginBottom: 16 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-muted)', display: 'block', marginBottom: 8 }}>
+                        Yeni mövcudluq statusu
+                    </label>
+                    <Select
+                        value={availStatus}
+                        onChange={(e) => setAvailStatus(e.target.value)}
+                        options={[
+                            { value: 'BOSHDUR', label: '🟢 Boşdur' },
+                            { value: 'BOSHALIR', label: '🟡 Boşalır' },
+                            { value: 'INSAAT', label: '⚫ İnşaat/Təmir' },
+                        ]}
+                    />
+                </div>
+
+                {availStatus !== 'BOSHDUR' && (
+                    <div style={{ marginBottom: 16 }}>
+                        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-muted)', display: 'block', marginBottom: 8 }}>
+                            Gözlənilən boşalma tarixi
+                        </label>
+                        <Input
+                            type="date"
+                            value={expectedFreeDate}
+                            onChange={(e) => setExpectedFreeDate(e.target.value)}
+                        />
+                    </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 20 }}>
+                    <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>Ləğv et</Button>
+                    <Button variant="primary" onClick={handleSubmit} isLoading={isSubmitting}>
+                        Təsdiq et
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export function DashboardElanlar() {
     const queryClient = useQueryClient();
     const addToast = useToastStore((s) => s.addToast);
     const navigate = useNavigate();
+
+    const [cancelDealListingId, setCancelDealListingId] = useState<string | null>(null);
 
     const { data, isLoading } = useQuery({
         queryKey: ['my-listings'],
@@ -62,13 +164,32 @@ export function DashboardElanlar() {
         onError: () => addToast({ message: 'Xəta baş verdi', type: 'error' }),
     });
 
+    const publishMutation = useMutation({
+        mutationFn: (id: string) => api.post(`/listings/${id}/publish`),
+        onSuccess: () => {
+            addToast({ message: 'Elan moderasiyaya göndərildi!', type: 'success' });
+            queryClient.invalidateQueries({ queryKey: ['my-listings'] });
+        },
+        onError: (err: any) => addToast({ message: err.response?.data?.message || 'Xəta baş verdi', type: 'error' }),
+    });
+
+    const confirmDealMutation = useMutation({
+        mutationFn: (id: string) => api.patch(`/listings/${id}/confirm-deal`),
+        onSuccess: () => {
+            addToast({ message: 'Sövdələşmə təsdiqləndi! Elan arxivləşdirildi.', type: 'success' });
+            queryClient.invalidateQueries({ queryKey: ['my-listings'] });
+        },
+        onError: (err: any) => addToast({ message: err.response?.data?.message || 'Xəta baş verdi', type: 'error' }),
+    });
+
     const listings: any[] = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
 
     const stats = {
         total: listings.length,
         active: listings.filter((l) => l.status === 'ACTIVE').length,
         pending: listings.filter((l) => l.status === 'PENDING').length,
-        rejected: listings.filter((l) => l.status === 'REJECTED').length,
+        draft: listings.filter((l) => l.status === 'DRAFT').length,
+        closing: listings.filter((l) => l.status === 'CLOSING_PENDING').length,
     };
 
     if (isLoading) {
@@ -83,6 +204,18 @@ export function DashboardElanlar() {
 
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-6 pb-24">
+            {/* Cancel-deal modal */}
+            {cancelDealListingId && (
+                <CancelDealModal
+                    listingId={cancelDealListingId}
+                    onClose={() => setCancelDealListingId(null)}
+                    onSuccess={() => {
+                        setCancelDealListingId(null);
+                        queryClient.invalidateQueries({ queryKey: ['my-listings'] });
+                    }}
+                />
+            )}
+
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
@@ -101,11 +234,12 @@ export function DashboardElanlar() {
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                 <StatCard icon={<List className="w-5 h-5 text-gold" />} label="Cəmi" value={stats.total} />
                 <StatCard icon={<CheckCircle2 className="w-5 h-5 text-green-400" />} label="Aktiv" value={stats.active} />
                 <StatCard icon={<Clock className="w-5 h-5 text-yellow-400" />} label="Gözləyir" value={stats.pending} />
-                <StatCard icon={<XCircle className="w-5 h-5 text-red-400" />} label="Rədd edildi" value={stats.rejected} />
+                <StatCard icon={<FileText className="w-5 h-5 text-muted" />} label="Qaralama" value={stats.draft} />
+                <StatCard icon={<HandshakeIcon className="w-5 h-5 text-blue-400" />} label="Bağlanır" value={stats.closing} />
             </div>
 
             {/* Empty state */}
@@ -141,6 +275,17 @@ export function DashboardElanlar() {
                             <tbody className="divide-y divide-border">
                                 {listings.map((listing: any) => (
                                     <React.Fragment key={listing.id}>
+                                        {/* DRAFT banner */}
+                                        {listing.status === 'DRAFT' && (
+                                            <tr>
+                                                <td colSpan={7} className="px-4 pt-3 pb-0">
+                                                    <div className="flex items-center gap-2 text-xs text-muted bg-surface border border-border rounded-lg px-3 py-2">
+                                                        <FileText className="w-3.5 h-3.5 shrink-0" />
+                                                        Qaralama — hələ dərc edilməyib. "Dərc et" düyməsini sıxın.
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
                                         {/* PENDING banner */}
                                         {listing.status === 'PENDING' && (
                                             <tr>
@@ -152,6 +297,17 @@ export function DashboardElanlar() {
                                                 </td>
                                             </tr>
                                         )}
+                                        {/* CLOSING_PENDING banner */}
+                                        {listing.status === 'CLOSING_PENDING' && (
+                                            <tr>
+                                                <td colSpan={7} className="px-4 pt-3 pb-0">
+                                                    <div className="flex items-center gap-2 text-xs text-blue-400 bg-blue-400/10 border border-blue-400/20 rounded-lg px-3 py-2">
+                                                        <HandshakeIcon className="w-3.5 h-3.5 shrink-0" />
+                                                        Sövdələşmə gözlənilir — Namizəd seçildi. Sövdələşməni təsdiqlə və ya ləğv et.
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
                                         {/* REJECTED banner */}
                                         {listing.status === 'REJECTED' && listing.rejectionReason && (
                                             <tr>
@@ -159,12 +315,6 @@ export function DashboardElanlar() {
                                                     <div className="flex items-center gap-2 text-xs text-red-400 bg-red/10 border border-red/20 rounded-lg px-3 py-2">
                                                         <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                                                         Rədd səbəbi: {listing.rejectionReason}
-                                                        <button
-                                                            className="ml-auto text-red-400 underline"
-                                                            onClick={() => navigate(`/dashboard/elanlar/${listing.id}/edit`)}
-                                                        >
-                                                            Düzəlt
-                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -190,7 +340,52 @@ export function DashboardElanlar() {
                                                 {new Date(listing.createdAt).toLocaleDateString('az-AZ')}
                                             </td>
                                             <td className="p-4">
-                                                <div className="flex items-center justify-end gap-1">
+                                                <div className="flex items-center justify-end gap-1 flex-wrap">
+                                                    {/* DRAFT: Publish button */}
+                                                    {listing.status === 'DRAFT' && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="primary"
+                                                            className="h-8 px-3 text-xs"
+                                                            title="Dərc et"
+                                                            isLoading={publishMutation.isPending}
+                                                            onClick={() => publishMutation.mutate(listing.id)}
+                                                        >
+                                                            <Send className="w-3.5 h-3.5 mr-1" />
+                                                            Dərc et
+                                                        </Button>
+                                                    )}
+                                                    {/* CLOSING_PENDING: Confirm + Cancel */}
+                                                    {listing.status === 'CLOSING_PENDING' && (
+                                                        <>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="primary"
+                                                                className="h-8 px-3 text-xs"
+                                                                title="Sövdələşməni təsdiqlə"
+                                                                isLoading={confirmDealMutation.isPending}
+                                                                onClick={() => {
+                                                                    if (confirm('Sövdələşməni təsdiqləmək istədiyinizə əminsiniz? Elan arxivə keçəcək.')) {
+                                                                        confirmDealMutation.mutate(listing.id);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                                                                Təsdiqlə
+                                                            </Button>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="h-8 px-3 text-xs text-red hover:bg-red/10"
+                                                                title="Sövdələşməni ləğv et"
+                                                                onClick={() => setCancelDealListingId(listing.id)}
+                                                            >
+                                                                <XCircle className="w-3.5 h-3.5 mr-1" />
+                                                                Ləğv et
+                                                            </Button>
+                                                        </>
+                                                    )}
+                                                    {/* View */}
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
@@ -200,15 +395,7 @@ export function DashboardElanlar() {
                                                     >
                                                         <Eye className="w-4 h-4" />
                                                     </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        className="h-8 w-8 p-0"
-                                                        title="Düzəlt"
-                                                        onClick={() => navigate(`/dashboard/elanlar/${listing.id}/edit`)}
-                                                    >
-                                                        <Pencil className="w-4 h-4" />
-                                                    </Button>
+                                                    {/* Delete */}
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"

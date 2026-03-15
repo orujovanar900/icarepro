@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AppLayout } from './layouts/AppLayout';
 import { AdminLayout } from './layouts/AdminLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -7,6 +7,8 @@ import { PageSkeleton } from './components/ui/PageSkeleton';
 import { SupportChat } from './components/SupportChat';
 import { PublicRoute } from './components/PublicRoute';
 import { GlobalErrorBoundary } from './components/GlobalErrorBoundary';
+import { useAuthStore } from './store/auth';
+import { useToastStore } from './store/toast';
 
 const Landing = React.lazy(() => import('./pages/Landing').then(m => ({ default: m.Landing })));
 const Portal = React.lazy(() => import('./pages/Portal').then(m => ({ default: m.Portal })));
@@ -44,6 +46,28 @@ const AdminOrganizations = React.lazy(() => import('./pages/admin/AdminOrganizat
 const SuperAdminDashboard = React.lazy(() => import('./pages/admin/SuperAdminDashboard').then(m => ({ default: m.SuperAdminDashboard })));
 const AdminOrganizationDetail = React.lazy(() => import('./pages/admin/AdminOrganizationDetail').then(m => ({ default: m.AdminOrganizationDetail })));
 const AdminListings = React.lazy(() => import('./pages/admin/AdminListings').then(m => ({ default: m.AdminListings })));
+
+/**
+ * Guards ERP routes (contracts, properties, tenants, income, expenses, users, settings).
+ * Non-subscribers are redirected to /dashboard/elanlar with a toast message.
+ */
+function SubscriptionRoute() {
+    const { user } = useAuthStore();
+    const { addToast } = useToastStore();
+    const hasSubscription = user?.organization?.subscriptionStatus === 'ACTIVE';
+
+    React.useEffect(() => {
+        if (!hasSubscription) {
+            addToast({ type: 'error', message: 'Bu bölmə abunəlik tələb edir.' });
+        }
+    }, [hasSubscription]);
+
+    if (!hasSubscription) {
+        return <Navigate to="/dashboard/elanlar" replace />;
+    }
+
+    return <Outlet />;
+}
 
 export default function App() {
     return (
@@ -83,33 +107,37 @@ export default function App() {
                             </Route>
 
                             <Route element={<AppLayout />}>
-                                <Route path="/dashboard" element={<Dashboard />} />
                                 <Route path="/profile" element={<Profile />} />
 
-                                <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
-                                    <Route path="/contracts" element={<Contracts />} />
-                                    <Route path="/contracts/:id" element={<ContractDetail />} />
-                                    <Route path="/properties" element={<Properties />} />
-                                    <Route path="/properties/:id" element={<PropertyDetail />} />
-                                    <Route path="/tenants" element={<Tenants />} />
-                                    <Route path="/tenants/new" element={<TenantForm />} />
-                                    <Route path="/tenants/:id" element={<TenantDetail />} />
-                                    <Route path="/tenants/:id/edit" element={<TenantForm />} />
+                                {/* Subscription-gated ERP routes */}
+                                <Route element={<SubscriptionRoute />}>
+                                    <Route path="/dashboard" element={<Dashboard />} />
+
+                                    <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
+                                        <Route path="/contracts" element={<Contracts />} />
+                                        <Route path="/contracts/:id" element={<ContractDetail />} />
+                                        <Route path="/properties" element={<Properties />} />
+                                        <Route path="/properties/:id" element={<PropertyDetail />} />
+                                        <Route path="/tenants" element={<Tenants />} />
+                                        <Route path="/tenants/new" element={<TenantForm />} />
+                                        <Route path="/tenants/:id" element={<TenantDetail />} />
+                                        <Route path="/tenants/:id/edit" element={<TenantForm />} />
+                                    </Route>
+
+                                    <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'MANAGER', 'CASHIER']} />}>
+                                        <Route path="/income" element={<Income />} />
+                                        <Route path="/expenses" element={<Expenses />} />
+                                    </Route>
+
+                                    {/* OWNER & MANAGER only routes */}
+                                    <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'MANAGER']} />}>
+                                        <Route path="/users" element={<Users />} />
+                                        <Route path="/settings" element={<Settings />} />
+                                        <Route path="/settings/billing" element={<Billing />} />
+                                    </Route>
                                 </Route>
 
-                                <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'MANAGER', 'CASHIER']} />}>
-                                    <Route path="/income" element={<Income />} />
-                                    <Route path="/expenses" element={<Expenses />} />
-                                </Route>
-
-                                {/* OWNER & MANAGER only routes */}
-                                <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'MANAGER']} />}>
-                                    <Route path="/users" element={<Users />} />
-                                    <Route path="/settings" element={<Settings />} />
-                                    <Route path="/settings/billing" element={<Billing />} />
-                                </Route>
-
-                                {/* Listing management — OWNER, AGENT, AGENTLIK, MANAGER */}
+                                {/* Listing management — accessible without subscription */}
                                 <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'AGENT', 'AGENTLIK', 'MANAGER']} />}>
                                     <Route path="/dashboard/elanlar" element={<DashboardElanlar />} />
                                     <Route path="/dashboard/elanlar/yeni" element={<CreateDashboardListing />} />

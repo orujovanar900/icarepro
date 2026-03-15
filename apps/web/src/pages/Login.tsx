@@ -51,20 +51,15 @@ export function Login() {
 
             addToast({ type: 'success', message: 'Uğurla daxil oldunuz!' });
 
-            // Role-based redirect
-            // ICARECI → personal cabinet; portal users → kabinet; dashboard users → dashboard
+            // Role + subscription-based redirect
             if (user.role === 'SUPERADMIN') {
                 navigate('/admin');
             } else if (user.role === 'ICARECI') {
                 navigate('/kabinet');
-            } else if (user.role === 'OWNER') {
+            } else if (user.organization?.subscriptionStatus === 'ACTIVE') {
                 navigate('/dashboard');
-            } else if (['AGENT', 'AGENTLIK'].includes(user.role)) {
-                navigate('/dashboard');
-            } else if (user.role === 'STAFF') {
-                navigate('/contracts');
             } else {
-                navigate('/dashboard');
+                navigate('/dashboard/elanlar');
             }
         } catch (error: any) {
             addToast({

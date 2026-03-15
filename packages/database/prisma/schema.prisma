@@ -56,8 +56,10 @@ enum ListingAvailStatus {
 }
 
 enum ListingStatus {
+  DRAFT
   PENDING
   ACTIVE
+  CLOSING_PENDING
   REJECTED
   DEACTIVATED
 }
@@ -72,6 +74,7 @@ enum ContractStatus {
   DRAFT
   ACTIVE
   ARCHIVED
+  TERMINATED
 }
 
 // Тип аренды
@@ -480,7 +483,8 @@ model Listing {
   isVip             Boolean            @default(false)
   isPushed          Boolean            @default(false)
   isPanorama        Boolean            @default(false)
-  status            ListingStatus      @default(PENDING)
+  status            ListingStatus      @default(DRAFT)
+  closedById        String?
   moderatedAt       DateTime?
   moderatedBy       String?
   rejectionReason   String?

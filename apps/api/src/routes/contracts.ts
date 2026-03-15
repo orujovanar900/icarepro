@@ -67,12 +67,12 @@ const createSchema = z.object({
 })
 
 const updateSchema = createSchema.partial().extend({
-    status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED']).optional(),
+    status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED', 'TERMINATED']).optional(),
 })
 
 
 const listQuerySchema = z.object({
-    status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED']).optional(),
+    status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED', 'TERMINATED']).optional(),
     rentalType: z.enum(['RESIDENTIAL_LONG', 'COMMERCIAL', 'RESIDENTIAL_SHORT', 'PARKING', 'SUBLEASE']).optional(),
     search: z.string().optional(),
     limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -387,6 +387,45 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
             action: 'ARCHIVE_CONTRACT',
             entityType: 'Contract',
             entityId: id,
+        })
+
+        return reply.send({ success: true, data: contract })
+    })
+
+    // PATCH /contracts/:id/terminate — ACTIVE → TERMINATED (early termination, requires reason)
+    fastify.patch('/:id/terminate', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ADMINISTRATOR'])] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const body = req.body as { terminationDate?: string; reason?: string }
+
+        if (!body.terminationDate) return reply.code(400).send({ success: false, error: 'terminationDate is required' })
+        if (!body.reason || !body.reason.trim()) return reply.code(400).send({ success: false, error: 'reason is required' })
+
+        const exists = await fastify.prisma.contract.findFirst({
+            where: { id, ...withOrg(req), status: 'ACTIVE' },
+        })
+        if (!exists) return reply.code(404).send({ success: false, error: 'Aktiv müqavilə tapılmadı' })
+
+        const contract = await fastify.prisma.$transaction(async (tx) => {
+            const terminated = await tx.contract.update({
+                where: { id },
+                data: { status: 'TERMINATED' },
+            })
+            if (terminated.propertyId) {
+                await tx.property.update({
+                    where: { id: terminated.propertyId },
+                    data: { status: 'VACANT' },
+                })
+            }
+            return terminated
+        })
+
+        await writeAuditLog(fastify.prisma, {
+            organizationId: req.user.organizationId,
+            userId: req.user.sub,
+            action: 'CONTRACT_TERMINATED',
+            entityType: 'Contract',
+            entityId: id,
+            metadata: { terminationDate: body.terminationDate, reason: body.reason },
         })
 
         return reply.send({ success: true, data: contract })

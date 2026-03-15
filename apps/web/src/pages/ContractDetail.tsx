@@ -92,9 +92,16 @@ export function ContractDetail() {
     const [editPaymentDay, setEditPaymentDay] = useState(1);
     const [isUpdatingPaymentMode, setIsUpdatingPaymentMode] = useState(false);
 
+    // Terminate modal state
+    const [showTerminateModal, setShowTerminateModal] = useState(false);
+    const [terminationDate, setTerminationDate] = useState(new Date().toISOString().split('T')[0]);
+    const [terminationReason, setTerminationReason] = useState('');
+    const [isTerminating, setIsTerminating] = useState(false);
+
     const { user: currentUser } = useAuthStore();
     const canManagePenalties = ['OWNER', 'MANAGER'].includes(currentUser?.role || '');
     const canManageDocs = ['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'].includes(currentUser?.role || '');
+    const canTerminate = ['OWNER', 'MANAGER', 'ADMINISTRATOR'].includes(currentUser?.role || '');
 
     // Fetch contract documents
     const { data: docsData, isLoading: docsLoading, refetch: refetchDocs } = useQuery({
@@ -152,6 +159,27 @@ export function ContractDetail() {
         await api.delete(`/contracts/${id}/documents/${docId}`);
         addToast({ message: 'Sənəd silindi', type: 'success' });
         refetchDocs();
+    };
+
+    const handleTerminate = async () => {
+        if (!terminationDate) { addToast({ message: 'Ləğvetmə tarixini daxil edin', type: 'error' }); return; }
+        if (!terminationReason.trim()) { addToast({ message: 'Ləğvetmə səbəbini daxil edin', type: 'error' }); return; }
+        setIsTerminating(true);
+        try {
+            await api.patch(`/contracts/${id}/terminate`, {
+                terminationDate,
+                reason: terminationReason,
+            });
+            queryClient.invalidateQueries({ queryKey: ['contract', id] });
+            queryClient.invalidateQueries({ queryKey: ['contracts'] });
+            addToast({ message: 'Müqavilə ləğv edildi', type: 'success' });
+            setShowTerminateModal(false);
+            setTerminationReason('');
+        } catch (err: any) {
+            addToast({ message: err.response?.data?.error || 'Xəta baş verdi', type: 'error' });
+        } finally {
+            setIsTerminating(false);
+        }
     };
 
     const handleArchive = async () => {
@@ -290,6 +318,7 @@ export function ContractDetail() {
             case 'ACTIVE': return 'aktiv';
             case 'ARCHIVED': return 'arxiv';
             case 'EXPIRED': return 'borclu';
+            case 'TERMINATED': return 'danger';
             case 'DRAFT': return 'draft';
             default: return 'draft';
         }
@@ -300,6 +329,7 @@ export function ContractDetail() {
             case 'ACTIVE': return 'Aktiv';
             case 'ARCHIVED': return 'Arxiv';
             case 'EXPIRED': return 'Müddəti keçmiş';
+            case 'TERMINATED': return 'Ləğv edilib';
             case 'DRAFT': return 'Qaralama';
             default: return s;
         }
@@ -410,6 +440,16 @@ export function ContractDetail() {
                             <Button variant="outline" onClick={() => setShowArchiveConfirm(true)}>
                                 <Archive className="w-4 h-4 mr-2" />
                                 Arxivləşdir
+                            </Button>
+                        )}
+                        {contract.status === 'ACTIVE' && canTerminate && (
+                            <Button
+                                variant="outline"
+                                className="border-red text-red hover:bg-red/10"
+                                onClick={() => setShowTerminateModal(true)}
+                            >
+                                <X className="w-4 h-4 mr-2" />
+                                Ləğv et
                             </Button>
                         )}
                     </div>
@@ -900,6 +940,45 @@ export function ContractDetail() {
             </div>
 
 
+
+            {/* Terminate Modal */}
+            <Modal isOpen={showTerminateModal} onClose={() => setShowTerminateModal(false)} title="Müqaviləni Ləğv Et">
+                <div className="space-y-4">
+                    <div className="flex items-start gap-2 bg-red/10 border border-red/20 rounded-xl px-4 py-3 text-sm text-red">
+                        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                        Bu əməliyyat geri alına bilməz. Müqavilə "Ləğv edilib" statusuna keçəcək və əmlak boş olaraq işarələnəcək.
+                    </div>
+                    <Input
+                        label="Ləğvetmə tarixi *"
+                        type="date"
+                        value={terminationDate}
+                        onChange={(e) => setTerminationDate(e.target.value)}
+                    />
+                    <div>
+                        <label className="block text-sm font-medium text-text mb-1">Ləğvetmə səbəbi *</label>
+                        <textarea
+                            value={terminationReason}
+                            onChange={(e) => setTerminationReason(e.target.value)}
+                            placeholder="Müqavilənin ləğv edilmə səbəbini daxil edin..."
+                            rows={3}
+                            className="w-full px-3 py-2 rounded-md border border-border bg-bg text-text text-sm focus:outline-none focus:ring-2 focus:ring-red resize-none"
+                        />
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <Button variant="outline" className="flex-1" onClick={() => setShowTerminateModal(false)}>
+                            Ləğv et
+                        </Button>
+                        <Button
+                            className="flex-1 bg-red hover:bg-red/90 text-white border-red"
+                            onClick={handleTerminate}
+                            disabled={isTerminating || !terminationDate || !terminationReason.trim()}
+                            isLoading={isTerminating}
+                        >
+                            Müqaviləni ləğv et
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
 
             {/* Archive Confirm */}
             <ConfirmDialog
