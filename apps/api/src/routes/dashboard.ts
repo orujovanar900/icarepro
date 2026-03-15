@@ -113,10 +113,9 @@ const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         // NEW: Payment.status-based debt calculation
-        const organizationId = (withOrg(req) as { organizationId: string }).organizationId
         const debtPayments = await fastify.prisma.payment.findMany({
             where: {
-                organizationId,
+                ...withOrg(req),
                 status: { in: ['UNPAID', 'PARTIAL', 'OVERDUE'] },
                 deletedAt: null,
             },

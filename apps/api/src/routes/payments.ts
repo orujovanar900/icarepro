@@ -213,16 +213,23 @@ const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
 
         // Calculate updated total debt for this org
         const orgFilter = withOrg(req)
-        const unpaidOverdue = await fastify.prisma.payment.aggregate({
-            where: { ...orgFilter, status: { in: ['UNPAID', 'OVERDUE'] }, deletedAt: null },
-            _sum: { expectedAmount: true },
-        })
-        const partialAgg = await fastify.prisma.payment.aggregate({
-            where: { ...orgFilter, status: 'PARTIAL', deletedAt: null },
+        const debtByStatus = await fastify.prisma.payment.groupBy({
+            by: ['status'],
+            where: {
+                ...orgFilter,
+                status: { in: ['UNPAID', 'OVERDUE', 'PARTIAL'] },
+                deletedAt: null,
+            },
             _sum: { expectedAmount: true, amount: true },
         })
-        const updatedDebt = Number(unpaidOverdue._sum.expectedAmount ?? 0)
-            + Math.max(0, Number(partialAgg._sum.expectedAmount ?? 0) - Number(partialAgg._sum.amount ?? 0))
+        const updatedDebt = debtByStatus.reduce((total, row) => {
+            const expected = Number(row._sum.expectedAmount ?? 0)
+            const paid = Number(row._sum.amount ?? 0)
+            if (row.status === 'PARTIAL') {
+                return total + Math.max(0, expected - paid)
+            }
+            return total + expected
+        }, 0)
 
         await writeAuditLog(fastify.prisma, {
             organizationId: req.user.organizationId,

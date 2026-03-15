@@ -221,6 +221,8 @@ export function calculateNextPeriod(
         if (periodStart <= after) {
             periodStart = new Date(after.getFullYear(), after.getMonth() + 1, paymentDay)
         }
+        // periodEnd = day before next paymentDay occurrence
+        // e.g. paymentDay=13, periodStart=Apr 13 → next paymentDay=May 13 → periodEnd=May 12
         const periodEnd = addDays(
             new Date(periodStart.getFullYear(), periodStart.getMonth() + 1, paymentDay),
             -1

@@ -236,7 +236,7 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
         // Property protection: block duplicate active contracts
         if (rest.propertyId) {
             const activeContract = await fastify.prisma.contract.findFirst({
-                where: { propertyId: rest.propertyId as string, status: 'ACTIVE', deletedAt: null },
+                where: { propertyId: rest.propertyId as string, status: 'ACTIVE', deletedAt: null, ...withOrg(req) },
                 select: { id: true, number: true },
             })
             if (activeContract) {
@@ -252,7 +252,7 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
         let draftContract: { id: string; number: string } | null = null
         if (rest.propertyId) {
             draftContract = await fastify.prisma.contract.findFirst({
-                where: { propertyId: rest.propertyId as string, status: 'DRAFT', deletedAt: null },
+                where: { propertyId: rest.propertyId as string, status: 'DRAFT', deletedAt: null, ...withOrg(req) },
                 select: { id: true, number: true },
             })
         }
@@ -335,18 +335,19 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
         if (startDate !== undefined) data['startDate'] = new Date(startDate)
         if (endDate !== undefined) data['endDate'] = new Date(endDate)
 
-        const contract = await fastify.prisma.contract.update({
-            where: { id },
-            data: data as never,
-        })
-
-        // Sync property status when contract activates
-        if (body.data.status === 'ACTIVE' && contract.propertyId) {
-            await fastify.prisma.property.update({
-                where: { id: contract.propertyId },
-                data: { status: 'OCCUPIED' },
+        const contract = await fastify.prisma.$transaction(async (tx) => {
+            const updated = await tx.contract.update({
+                where: { id, ...withOrg(req) },
+                data: data as never,
             })
-        }
+            if (body.data.status === 'ACTIVE' && updated.propertyId) {
+                await tx.property.update({
+                    where: { id: updated.propertyId },
+                    data: { status: 'OCCUPIED' },
+                })
+            }
+            return updated
+        })
 
         await writeAuditLog(fastify.prisma, {
             organizationId: req.user.organizationId,
@@ -366,18 +367,19 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
         const exists = await fastify.prisma.contract.findFirst({ where: { id, ...withOrg(req) } })
         if (!exists) return reply.code(404).send({ success: false, error: 'Contract not found' })
 
-        const contract = await fastify.prisma.contract.update({
-            where: { id },
-            data: { status: 'ARCHIVED' },
-        })
-
-        // Sync property status when contract archived
-        if (contract.propertyId) {
-            await fastify.prisma.property.update({
-                where: { id: contract.propertyId },
-                data: { status: 'VACANT' },
+        const contract = await fastify.prisma.$transaction(async (tx) => {
+            const archived = await tx.contract.update({
+                where: { id, ...withOrg(req) },
+                data: { status: 'ARCHIVED' },
             })
-        }
+            if (archived.propertyId) {
+                await tx.property.update({
+                    where: { id: archived.propertyId },
+                    data: { status: 'VACANT' },
+                })
+            }
+            return archived
+        })
 
         await writeAuditLog(fastify.prisma, {
             organizationId: req.user.organizationId,
