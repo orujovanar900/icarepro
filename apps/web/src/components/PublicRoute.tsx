@@ -13,6 +13,8 @@ export function PublicRoute() {
         if (user.role === 'SUPERADMIN') {
             return <Navigate to="/admin" replace />;
         }
+        // ICARECI (tenant) always goes to /kabinet — no subscription check needed,
+        // as the tenant cabinet is free and entirely separate from the ERP.
         if (user.role === 'ICARECI') {
             return <Navigate to="/kabinet" replace />;
         }

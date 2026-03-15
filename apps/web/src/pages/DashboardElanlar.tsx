@@ -73,16 +73,16 @@ function CancelDealModal({ listingId, onClose, onSuccess }: CancelDealModalProps
     const handleSubmit = async () => {
         setIsSubmitting(true);
         try {
-            await api.patch(`/listings/${listingId}/cancel-deal`);
-            // Also update availability status
-            await api.patch(`/listings/${listingId}/availability`, {
+            // FIX 6: single combined API call — availStatus + expectedFreeDate updated
+            // inside the same $transaction as the status revert on the backend.
+            await api.patch(`/listings/${listingId}/cancel-deal`, {
                 availStatus,
                 ...(availStatus !== 'BOSHDUR' && expectedFreeDate ? { expectedFreeDate } : {}),
             });
             addToast({ message: 'Sövdələşmə ləğv edildi, elan yenidən aktivdir.', type: 'success' });
             onSuccess();
         } catch (err: any) {
-            addToast({ message: err.response?.data?.message || 'Xəta baş verdi', type: 'error' });
+            addToast({ message: err.response?.data?.message || err.response?.data?.error || 'Xəta baş verdi', type: 'error' });
         } finally {
             setIsSubmitting(false);
         }

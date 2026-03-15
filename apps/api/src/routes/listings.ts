@@ -517,17 +517,27 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /listings/:id/publish — DRAFT → PENDING (submit for moderation)
   fastify.post('/:id/publish', {
-    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK'])],
+    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK', 'MANAGER'])],
   }, async (req, reply) => {
     const { id } = req.params as { id: string }
 
     const existing = await fastify.prisma.listing.findFirst({
       where: { id, ...withOrg(req), deletedAt: null },
-      select: { id: true, status: true },
+      select: { id: true, status: true, title: true, address: true, type: true, basePrice: true },
     })
     if (!existing) return reply.code(404).send({ success: false, error: 'Elan tapılmadı' })
     if (existing.status !== 'DRAFT') {
       return reply.code(400).send({ success: false, error: 'Yalnız qaralama elanlar dərc edilə bilər' })
+    }
+
+    // FIX 5: readiness check — minimum required fields before going to moderation
+    if (!existing.title || !existing.address || !existing.type ||
+        !existing.basePrice || Number(existing.basePrice) <= 0) {
+      return reply.code(400).send({
+        success: false,
+        error: 'Elanı dərc etmək üçün ad, ünvan, növ və qiymət tələb olunur',
+        code: 'LISTING_INCOMPLETE',
+      })
     }
 
     const listing = await fastify.prisma.listing.update({
@@ -548,7 +558,7 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /listings/:id/select-winner — ACTIVE → CLOSING_PENDING, mark entry SELECTED
   fastify.post('/:id/select-winner', {
-    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK'])],
+    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK', 'MANAGER'])],
   }, async (req, reply) => {
     const { id } = req.params as { id: string }
     const { entryId } = req.body as { entryId: string }
@@ -593,9 +603,9 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.send({ success: true, data: stripBasePrice(updatedListing) })
   })
 
-  // PATCH /listings/:id/confirm-deal — CLOSING_PENDING → ARCHIVED
+  // PATCH /listings/:id/confirm-deal — CLOSING_PENDING → DEACTIVATED, expire remaining queue
   fastify.patch('/:id/confirm-deal', {
-    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK'])],
+    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK', 'MANAGER'])],
   }, async (req, reply) => {
     const { id } = req.params as { id: string }
 
@@ -608,9 +618,16 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ success: false, error: 'Yalnız CLOSING_PENDING elanlar təsdiqlənə bilər' })
     }
 
-    const listing = await fastify.prisma.listing.update({
-      where: { id },
-      data: { status: 'DEACTIVATED', closedById: req.user.sub },
+    // FIX 2: expire all remaining ACTIVE entries atomically with the listing update
+    const listing = await fastify.prisma.$transaction(async (tx) => {
+      await tx.queueEntry.updateMany({
+        where: { listingId: id, status: 'ACTIVE' },
+        data: { status: 'EXPIRED' },
+      })
+      return tx.listing.update({
+        where: { id },
+        data: { status: 'DEACTIVATED', closedById: req.user.sub },
+      })
     })
 
     await writeAuditLog(fastify.prisma, {
@@ -625,10 +642,19 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
   })
 
   // PATCH /listings/:id/cancel-deal — CLOSING_PENDING → ACTIVE (preserve queue)
+  // FIX 1: both writes wrapped in $transaction (atomic)
+  // FIX 6: accepts optional availStatus + expectedFreeDate to update in same transaction
   fastify.patch('/:id/cancel-deal', {
-    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK'])],
+    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK', 'MANAGER'])],
   }, async (req, reply) => {
     const { id } = req.params as { id: string }
+    const { availStatus, expectedFreeDate } =
+      (req.body as { availStatus?: string; expectedFreeDate?: string }) ?? {}
+
+    const validAvailStatuses = ['BOSHDUR', 'BOSHALIR', 'INSAAT']
+    if (availStatus && !validAvailStatuses.includes(availStatus)) {
+      return reply.code(400).send({ success: false, error: 'Etibarsız mövcudluq statusu' })
+    }
 
     const existing = await fastify.prisma.listing.findFirst({
       where: { id, ...withOrg(req), deletedAt: null },
@@ -639,15 +665,21 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ success: false, error: 'Yalnız CLOSING_PENDING elanlar üçün ləğv edilə bilər' })
     }
 
-    // Restore SELECTED entry back to ACTIVE so queue is preserved
-    await fastify.prisma.queueEntry.updateMany({
-      where: { listingId: id, status: 'SELECTED' },
-      data: { status: 'ACTIVE' },
-    })
+    const listingUpdateData: Record<string, unknown> = { status: 'ACTIVE' }
+    if (availStatus) listingUpdateData['availStatus'] = availStatus
+    if (expectedFreeDate) listingUpdateData['expectedFreeDate'] = new Date(expectedFreeDate)
+    else if (availStatus === 'BOSHDUR') listingUpdateData['expectedFreeDate'] = null
 
-    const listing = await fastify.prisma.listing.update({
-      where: { id },
-      data: { status: 'ACTIVE' },
+    const listing = await fastify.prisma.$transaction(async (tx) => {
+      // Restore SELECTED entry back to ACTIVE so queue position is preserved
+      await tx.queueEntry.updateMany({
+        where: { listingId: id, status: 'SELECTED' },
+        data: { status: 'ACTIVE' },
+      })
+      return tx.listing.update({
+        where: { id },
+        data: listingUpdateData,
+      })
     })
 
     await writeAuditLog(fastify.prisma, {
@@ -656,19 +688,15 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
       action: 'LISTING_DEAL_CANCELLED',
       entityType: 'Listing',
       entityId: id,
+      metadata: { availStatus: availStatus ?? null },
     })
 
-    return reply.send({
-      success: true,
-      listing: stripBasePrice(listing),
-      requiresOwnerInput: true,
-      message: 'Sahibdən aşağıdakı məlumatlar tələb olunur',
-    })
+    return reply.send({ success: true, data: stripBasePrice(listing) })
   })
 
   // PATCH /listings/:id/availability — update availStatus + expectedFreeDate
   fastify.patch('/:id/availability', {
-    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK'])],
+    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK', 'MANAGER'])],
   }, async (req, reply) => {
     const { id } = req.params as { id: string }
     const { availStatus, expectedFreeDate } = req.body as { availStatus?: string; expectedFreeDate?: string }

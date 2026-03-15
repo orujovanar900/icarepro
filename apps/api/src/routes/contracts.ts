@@ -67,7 +67,9 @@ const createSchema = z.object({
 })
 
 const updateSchema = createSchema.partial().extend({
-    status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED', 'TERMINATED']).optional(),
+    // TERMINATED is intentionally excluded — use PATCH /:id/terminate which enforces
+    // reason, date, property VACANT update, and audit log.
+    status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED']).optional(),
 })
 
 

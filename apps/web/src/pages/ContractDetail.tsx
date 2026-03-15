@@ -311,7 +311,13 @@ export function ContractDetail() {
     const contract = data.data;
 
     const isExpired = contract.status === 'ACTIVE' && new Date(contract.endDate) < new Date();
-    const computedStatus = isExpired ? 'EXPIRED' : contract.status;
+    // FIX 9: TERMINATED must take precedence — isExpired could also be true for a terminated
+    // contract whose endDate is in the past, but TERMINATED is the canonical final state.
+    const computedStatus = contract.status === 'TERMINATED'
+        ? 'TERMINATED'
+        : isExpired
+        ? 'EXPIRED'
+        : contract.status;
 
     const getStatusBadgeVariant = (s: string) => {
         switch (s) {

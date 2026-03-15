@@ -53,14 +53,17 @@ const AdminListings = React.lazy(() => import('./pages/admin/AdminListings').the
  */
 function SubscriptionRoute() {
     const { user } = useAuthStore();
-    const { addToast } = useToastStore();
+    const addToast = useToastStore((s) => s.addToast);
     const hasSubscription = user?.organization?.subscriptionStatus === 'ACTIVE';
+    // FIX 4: ref prevents double-fire in React StrictMode
+    const toastFiredRef = React.useRef(false);
 
     React.useEffect(() => {
-        if (!hasSubscription) {
+        if (!hasSubscription && !toastFiredRef.current) {
+            toastFiredRef.current = true;
             addToast({ type: 'error', message: 'Bu bölmə abunəlik tələb edir.' });
         }
-    }, [hasSubscription]);
+    }, [hasSubscription, addToast]);
 
     if (!hasSubscription) {
         return <Navigate to="/dashboard/elanlar" replace />;
