@@ -19,7 +19,7 @@ const createListingSchema = z.object({
   propertyId: z.string().optional(),
   title: z.string().min(1),
   description: z.string().optional(),
-  type: z.enum(['MENZIL', 'OFIS', 'MAGAZA', 'ANBAR', 'KOMERSIYA', 'TORPAQ']),
+  type: z.enum(['MENZIL', 'OFIS', 'OBYEKT', 'HEYET_EVI', 'GARAJ', 'TORPAQ', 'ANBAR']),
   district: z.string().optional(),
   address: z.string().min(1),
   floor: z.number().int().optional(),
@@ -186,7 +186,7 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
 
   // GET /listings/mine — must be BEFORE /:id to avoid conflict
   fastify.get('/mine', {
-    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK'] as any)],
+    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK'])],
   }, async (req, reply) => {
     const listings = await fastify.prisma.listing.findMany({
       where: { ...withOrg(req), deletedAt: null },
@@ -431,7 +431,7 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /listings — create
   fastify.post('/', {
-    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK'] as any)],
+    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK'])],
   }, async (req, reply) => {
     const body = createListingSchema.safeParse(req.body)
     if (!body.success) return sendZodError(reply, body.error)
@@ -457,7 +457,7 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
 
   // PUT /listings/:id — update
   fastify.put('/:id', {
-    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK'] as any)],
+    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK'])],
   }, async (req, reply) => {
     const { id } = req.params as { id: string }
     const body = updateListingSchema.safeParse(req.body)
@@ -480,7 +480,7 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
 
   // DELETE /listings/:id — soft delete
   fastify.delete('/:id', {
-    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK'] as any)],
+    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK'])],
   }, async (req, reply) => {
     const { id } = req.params as { id: string }
 
@@ -495,7 +495,7 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
 
   // GET /listings/:id/leads — full queue for owner
   fastify.get('/:id/leads', {
-    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK'] as any)],
+    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK'])],
   }, async (req, reply) => {
     const { id } = req.params as { id: string }
 
@@ -514,7 +514,7 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
 
   // POST /listings/upload-photo — multipart to Supabase
   fastify.post('/upload-photo', {
-    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK'] as any)],
+    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK'])],
   }, async (req, reply) => {
     const data = await req.file()
     if (!data) return reply.code(400).send({ success: false, error: 'Fayl tapılmadı' })

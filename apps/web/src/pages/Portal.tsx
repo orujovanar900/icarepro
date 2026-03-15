@@ -24,23 +24,24 @@ const GOLD_GRAD = 'linear-gradient(135deg,#C9A84C,#e8c56b,#C9A84C)';
 
 // ─── Filter data ──────────────────────────────────────────────────────────────
 
+// Values must match ListingType enum in schema.prisma
 const TYPE_TABS = [
-    { value: '', label: 'Hamısı' },
-    { value: 'MENZIL', label: '🏠 Mənzil' },
-    { value: 'OFIS', label: '🏢 Ofis' },
-    { value: 'HEYET_EVI', label: '🏡 Həyət evi' },
-    { value: 'GARAJ', label: '🚗 Qaraj' },
-    { value: 'TORPAQ', label: '🌿 Torpaq' },
-    { value: 'OBYEKT', label: '🏪 Obyekt' },
-    { value: 'MAGAZA', label: '🛒 Mağaza' },
-    { value: 'VILLA', label: '🏰 Villa' },
+    { value: '',          label: 'Hamısı' },
+    { value: 'MENZIL',   label: '🏠 Mənzil' },
+    { value: 'OFIS',     label: '🏢 Ofis' },
+    { value: 'OBYEKT',   label: '🏪 Obyekt' },
+    { value: 'HEYET_EVI',label: '🏡 Həyət Evi / Bağ Evi' },
+    { value: 'GARAJ',    label: '🚗 Qaraj' },
+    { value: 'TORPAQ',   label: '🌿 Torpaq' },
+    { value: 'ANBAR',    label: '📦 Anbar' },
 ];
 
+// Values must match Listing.availStatus in schema.prisma: BOSHDUR | BOSHALIR | INSAAT
 const AVAIL_TABS = [
-    { value: '', label: 'Hamısı' },
+    { value: '',        label: 'Hamısı' },
     { value: 'BOSHDUR', label: '✅ Boşdur' },
-    { value: 'BOSHALIR', label: '📅 Boşalır' },
-    { value: 'TUTULUB', label: '🔒 Tutulub' },
+    { value: 'BOSHALIR',label: '📅 Tezliklə boşalır' },
+    { value: 'INSAAT',  label: '🏗 İnşaat/Təmir' },
 ];
 
 const BUILDING_TYPES = [

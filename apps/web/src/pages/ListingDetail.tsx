@@ -39,17 +39,22 @@ const AMENITY_MAP: Record<string, string> = {
     ÇAMAŞIRXANA: '🫧 Camaşırxana',
 };
 
+// Keys must match ListingType enum in schema.prisma
 const TYPE_LABELS: Record<string, string> = {
-    MENZIL: 'Mənzil',
-    OFIS: 'Ofis',
-    MAGAZA: 'Mağaza',
-    VILLA: 'Villa',
+    MENZIL:    'Mənzil',
+    OFIS:      'Ofis',
+    OBYEKT:    'Obyekt',
+    HEYET_EVI: 'Həyət Evi / Bağ Evi',
+    GARAJ:     'Qaraj',
+    TORPAQ:    'Torpaq',
+    ANBAR:     'Anbar',
 };
 
+// Keys must match Listing.availStatus in schema.prisma: BOSHDUR | BOSHALIR | INSAAT
 const AVAIL_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-    BOSHDUR: { label: '✅ Boşdur', color: '#15803D', bg: '#DCFCE7' },
-    BOSHALIR: { label: '📅 Boşalır', color: '#92400E', bg: '#FEF3C7' },
-    TUTULUB: { label: '🔒 Tutulub', color: '#374151', bg: '#F3F4F6' },
+    BOSHDUR:  { label: '✅ Boşdur',           color: '#15803D', bg: '#DCFCE7' },
+    BOSHALIR: { label: '📅 Tezliklə boşalır', color: '#92400E', bg: '#FEF3C7' },
+    INSAAT:   { label: '🏗 İnşaat/Təmir',     color: '#1D4ED8', bg: '#DBEAFE' },
 };
 
 const HEAT_COLORS = {

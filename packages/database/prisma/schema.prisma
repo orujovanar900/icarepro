@@ -39,6 +39,29 @@ enum UserRole {
   ICARECI
 }
 
+enum ListingType {
+  MENZIL
+  OFIS
+  OBYEKT
+  HEYET_EVI
+  GARAJ
+  TORPAQ
+  ANBAR
+}
+
+enum ListingAvailStatus {
+  BOSHDUR
+  BOSHALIR
+  INSAAT
+}
+
+enum ListingStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  DEACTIVATED
+}
+
 enum OrgPlan {
   FREE
   PRO
@@ -424,24 +447,24 @@ model Listing {
   propertyId        String?
   title             String
   description       String?
-  type              String    // MENZIL | OFIS | MAGAZA | ANBAR | KOMERSIYA | TORPAQ
+  type              ListingType
   district          String?
   address           String
   floor             Int?
   totalFloors       Int?
   area              Float?
   rooms             Int?
-  basePrice         Float     // hidden from public responses
-  availStatus       String    @default("BOSHDUR") // BOSHDUR | BOSHALIR | INSAAT
+  basePrice         Float              // hidden from public responses
+  availStatus       ListingAvailStatus @default(BOSHDUR)
   contractStartDate DateTime?
   contractEndDate   DateTime?
   expectedFreeDate  DateTime?
-  publisherType     String?   // SAHIBI | AGENT | AGENTLIK
+  publisherType     String?            // SAHIBI | AGENT | AGENTLIK
   publisherName     String?
-  isVip             Boolean   @default(false)
-  isPushed          Boolean   @default(false)
-  isPanorama        Boolean   @default(false)
-  status            String    @default("PENDING") // PENDING | ACTIVE | REJECTED | DEACTIVATED
+  isVip             Boolean            @default(false)
+  isPushed          Boolean            @default(false)
+  isPanorama        Boolean            @default(false)
+  status            ListingStatus      @default(PENDING)
   moderatedAt       DateTime?
   moderatedBy       String?
   rejectionReason   String?

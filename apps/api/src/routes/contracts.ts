@@ -231,39 +231,58 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
             tenantId = createdTenant.id
         }
 
-        const contract = await fastify.prisma.contract.create({
-            data: {
-                ...rest,
-                tenantId: tenantId!,
-                ...withOrg(req),
-                monthlyRent,
-                startDate: new Date(startDate),
-                endDate: new Date(endDate),
-            } as never,
-        })
-
-        await writeAuditLog(fastify.prisma, {
-            organizationId: req.user.organizationId,
-            userId: req.user.sub,
-            action: 'CREATE_CONTRACT',
-            entityType: 'Contract',
-            entityId: contract.id,
-        })
-
-        // Sync: update linked listing when contract is created for a property
-        if (rest.propertyId) {
-            const activeListing = await fastify.prisma.listing.findFirst({
-                where: { propertyId: rest.propertyId as string, status: 'ACTIVE', deletedAt: null },
+        // Contract creation + audit log are atomic: if audit log insert fails,
+        // the contract is rolled back too. Listing sync is intentionally outside
+        // this transaction — it is best-effort and must not roll back a valid contract.
+        const contract = await fastify.prisma.$transaction(async (tx) => {
+            const created = await tx.contract.create({
+                data: {
+                    ...rest,
+                    tenantId: tenantId!,
+                    ...withOrg(req),
+                    monthlyRent,
+                    startDate: new Date(startDate),
+                    endDate: new Date(endDate),
+                } as never,
             })
-            if (activeListing) {
-                await fastify.prisma.listing.update({
-                    where: { id: activeListing.id },
-                    data: {
-                        contractStartDate: new Date(startDate),
-                        contractEndDate: new Date(endDate),
-                        ...(activeListing.availStatus === 'BOSHDUR' ? { availStatus: 'BOSHALIR' } : {}),
-                    },
+
+            await writeAuditLog(tx, {
+                organizationId: req.user.organizationId,
+                userId: req.user.sub,
+                action: 'CREATE_CONTRACT',
+                entityType: 'Contract',
+                entityId: created.id,
+            })
+
+            return created
+        })
+
+        // Best-effort: sync linked listing's contract dates and availStatus.
+        // Must run outside the contract transaction — a PostgreSQL transaction cannot
+        // recover from a statement-level error, so try/catch inside $transaction
+        // does not prevent rollback. Failure here is non-critical: the contract is
+        // already committed and the listing will simply show stale dates until next update.
+        if (rest.propertyId) {
+            try {
+                const activeListing = await fastify.prisma.listing.findFirst({
+                    where: { propertyId: rest.propertyId as string, status: 'ACTIVE', deletedAt: null },
+                    select: { id: true, availStatus: true },
                 })
+                if (activeListing) {
+                    await fastify.prisma.listing.update({
+                        where: { id: activeListing.id },
+                        data: {
+                            contractStartDate: new Date(startDate),
+                            contractEndDate: new Date(endDate),
+                            ...(activeListing.availStatus === 'BOSHDUR' ? { availStatus: 'BOSHALIR' } : {}),
+                        },
+                    })
+                }
+            } catch (err) {
+                fastify.log.warn(
+                    { err, propertyId: rest.propertyId, contractId: contract.id },
+                    'Listing sync failed after contract create — non-critical, contract is committed'
+                )
             }
         }
 
