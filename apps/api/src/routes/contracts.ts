@@ -6,6 +6,7 @@ import { sendZodError } from '../utils/zodError.js'
 import { withOrg } from '../utils/withOrg.js'
 import { writeAuditLog } from '../utils/audit.js'
 import { calculateContractDebtAndExpected, getNextPaymentDate, getDueDateForPaymentIndex } from '../utils/contractUtils.js'
+import Anthropic from '@anthropic-ai/sdk'
 
 // Inline tenant creation schema (mirrors the full tenant schemas)
 const newTenantSchema = z.union([
@@ -96,7 +97,7 @@ const updateSchema = z.object({
     renewalType: z.enum(['SAME_PERIOD', 'MONTHLY']).optional(),
     effectiveFrom: z.object({
         month: z.number().int().min(1).max(12),
-        year: z.number().int().min(2020).max(2030),
+        year: z.number().int().min(2020).max(2099),
     }).optional(),
 })
 
@@ -307,7 +308,7 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
                     data: {
                         contractId: created.id,
                         organizationId: created.organizationId,
-                        amount: firstPeriodAmount,
+                        amount: 0,
                         expectedAmount: firstPeriodAmount,
                         status: 'UNPAID',
                         periodMonth: new Date(startDate).getMonth() + 1,
@@ -793,6 +794,73 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
         })
         return reply.code(204).send()
     })
+    // ─────────────────────────────────────────
+    // POST /contracts/scan-document - AI document scan (server-side, no API key in browser)
+    // ─────────────────────────────────────────
+    fastify.post('/scan-document', {
+        preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])],
+    }, async (req, reply) => {
+        try {
+            const data = await req.file()
+            if (!data) return reply.code(400).send({ success: false, error: 'No file uploaded' })
+
+            const buffer = await data.toBuffer()
+            const mimetype = data.mimetype
+            const filename = data.filename?.toLowerCase() ?? ''
+
+            let textContent = ''
+
+            if (mimetype === 'application/pdf' || filename.endsWith('.pdf')) {
+                try {
+                    const { PDFParse } = await import('pdf-parse')
+                    const parser = new PDFParse({ data: new Uint8Array(buffer) })
+                    const pdfData = await parser.getText()
+                    textContent = pdfData.text
+                } catch {
+                    return reply.code(422).send({ success: false, error: 'PDF oxuna bilmədi' })
+                }
+            } else if (
+                mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+                filename.endsWith('.docx')
+            ) {
+                try {
+                    const mammoth = await import('mammoth')
+                    const result = await mammoth.extractRawText({ buffer })
+                    textContent = result.value
+                } catch {
+                    return reply.code(422).send({ success: false, error: 'DOCX oxuna bilmədi' })
+                }
+            } else if (mimetype === 'text/plain' || filename.endsWith('.txt')) {
+                textContent = buffer.toString('utf-8')
+            } else {
+                return reply.code(415).send({ success: false, error: 'Dəstəklənməyən fayl formatı. PDF, DOCX və ya TXT yükləyin.' })
+            }
+
+            if (!textContent.trim()) {
+                return reply.code(422).send({ success: false, error: 'Fayldan mətn oxuna bilmədi' })
+            }
+
+            const anthropic = new Anthropic({ apiKey: process.env['ANTHROPIC_API_KEY'] })
+            const message = await anthropic.messages.create({
+                model: 'claude-haiku-4-5-20251001',
+                max_tokens: 800,
+                system: 'Extract from rental contract. Return ONLY valid JSON with no explanation. Fields: tenantName (string), fin (string, 7-char Azerbaijani ID), voen (string, 10-char tax ID), phone (string), propertyAddress (string), monthlyRent (number or null), startDate (YYYY-MM-DD or null), endDate (YYYY-MM-DD or null), depositAmount (number or null), contractNumber (string). Use null if unknown.',
+                messages: [{ role: 'user', content: textContent.slice(0, 8000) }],
+            })
+
+            const firstBlock = message.content[0]
+            const responseText = firstBlock && firstBlock.type === 'text' ? firstBlock.text : ''
+            const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+            if (!jsonMatch) return reply.code(422).send({ success: false, error: 'AI cavab JSON qaytarmadı' })
+
+            const extracted = JSON.parse(jsonMatch[0])
+            return reply.send({ success: true, data: extracted })
+        } catch (err: any) {
+            fastify.log.error(err, '[ScanDocument] Error')
+            return reply.code(500).send({ success: false, error: 'Sənəd skan zamanı xəta baş verdi' })
+        }
+    })
+
     // ─────────────────────────────────────────
     // POST /contracts/senad-ustasi/usage - Increment AI generation counter
     // ─────────────────────────────────────────

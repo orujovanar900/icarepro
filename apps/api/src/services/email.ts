@@ -202,6 +202,7 @@ export async function sendRenewalWarning(to: string, data: {
   propertyName: string,
   endDate: string,
   renewalNoticeDays: number,
+  contractId: string,
 }) {
   await resend.emails.send({
     from: 'icare@icarepro.az',
@@ -214,7 +215,7 @@ export async function sendRenewalWarning(to: string, data: {
       <p>Obyekt: <b>${data.propertyName}</b></p>
       <p>Bitmə tarixi: <b>${data.endDate}</b></p>
       <p>Bu müqavilə ${data.renewalNoticeDays} gün ərzində avtomatik yenilənəcək.</p>
-      <a href="${process.env['FRONTEND_URL'] || 'https://icarepro.pages.dev'}/contracts">
+      <a href="${process.env['FRONTEND_URL'] || 'https://icarepro.pages.dev'}/contracts/${data.contractId}">
         Müqaviləyə bax →
       </a>
     `

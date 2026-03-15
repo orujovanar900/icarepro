@@ -261,50 +261,33 @@ export function ContractForm() {
             addToast({ type: 'error', message: 'Fayl maksimum 10MB ola bilər' });
             return;
         }
+
+        const supportedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+        const supportedExts = ['.pdf', '.docx', '.txt'];
+        const ext = '.' + (file.name.split('.').pop()?.toLowerCase() ?? '');
+        if (!supportedTypes.includes(file.type) && !supportedExts.includes(ext)) {
+            addToast({ type: 'error', message: 'PDF, DOCX və ya TXT fayl seçin' });
+            return;
+        }
+
         setIsScanning(true);
         setScanBanner(null);
         try {
-            let textContent = '';
-            if (file.type === 'application/pdf') {
-                const buffer = await file.arrayBuffer();
-                textContent = new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(buffer));
-            } else if (file.type.startsWith('image/')) {
-                throw new Error('Şəkil faylı üçün AI oxuma mövcud deyil');
-            } else {
-                textContent = await file.text();
-            }
-            if (!textContent.trim()) throw new Error('No text extracted');
-
-            const apiKey = (import.meta as any).env['VITE_ANTHROPIC_API_KEY'];
-            if (!apiKey) throw new Error('API key missing');
-
-            const res = await fetch('https://api.anthropic.com/v1/messages', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': apiKey,
-                    'anthropic-version': '2023-06-01',
-                    'anthropic-dangerous-direct-browser-access': 'true',
-                },
-                body: JSON.stringify({
-                    model: 'claude-haiku-4-5-20251001',
-                    max_tokens: 800,
-                    system: 'Extract from rental contract. Return ONLY valid JSON. Fields: tenantName, finOrVoen, phone, propertyAddress, monthlyRent (number), startDate (YYYY-MM-DD), endDate (YYYY-MM-DD), depositAmount (number), contractNumber. Use empty string if unknown.',
-                    messages: [{ role: 'user', content: textContent.slice(0, 8000) }],
-                }),
+            const formData = new FormData();
+            formData.append('file', file);
+            const response = await api.post('/contracts/scan-document', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
             });
-
-            if (!res.ok) throw new Error(`Claude API: ${res.status}`);
-            const data = await res.json();
-            const raw = data.content?.[0]?.text ?? '{}';
-            const jsonMatch = raw.match(/\{[\s\S]*\}/);
-            if (!jsonMatch) throw new Error('No JSON in response');
-
-            await applyAIScanResult(JSON.parse(jsonMatch[0]));
-            setScanBanner('success');
-        } catch (err) {
+            const scan = response.data?.data;
+            if (scan) {
+                await applyAIScanResult(scan);
+                setScanBanner('success');
+            } else {
+                setScanBanner('error');
+            }
+        } catch (err: any) {
+            addToast({ type: 'error', message: err.response?.data?.error ?? 'Sənəd oxunmadı' });
             setScanBanner('error');
-            console.error('Scan error:', err);
         } finally {
             setIsScanning(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -423,7 +406,7 @@ export function ContractForm() {
         if (!isEdit && !startDate) { addToast({ type: 'error', message: 'Başlama tarixi tələb olunur' }); return false; }
         if (!endDate) { addToast({ type: 'error', message: 'Bitmə tarixi tələb olunur' }); return false; }
         if (!monthlyRent || Number(monthlyRent) <= 0) { addToast({ type: 'error', message: 'Aylıq icarə haqqı tələb olunur' }); return false; }
-        if (!isEdit && endDate <= startDate) { addToast({ type: 'error', message: 'Bitmə tarixi başlama tarixindən sonra olmalıdır' }); return false; }
+        if (endDate && startDate && new Date(endDate) <= new Date(startDate)) { addToast({ type: 'error', message: 'Bitmə tarixi başlama tarixindən sonra olmalıdır' }); return false; }
         return true;
     };
 
@@ -455,7 +438,12 @@ export function ContractForm() {
         if (!validate()) return;
         setIsSubmitting(true);
         try {
-            const payload: Record<string, any> = { ...buildBasePayload(), endDate };
+            const base = buildBasePayload();
+            const payload: Record<string, any> = { ...base, endDate };
+            // Only send monthlyRent when changed to avoid spurious price-change audit logs
+            if (!priceChanged) {
+                delete payload['monthlyRent'];
+            }
             if (priceChanged) {
                 payload['effectiveFrom'] = {
                     month: Number(effectiveFromMonth),
@@ -486,7 +474,8 @@ export function ContractForm() {
         return <div className="p-6 text-muted">Yüklənir...</div>;
     }
 
-    const yearOptions = ['2024', '2025', '2026', '2027', '2028'].map(y => ({ label: y, value: y }));
+    const currentYear = new Date().getFullYear();
+    const yearOptions = Array.from({ length: 7 }, (_, i) => String(currentYear - 1 + i)).map(y => ({ label: y, value: y }));
 
     return (
         <div className="flex flex-col min-h-[calc(100vh-4rem)]">
@@ -531,7 +520,7 @@ export function ContractForm() {
                                 <input
                                     ref={fileInputRef}
                                     type="file"
-                                    accept=".pdf,.doc,.docx,.jpg,.png"
+                                    accept=".pdf,.docx,.txt"
                                     className="hidden"
                                     onChange={e => { const f = e.target.files?.[0]; if (f) handleDocumentScan(f); }}
                                 />
@@ -544,7 +533,7 @@ export function ContractForm() {
                                     <div className="flex flex-col items-center gap-2 text-muted">
                                         <Upload className="w-8 h-8" />
                                         <p className="font-medium">Buraya sürükləyin və ya klikləyin</p>
-                                        <p className="text-xs">PDF, DOC, DOCX, JPG, PNG — max 10MB</p>
+                                        <p className="text-xs">PDF, DOCX, TXT — max 10MB</p>
                                     </div>
                                 )}
                             </div>
@@ -963,7 +952,7 @@ export function ContractForm() {
             </div>
 
             {/* ── Sticky bottom bar ── */}
-            <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t border-border px-6 py-4 flex gap-3 justify-end z-20">
+            <div className="fixed bottom-0 left-0 right-0 md:left-60 bg-background/95 backdrop-blur border-t border-border px-6 py-4 flex gap-3 justify-end z-20">
                 <Button variant="outline" onClick={() => navigate('/contracts')} disabled={isSubmitting}>
                     Ləğv et
                 </Button>

@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client'
-import { PaymentStatus } from '@prisma/client'
+import { PaymentStatus, RenewalType } from '@prisma/client'
 import { calculateNextPeriod, getDueDate, isOverdue } from '../utils/contractUtils.js'
 import { logger } from '../logger.js'
 import { writeAuditLog } from '../utils/audit.js'
@@ -174,9 +174,16 @@ export async function checkRenewalWarnings(prisma: PrismaClient): Promise<void> 
             // Only trigger when today is within the warning window and contract hasn't ended
             if (today < warningDate || today >= contract.endDate) continue
 
-            // Check if warning was already sent for this contract
+            // Check if warning was already sent for this renewal cycle
+            // (i.e. a warning was created after the warning window opened)
+            const windowStart = new Date(contract.endDate.getTime() - noticeDays * 24 * 60 * 60 * 1000)
             const existingWarning = await prisma.auditLog.findFirst({
-                where: { entityType: 'Contract', entityId: contract.id, action: 'CONTRACT_RENEWAL_WARNING' },
+                where: {
+                    entityType: 'Contract',
+                    entityId: contract.id,
+                    action: 'CONTRACT_RENEWAL_WARNING',
+                    createdAt: { gte: windowStart },
+                },
                 select: { id: true },
             })
             if (existingWarning) continue
@@ -193,6 +200,7 @@ export async function checkRenewalWarnings(prisma: PrismaClient): Promise<void> 
                     propertyName: contract.property.name,
                     endDate: contract.endDate.toISOString().slice(0, 10),
                     renewalNoticeDays: noticeDays,
+                    contractId: contract.id,
                 })
             }
 
@@ -261,7 +269,7 @@ export async function processAutoRenewals(prisma: PrismaClient): Promise<void> {
             const oldEndDate = new Date(contract.endDate)
             let newEndDate: Date
 
-            if (contract.renewalType === 'MONTHLY') {
+            if (contract.renewalType === RenewalType.MONTHLY) {
                 newEndDate = new Date(oldEndDate)
                 newEndDate.setDate(newEndDate.getDate() + 30)
             } else {
@@ -272,26 +280,29 @@ export async function processAutoRenewals(prisma: PrismaClient): Promise<void> {
                 newEndDate.setDate(newEndDate.getDate() + durationDays)
             }
 
-            await prisma.contract.update({
-                where: { id: contract.id },
-                data: { endDate: newEndDate },
-            })
-
             const owner = contract.organization.users[0]
-            if (owner?.id) {
-                await writeAuditLog(prisma, {
-                    organizationId: contract.organizationId,
-                    userId: owner.id,
-                    action: 'CONTRACT_AUTO_RENEWED',
-                    entityType: 'Contract',
-                    entityId: contract.id,
-                    metadata: {
-                        oldEndDate: oldEndDate.toISOString(),
-                        newEndDate: newEndDate.toISOString(),
-                        renewalType: contract.renewalType ?? 'SAME_PERIOD',
-                    },
+
+            await prisma.$transaction(async (tx) => {
+                await tx.contract.update({
+                    where: { id: contract.id },
+                    data: { endDate: newEndDate },
                 })
-            }
+
+                if (owner?.id) {
+                    await writeAuditLog(tx, {
+                        organizationId: contract.organizationId,
+                        userId: owner.id,
+                        action: 'CONTRACT_AUTO_RENEWED',
+                        entityType: 'Contract',
+                        entityId: contract.id,
+                        metadata: {
+                            oldEndDate: oldEndDate.toISOString(),
+                            newEndDate: newEndDate.toISOString(),
+                            renewalType: contract.renewalType ?? 'SAME_PERIOD',
+                        },
+                    })
+                }
+            })
 
             logger.info(`[BillingCron] Auto-renewed contract ${contract.id} → ${newEndDate.toISOString()}`)
         } catch (err) {

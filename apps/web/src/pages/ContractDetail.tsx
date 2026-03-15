@@ -98,7 +98,7 @@ export function ContractDetail() {
     const canManagePenalties = ['OWNER', 'MANAGER'].includes(currentUser?.role || '');
     const canManageDocs = ['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'].includes(currentUser?.role || '');
     const canTerminate = ['OWNER', 'MANAGER', 'ADMINISTRATOR'].includes(currentUser?.role || '');
-    const canEdit = ['OWNER', 'MANAGER', 'ADMINISTRATOR'].includes(currentUser?.role || '');
+    const canEdit = ['OWNER', 'MANAGER', 'ADMINISTRATOR', 'ACCOUNTANT'].includes(currentUser?.role || '');
 
     // Fetch contract documents
     const { data: docsData, isLoading: docsLoading, refetch: refetchDocs } = useQuery({
