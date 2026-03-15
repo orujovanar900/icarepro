@@ -86,11 +86,7 @@ export function ContractDetail() {
     const [isApplyingPenalty, setIsApplyingPenalty] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
-    // Payment Mode edit state
-    const [showPaymentModeModal, setShowPaymentModeModal] = useState(false);
-    const [editPaymentMode, setEditPaymentMode] = useState<'CALENDAR' | 'FIXED_DAY'>('CALENDAR');
-    const [editPaymentDay, setEditPaymentDay] = useState(1);
-    const [isUpdatingPaymentMode, setIsUpdatingPaymentMode] = useState(false);
+    // Payment Mode edit state removed — handled via /contracts/:id/edit form
 
     // Terminate modal state
     const [showTerminateModal, setShowTerminateModal] = useState(false);
@@ -102,6 +98,7 @@ export function ContractDetail() {
     const canManagePenalties = ['OWNER', 'MANAGER'].includes(currentUser?.role || '');
     const canManageDocs = ['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'].includes(currentUser?.role || '');
     const canTerminate = ['OWNER', 'MANAGER', 'ADMINISTRATOR'].includes(currentUser?.role || '');
+    const canEdit = ['OWNER', 'MANAGER', 'ADMINISTRATOR'].includes(currentUser?.role || '');
 
     // Fetch contract documents
     const { data: docsData, isLoading: docsLoading, refetch: refetchDocs } = useQuery({
@@ -259,22 +256,6 @@ export function ContractDetail() {
         }
     };
 
-    const handleUpdatePaymentMode = async () => {
-        setIsUpdatingPaymentMode(true);
-        try {
-            await api.patch(`/contracts/${id}`, {
-                paymentMode: editPaymentMode,
-                paymentDay: editPaymentMode === 'FIXED_DAY' ? Number(editPaymentDay) : null
-            });
-            queryClient.invalidateQueries({ queryKey: ['contract', id] });
-            addToast({ message: 'Ödəniş rejimi yeniləndi', type: 'success' });
-            setShowPaymentModeModal(false);
-        } catch (err: any) {
-            addToast({ message: err.response?.data?.error || 'Xəta baş verdi', type: 'error' });
-        } finally {
-            setIsUpdatingPaymentMode(false);
-        }
-    };
 
     const addPaymentMutation = useMutation({
         mutationFn: async (payload: any) => {
@@ -414,7 +395,13 @@ export function ContractDetail() {
                             Kirayəçi: <span className="font-semibold text-text">{tenantFullName}</span>
                         </p>
                     </div>
-                    <div className="flex gap-2 items-start mt-2 sm:mt-0">
+                    <div className="flex gap-2 items-start mt-2 sm:mt-0 flex-wrap">
+                        {canEdit && ['DRAFT', 'ACTIVE'].includes(contract.status) && (
+                            <Button variant="outline" onClick={() => navigate(`/contracts/${id}/edit`)}>
+                                <Edit2 className="w-4 h-4 mr-2" />
+                                Redaktə et
+                            </Button>
+                        )}
                         <Button
                             variant="outline"
                             onClick={async () => {
@@ -525,13 +512,6 @@ export function ContractDetail() {
                                         <div>
                                             <div className="flex items-center justify-between">
                                                 <h3 className="text-[11px] font-semibold text-muted uppercase tracking-[0.5px]">Ödəniş rejimi</h3>
-                                                <Button variant="ghost" size="sm" onClick={() => {
-                                                    setEditPaymentMode(contract.paymentMode || 'CALENDAR');
-                                                    setEditPaymentDay(contract.paymentDay || new Date(contract.startDate).getDate());
-                                                    setShowPaymentModeModal(true);
-                                                }} className="h-6 px-2 text-xs text-gold hover:text-gold-light -mt-1 -mr-2">
-                                                    <Edit2 className="w-3" />
-                                                </Button>
                                             </div>
                                             <p className="text-base font-bold text-text mt-1">
                                                 {contract.paymentMode === 'FIXED_DAY' ? `Başlama tarixindən (${contract.paymentDay || new Date(contract.startDate).getDate()}-dan)` : 'Ayın əvvəlindən (1-dən 1-nə)'}
@@ -1102,54 +1082,6 @@ export function ContractDetail() {
                 </div>
             </Modal>
 
-            {/* Payment Mode Edit Modal */}
-            <Modal isOpen={showPaymentModeModal} onClose={() => setShowPaymentModeModal(false)} title="Ödəniş rejimini dəyiş">
-                <div className="space-y-4">
-                    <p className="text-sm text-muted">Aylıq ödənişlərin hesablanma və borc yaranma qaydasını seçin:</p>
-                    <div className="flex flex-col gap-3">
-                        <button
-                            type="button"
-                            onClick={() => setEditPaymentMode('CALENDAR')}
-                            className={`p-3 border rounded-lg text-left transition-colors flex items-center justify-between ${editPaymentMode === 'CALENDAR' ? 'border-gold bg-gold/10 text-gold' : 'border-border text-text hover:bg-surface'}`}
-                        >
-                            <span>Ayın əvvəlindən (1-dən 1-nə)</span>
-                            {editPaymentMode === 'CALENDAR' && <Check className="w-4 h-4 ml-2 flex-shrink-0" />}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setEditPaymentMode('FIXED_DAY')}
-                            className={`p-3 border rounded-lg text-left transition-colors flex items-center justify-between ${editPaymentMode === 'FIXED_DAY' ? 'border-gold bg-gold/10 text-gold' : 'border-border text-text hover:bg-surface'}`}
-                        >
-                            <span>Başlama tarixindən ({editPaymentDay}-dan {editPaymentDay}-a)</span>
-                            {editPaymentMode === 'FIXED_DAY' && <Check className="w-4 h-4 ml-2 flex-shrink-0" />}
-                        </button>
-                    </div>
-
-                    {editPaymentMode === 'FIXED_DAY' && (
-                        <div className="mt-4 p-3 bg-surface border border-border rounded-lg space-y-3">
-                            <Input
-                                label="Ödəniş günü (1-31)"
-                                type="number"
-                                min="1"
-                                max="31"
-                                value={editPaymentDay}
-                                onChange={(e) => setEditPaymentDay(Number(e.target.value))}
-                            />
-                            <div className="flex gap-2 items-start text-xs text-gold/80 bg-gold/5 p-2 rounded">
-                                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                                <p>Gözlənilən ödənişlər hər ay bu müqavilənin başlama tarixində yaranacaq.</p>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="flex gap-4 pt-2">
-                        <Button variant="outline" className="flex-1" onClick={() => setShowPaymentModeModal(false)}>Ləğv et</Button>
-                        <Button className="flex-1" onClick={handleUpdatePaymentMode} disabled={isUpdatingPaymentMode}>
-                            {isUpdatingPaymentMode ? 'Yadda saxlanılır...' : 'Yadda saxla'}
-                        </Button>
-                    </div>
-                </div>
-            </Modal>
         </>
     );
 }

@@ -2,6 +2,8 @@ import type { PrismaClient } from '@prisma/client'
 import { PaymentStatus } from '@prisma/client'
 import { calculateNextPeriod, getDueDate, isOverdue } from '../utils/contractUtils.js'
 import { logger } from '../logger.js'
+import { writeAuditLog } from '../utils/audit.js'
+import { sendRenewalWarning } from '../services/email.js'
 
 /**
  * generateUnpaidRecords — runs daily to create UNPAID payment records
@@ -123,6 +125,177 @@ export async function markOverduePayments(prisma: PrismaClient): Promise<void> {
             }
         } catch (err) {
             logger.error(`[BillingCron] Failed to check overdue for payment ${payment.id}:`, err)
+        }
+    }
+}
+
+/**
+ * checkRenewalWarnings — runs daily to send renewal warning emails for contracts
+ * with autoRenewal=true that are approaching their endDate.
+ */
+export async function checkRenewalWarnings(prisma: PrismaClient): Promise<void> {
+    const today = new Date()
+
+    const contracts = await prisma.contract.findMany({
+        where: {
+            status: 'ACTIVE',
+            autoRenewal: true,
+            renewalNoticeDays: { not: null },
+            deletedAt: null,
+        },
+        select: {
+            id: true,
+            organizationId: true,
+            number: true,
+            endDate: true,
+            renewalNoticeDays: true,
+            tenant: { select: { firstName: true, lastName: true, companyName: true, tenantType: true } },
+            property: { select: { name: true } },
+            organization: {
+                select: {
+                    users: {
+                        where: { role: 'OWNER', isActive: true },
+                        select: { id: true, email: true },
+                        take: 1,
+                    },
+                },
+            },
+        },
+    })
+
+    for (const contract of contracts) {
+        try {
+            if (!contract.renewalNoticeDays) continue
+
+            const noticeDays = contract.renewalNoticeDays
+            const warningDate = new Date(contract.endDate)
+            warningDate.setDate(warningDate.getDate() - noticeDays)
+
+            // Only trigger when today is within the warning window and contract hasn't ended
+            if (today < warningDate || today >= contract.endDate) continue
+
+            // Check if warning was already sent for this contract
+            const existingWarning = await prisma.auditLog.findFirst({
+                where: { entityType: 'Contract', entityId: contract.id, action: 'CONTRACT_RENEWAL_WARNING' },
+                select: { id: true },
+            })
+            if (existingWarning) continue
+
+            const owner = contract.organization.users[0]
+            if (owner?.email) {
+                const tenantName = contract.tenant.tenantType === 'fiziki'
+                    ? `${contract.tenant.firstName || ''} ${contract.tenant.lastName || ''}`.trim()
+                    : contract.tenant.companyName || ''
+
+                await sendRenewalWarning(owner.email, {
+                    contractNumber: contract.number,
+                    tenantName,
+                    propertyName: contract.property.name,
+                    endDate: contract.endDate.toISOString().slice(0, 10),
+                    renewalNoticeDays: noticeDays,
+                })
+            }
+
+            if (owner?.id) {
+                await writeAuditLog(prisma, {
+                    organizationId: contract.organizationId,
+                    userId: owner.id,
+                    action: 'CONTRACT_RENEWAL_WARNING',
+                    entityType: 'Contract',
+                    entityId: contract.id,
+                    metadata: {
+                        endDate: contract.endDate.toISOString(),
+                        renewalNoticeDays: noticeDays,
+                    },
+                })
+            }
+
+            logger.info(`[BillingCron] Sent renewal warning for contract ${contract.id}`)
+        } catch (err) {
+            logger.error(`[BillingCron] Failed renewal warning for contract ${contract.id}:`, err)
+        }
+    }
+}
+
+/**
+ * processAutoRenewals — runs daily to auto-renew expired contracts with autoRenewal=true.
+ */
+export async function processAutoRenewals(prisma: PrismaClient): Promise<void> {
+    const today = new Date()
+
+    const contracts = await prisma.contract.findMany({
+        where: {
+            status: 'ACTIVE',
+            autoRenewal: true,
+            endDate: { lt: today },
+            deletedAt: null,
+        },
+        select: {
+            id: true,
+            organizationId: true,
+            number: true,
+            startDate: true,
+            endDate: true,
+            renewalType: true,
+            organization: {
+                select: {
+                    users: {
+                        where: { role: 'OWNER', isActive: true },
+                        select: { id: true },
+                        take: 1,
+                    },
+                },
+            },
+        },
+    })
+
+    for (const contract of contracts) {
+        try {
+            // Check if this contract was already auto-renewed
+            const existingRenewal = await prisma.auditLog.findFirst({
+                where: { entityType: 'Contract', entityId: contract.id, action: 'CONTRACT_AUTO_RENEWED' },
+                select: { id: true },
+            })
+            if (existingRenewal) continue
+
+            const oldEndDate = new Date(contract.endDate)
+            let newEndDate: Date
+
+            if (contract.renewalType === 'MONTHLY') {
+                newEndDate = new Date(oldEndDate)
+                newEndDate.setDate(newEndDate.getDate() + 30)
+            } else {
+                // SAME_PERIOD (default)
+                const durationMs = new Date(contract.endDate).getTime() - new Date(contract.startDate).getTime()
+                const durationDays = Math.floor(durationMs / (1000 * 60 * 60 * 24))
+                newEndDate = new Date(oldEndDate)
+                newEndDate.setDate(newEndDate.getDate() + durationDays)
+            }
+
+            await prisma.contract.update({
+                where: { id: contract.id },
+                data: { endDate: newEndDate },
+            })
+
+            const owner = contract.organization.users[0]
+            if (owner?.id) {
+                await writeAuditLog(prisma, {
+                    organizationId: contract.organizationId,
+                    userId: owner.id,
+                    action: 'CONTRACT_AUTO_RENEWED',
+                    entityType: 'Contract',
+                    entityId: contract.id,
+                    metadata: {
+                        oldEndDate: oldEndDate.toISOString(),
+                        newEndDate: newEndDate.toISOString(),
+                        renewalType: contract.renewalType ?? 'SAME_PERIOD',
+                    },
+                })
+            }
+
+            logger.info(`[BillingCron] Auto-renewed contract ${contract.id} → ${newEndDate.toISOString()}`)
+        } catch (err) {
+            logger.error(`[BillingCron] Failed auto-renewal for contract ${contract.id}:`, err)
         }
     }
 }

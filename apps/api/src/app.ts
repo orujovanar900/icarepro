@@ -24,7 +24,7 @@ import listingsRoutes from './routes/listings.js'
 import queueRoutes from './routes/queue.js'
 
 import cron from 'node-cron'
-import { generateUnpaidRecords, markOverduePayments } from './cron/billingCron.js'
+import { generateUnpaidRecords, markOverduePayments, checkRenewalWarnings, processAutoRenewals } from './cron/billingCron.js'
 
 import './types.js'
 import './cron/alerts.js'
@@ -128,6 +128,8 @@ export async function buildApp() {
         try {
             await generateUnpaidRecords(app.prisma)
             await markOverduePayments(app.prisma)
+            await checkRenewalWarnings(app.prisma)
+            await processAutoRenewals(app.prisma)
             app.log.info('[BillingCron] Daily billing run completed')
         } catch (err) {
             app.log.error({ err }, '[BillingCron] Daily billing run failed')

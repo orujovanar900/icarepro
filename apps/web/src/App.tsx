@@ -25,6 +25,7 @@ const Dashboard = React.lazy(() => import('./pages/Dashboard').then(m => ({ defa
 const Profile = React.lazy(() => import('./pages/Profile').then(m => ({ default: m.Profile })));
 const Contracts = React.lazy(() => import('./pages/Contracts').then(m => ({ default: m.Contracts })));
 const ContractDetail = React.lazy(() => import('./pages/ContractDetail').then(m => ({ default: m.ContractDetail })));
+const ContractForm = React.lazy(() => import('./pages/ContractForm').then(m => ({ default: m.ContractForm })));
 const Properties = React.lazy(() => import('./pages/Properties').then(m => ({ default: m.Properties })));
 const PropertyDetail = React.lazy(() => import('./pages/PropertyDetail').then(m => ({ default: m.PropertyDetail })));
 const Income = React.lazy(() => import('./pages/Income').then(m => ({ default: m.Income })));
@@ -118,6 +119,9 @@ export default function App() {
 
                                     <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
                                         <Route path="/contracts" element={<Contracts />} />
+                                        {/* /contracts/yeni MUST be before /contracts/:id to avoid route conflict */}
+                                        <Route path="/contracts/yeni" element={<ContractForm />} />
+                                        <Route path="/contracts/:id/edit" element={<ContractForm />} />
                                         <Route path="/contracts/:id" element={<ContractDetail />} />
                                         <Route path="/properties" element={<Properties />} />
                                         <Route path="/properties/:id" element={<PropertyDetail />} />

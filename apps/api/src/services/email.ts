@@ -195,3 +195,28 @@ export async function sendListingRejected(to: string, data: {
     `
   });
 }
+
+export async function sendRenewalWarning(to: string, data: {
+  contractNumber: string,
+  tenantName: string,
+  propertyName: string,
+  endDate: string,
+  renewalNoticeDays: number,
+}) {
+  await resend.emails.send({
+    from: 'icare@icarepro.az',
+    to,
+    subject: `🔄 Müqavilə avtomatik yenilənəcək — ${data.contractNumber}`,
+    html: `
+      <h2>Avtomatik Yeniləmə Xəbərdarlığı</h2>
+      <p>Müqavilə: <b>${data.contractNumber}</b></p>
+      <p>İcarəçi: <b>${data.tenantName}</b></p>
+      <p>Obyekt: <b>${data.propertyName}</b></p>
+      <p>Bitmə tarixi: <b>${data.endDate}</b></p>
+      <p>Bu müqavilə ${data.renewalNoticeDays} gün ərzində avtomatik yenilənəcək.</p>
+      <a href="${process.env['FRONTEND_URL'] || 'https://icarepro.pages.dev'}/contracts">
+        Müqaviləyə bax →
+      </a>
+    `
+  });
+}

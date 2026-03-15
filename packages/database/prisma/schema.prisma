@@ -326,6 +326,8 @@ model Contract {
 
   // Stage 2 Additions
   autoRenewal        Boolean  @default(false)
+  renewalNoticeDays  Int?     // days before endDate to send renewal warning (e.g. 60)
+  renewalType        String?  // SAME_PERIOD = renew for same duration | MONTHLY = month-to-month
   isDepositReturned  Boolean  @default(false)
   lateFeePercentage  Decimal? @db.Decimal(5, 2)
   gracePeriodDays    Int?     @default(0)

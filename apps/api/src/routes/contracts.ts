@@ -45,7 +45,7 @@ const newTenantSchema = z.union([
 const createSchema = z.object({
     number: z.string().min(1),
     propertyId: z.string().min(1),
-    tenantId: z.string().optional(), // optional if newTenant is provided
+    tenantId: z.string().optional(),
     rentalType: z.enum(['RESIDENTIAL_LONG', 'COMMERCIAL', 'RESIDENTIAL_SHORT', 'PARKING', 'SUBLEASE']),
     monthlyRent: z.number().positive(),
     startDate: z.string().date(),
@@ -60,16 +60,44 @@ const createSchema = z.object({
     notes: z.string().optional(),
     paymentMode: z.enum(['CALENDAR', 'FIXED_DAY']).optional(),
     paymentDay: z.number().int().min(1).max(31).optional(),
-    // Inline tenant creation
+    paymentTiming: z.enum(['PREPAID', 'POSTPAID']).default('PREPAID'),
+    fixedPaymentDay: z.boolean().default(false),
+    gracePeriodDays: z.number().int().min(0).max(30).default(0),
+    firstPeriodAmount: z.number().positive().optional(),
+    status: z.enum(['DRAFT', 'ACTIVE']).default('ACTIVE'),
+    autoRenewal: z.boolean().default(false),
+    renewalNoticeDays: z.number().int().min(1).max(180).optional(),
+    renewalType: z.enum(['SAME_PERIOD', 'MONTHLY']).optional(),
     newTenant: newTenantSchema.optional(),
-    // When existing tenant's data was changed in contract form
     updateTenant: z.boolean().optional(),
 })
 
-const updateSchema = createSchema.partial().extend({
-    // TERMINATED is intentionally excluded — use PATCH /:id/terminate which enforces
-    // reason, date, property VACANT update, and audit log.
+const updateSchema = z.object({
+    number: z.string().min(1).optional(),
+    monthlyRent: z.number().positive().optional(),
+    endDate: z.string().date().optional(),
+    taxRate: z.number().min(0).max(100).optional(),
+    depositAmount: z.number().min(0).optional(),
+    isDepositReturned: z.boolean().optional(),
+    baseRent: z.number().min(0).optional(),
+    revenuePercent: z.number().min(0).max(100).optional(),
+    dailyRate: z.number().min(0).optional(),
+    parentContractId: z.string().optional(),
+    notes: z.string().optional(),
+    paymentMode: z.enum(['CALENDAR', 'FIXED_DAY']).optional(),
+    paymentDay: z.number().int().min(1).max(31).optional(),
+    paymentTiming: z.enum(['PREPAID', 'POSTPAID']).optional(),
+    fixedPaymentDay: z.boolean().optional(),
+    gracePeriodDays: z.number().int().min(0).max(30).optional(),
+    // TERMINATED is intentionally excluded — use PATCH /:id/terminate
     status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED']).optional(),
+    autoRenewal: z.boolean().optional(),
+    renewalNoticeDays: z.number().int().min(1).max(180).optional(),
+    renewalType: z.enum(['SAME_PERIOD', 'MONTHLY']).optional(),
+    effectiveFrom: z.object({
+        month: z.number().int().min(1).max(12),
+        year: z.number().int().min(2020).max(2030),
+    }).optional(),
 })
 
 
@@ -211,7 +239,7 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
         const body = createSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
 
-        const { startDate, endDate, monthlyRent, newTenant, updateTenant, ...rest } = body.data
+        const { startDate, endDate, monthlyRent, newTenant, updateTenant, firstPeriodAmount, ...rest } = body.data
 
         // Resolve tenantId: either existing or create a new tenant inline
         let tenantId = rest.tenantId
@@ -274,6 +302,24 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
                 } as never,
             })
 
+            if (firstPeriodAmount !== undefined) {
+                await tx.payment.create({
+                    data: {
+                        contractId: created.id,
+                        organizationId: created.organizationId,
+                        amount: firstPeriodAmount,
+                        expectedAmount: firstPeriodAmount,
+                        status: 'UNPAID',
+                        periodMonth: new Date(startDate).getMonth() + 1,
+                        periodYear: new Date(startDate).getFullYear(),
+                        paymentType: 'CASH',
+                        paymentDate: new Date(startDate),
+                        isPenalty: false,
+                        createdBy: null,
+                    } as never,
+                })
+            }
+
             await writeAuditLog(tx, {
                 organizationId: req.user.organizationId,
                 userId: req.user.sub,
@@ -324,40 +370,139 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
     // PATCH /contracts/:id
     fastify.patch('/:id', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
-        const body = updateSchema.safeParse(req.body)
-        if (!body.success) return sendZodError(reply, body.error)
 
-        // Получаем старые значения для AuditLog
+        // Fetch old contract first for immutable check and price/endDate logic
         const old = await fastify.prisma.contract.findFirst({ where: { id, ...withOrg(req) } })
         if (!old) return reply.code(404).send({ success: false, error: 'Contract not found' })
 
-        const { startDate, endDate, monthlyRent, ...rest } = body.data
+        // Block immutable fields for ACTIVE contracts (check raw body before Zod strips them)
+        if (old.status === 'ACTIVE') {
+            const rawBody = req.body as Record<string, unknown>
+            const immutableFields = ['propertyId', 'tenantId', 'startDate', 'rentalType'].filter(
+                f => f in rawBody && rawBody[f] !== undefined
+            )
+            if (immutableFields.length > 0) {
+                return reply.code(400).send({ success: false, error: 'Bu sahələr aktiv müqavilədə dəyişdirilə bilməz' })
+            }
+        }
+
+        const body = updateSchema.safeParse(req.body)
+        if (!body.success) return sendZodError(reply, body.error)
+
+        const { endDate, monthlyRent, effectiveFrom, fixedPaymentDay, ...rest } = body.data
+        const priceChanged = monthlyRent !== undefined && Number(monthlyRent) !== Number(old.monthlyRent)
+
+        // require effectiveFrom when price changes
+        if (priceChanged && !effectiveFrom) {
+            return reply.code(400).send({ success: false, error: 'Yeni qiymət üçün keçərli ay göstərilməlidir' })
+        }
+
         const data: Record<string, unknown> = { ...rest }
         if (monthlyRent !== undefined) data['monthlyRent'] = monthlyRent
-        if (startDate !== undefined) data['startDate'] = new Date(startDate)
         if (endDate !== undefined) data['endDate'] = new Date(endDate)
+        // Sync paymentMode with fixedPaymentDay when provided
+        if (fixedPaymentDay !== undefined) {
+            data['fixedPaymentDay'] = fixedPaymentDay
+            data['paymentMode'] = fixedPaymentDay ? 'FIXED_DAY' : 'CALENDAR'
+        }
 
         const contract = await fastify.prisma.$transaction(async (tx) => {
             const updated = await tx.contract.update({
                 where: { id, ...withOrg(req) },
                 data: data as never,
             })
+
             if (body.data.status === 'ACTIVE' && updated.propertyId) {
                 await tx.property.update({
                     where: { id: updated.propertyId },
                     data: { status: 'OCCUPIED' },
                 })
             }
-            return updated
-        })
 
-        await writeAuditLog(fastify.prisma, {
-            organizationId: req.user.organizationId,
-            userId: req.user.sub,
-            action: 'UPDATE_CONTRACT',
-            entityType: 'Contract',
-            entityId: contract.id,
-            metadata: { oldValue: old, newValue: body.data },
+            // Update UNPAID payments when price changes
+            if (priceChanged && effectiveFrom) {
+                const { month: effMonth, year: effYear } = effectiveFrom
+                await tx.payment.updateMany({
+                    where: {
+                        contractId: id,
+                        status: 'UNPAID',
+                        OR: [
+                            { periodYear: { gt: effYear } },
+                            { periodYear: effYear, periodMonth: { gte: effMonth } },
+                        ],
+                    },
+                    data: { expectedAmount: monthlyRent },
+                })
+                await writeAuditLog(tx, {
+                    organizationId: req.user.organizationId,
+                    userId: req.user.sub,
+                    action: 'CONTRACT_PRICE_CHANGED',
+                    entityType: 'Contract',
+                    entityId: id,
+                    metadata: {
+                        oldPrice: Number(old.monthlyRent),
+                        newPrice: monthlyRent,
+                        effectiveFrom,
+                    },
+                })
+            }
+
+            // endDate shrink/extend logic
+            if (endDate !== undefined) {
+                const newEnd = new Date(endDate)
+                const oldEnd = new Date(old.endDate)
+                if (newEnd < oldEnd) {
+                    const newEndYear = newEnd.getFullYear()
+                    const newEndMonth = newEnd.getMonth() + 1
+                    const deleted = await tx.payment.deleteMany({
+                        where: {
+                            contractId: id,
+                            status: 'UNPAID',
+                            OR: [
+                                { periodYear: { gt: newEndYear } },
+                                { periodYear: newEndYear, periodMonth: { gt: newEndMonth } },
+                            ],
+                        },
+                    })
+                    await writeAuditLog(tx, {
+                        organizationId: req.user.organizationId,
+                        userId: req.user.sub,
+                        action: 'CONTRACT_END_DATE_CHANGED',
+                        entityType: 'Contract',
+                        entityId: id,
+                        metadata: {
+                            oldEndDate: old.endDate.toISOString(),
+                            newEndDate: endDate,
+                            cancelledPayments: deleted.count,
+                        },
+                    })
+                } else if (newEnd > oldEnd) {
+                    await writeAuditLog(tx, {
+                        organizationId: req.user.organizationId,
+                        userId: req.user.sub,
+                        action: 'CONTRACT_END_DATE_CHANGED',
+                        entityType: 'Contract',
+                        entityId: id,
+                        metadata: {
+                            oldEndDate: old.endDate.toISOString(),
+                            newEndDate: endDate,
+                            type: 'EXTENDED',
+                        },
+                    })
+                }
+            }
+
+            // General audit log
+            await writeAuditLog(tx, {
+                organizationId: req.user.organizationId,
+                userId: req.user.sub,
+                action: 'UPDATE_CONTRACT',
+                entityType: 'Contract',
+                entityId: updated.id,
+                metadata: { oldValue: { monthlyRent: old.monthlyRent, endDate: old.endDate }, newValue: body.data },
+            })
+
+            return updated
         })
 
         return reply.send({ success: true, data: contract })
