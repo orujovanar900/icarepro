@@ -110,7 +110,8 @@ export function Register() {
             if (selectedRole === 'ICARECI') {
                 navigate('/kabinet');
             } else {
-                navigate('/dashboard');
+                const hasSubscription = user.organization?.subscriptionStatus === 'ACTIVE';
+                navigate(hasSubscription ? '/dashboard' : '/dashboard/elanlar');
             }
         } catch (error: any) {
             const msg = error.response?.data?.error || 'Qeydiyyat uğursuz oldu.'

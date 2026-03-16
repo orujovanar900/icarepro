@@ -19,10 +19,8 @@ const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
         const org = withOrg(req)
         const now = new Date()
 
-        // Use +30 days window for expiring contracts and due payments
+        // Use +30 days window for expiring contracts
         const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
-        // Use +3 days for imminent due payments
-        const in3Days = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
 
         const notifications: AppNotification[] = []
 
@@ -48,48 +46,39 @@ const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
             })
         }
 
-        // 2 & 3. Overdue Payments & Payment Due Reminders
-        const activeContracts = await fastify.prisma.contract.findMany({
-            where: { ...org, status: 'ACTIVE' },
-            include: { tenant: { select: { id: true, tenantType: true, firstName: true, lastName: true, companyName: true } }, property: true, payments: true }
+        // 2 & 3. Overdue Payments & Payment Due Reminders — based on actual Payment.status
+        const pendingPayments = await fastify.prisma.payment.findMany({
+            where: {
+                ...org,
+                status: { in: ['OVERDUE', 'UNPAID'] },
+                deletedAt: null,
+            },
+            include: {
+                contract: {
+                    include: {
+                        property: true,
+                        tenant: { select: { id: true, tenantType: true, firstName: true, lastName: true, companyName: true } }
+                    }
+                }
+            }
         })
 
-        for (const c of activeContracts) {
-            // Find total paid vs expected
-            const totalPaid = c.payments.reduce((sum, p) => sum + Number(p.amount), 0)
-            const start = new Date(c.startDate)
-            const expectedPaymentCycle = Math.floor(totalPaid / Number(c.monthlyRent))
-
-            const nextExpectedDate = new Date(start)
-            nextExpectedDate.setMonth(nextExpectedDate.getMonth() + expectedPaymentCycle)
-
-            if (nextExpectedDate < now) {
-                // OVERDUE
-                const diffTime = Math.abs(now.getTime() - nextExpectedDate.getTime())
-                const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-                if (daysOverdue > 0) {
-                    notifications.push({
-                        id: `overdue-${c.id}`,
-                        type: 'PAYMENT_OVERDUE',
-                        title: 'Gecikmiş Ödəniş',
-                        message: `${c.tenant.tenantType === 'fiziki' ? `${c.tenant.firstName || ''} ${c.tenant.lastName || ''}`.trim() : c.tenant.companyName || ''} (${c.property.name}) ödənişi ${daysOverdue} gün gecikdirilir.`,
-                        date: nextExpectedDate,
-                        metadata: { contractId: c.id, daysOverdue }
-                    })
-                }
-            } else if (nextExpectedDate <= in3Days) {
-                // DUE IN <= 3 DAYS
-                const diffTime = Math.abs(nextExpectedDate.getTime() - now.getTime())
-                const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-                notifications.push({
-                    id: `due-${c.id}`,
-                    type: 'PAYMENT_DUE',
-                    title: 'Yaxınlaşan Ödəniş',
-                    message: `${c.tenant.tenantType === 'fiziki' ? `${c.tenant.firstName || ''} ${c.tenant.lastName || ''}`.trim() : c.tenant.companyName || ''} (${c.property.name}) üçün ödəniş vaxtına ${daysLeft} gün qalıb.`,
-                    date: nextExpectedDate,
-                    metadata: { contractId: c.id, daysLeft }
-                })
-            }
+        for (const payment of pendingPayments) {
+            const c = payment.contract
+            const tenantName = c.tenant.tenantType === 'fiziki'
+                ? `${c.tenant.firstName || ''} ${c.tenant.lastName || ''}`.trim()
+                : c.tenant.companyName || ''
+            const isOverdue = payment.status === 'OVERDUE'
+            notifications.push({
+                id: `${isOverdue ? 'overdue' : 'due'}-${payment.id}`,
+                type: isOverdue ? 'PAYMENT_OVERDUE' : 'PAYMENT_DUE',
+                title: isOverdue ? 'Gecikmiş Ödəniş' : 'Yaxınlaşan Ödəniş',
+                message: isOverdue
+                    ? `${tenantName} (${c.property.name}) ödənişi gecikdirilir.`
+                    : `${tenantName} (${c.property.name}) üçün ödəniş vaxtı yaxınlaşır.`,
+                date: new Date(payment.paymentDate),
+                metadata: { contractId: c.id, paymentId: payment.id, amount: Number(payment.expectedAmount ?? payment.amount) }
+            })
         }
 
         // (Sorting by date ascending so most urgent is first... wait no, actually overdue = oldest date. So sort by date asc)
