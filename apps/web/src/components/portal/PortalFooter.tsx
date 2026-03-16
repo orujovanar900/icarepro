@@ -8,8 +8,7 @@ export function PortalFooter() {
                 {/* Left: logo + tagline */}
                 <div className="flex flex-col gap-3">
                     <div className="flex items-center">
-                        <span className="text-xl font-extrabold tracking-tight text-white">icarə</span>
-                        <span className="text-xl font-extrabold tracking-tight" style={{ color: '#E8620A' }}>pro</span>
+                        <span className="text-xl font-extrabold tracking-tight text-gold">icarepro</span>
                     </div>
                     <p className="text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
                         Boşalmadan əvvəl növbəni tut. Azərbaycanın etibarlı icarə platformu.

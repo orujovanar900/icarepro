@@ -31,7 +31,7 @@ export function ForgotPassword() {
                 {/* Logo */}
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-extrabold font-heading text-gold">
-                        İcarə<span className="text-text font-light">Pro</span>
+                        <span className="font-extrabold text-gold">icarepro</span>
                     </h1>
                 </div>
 

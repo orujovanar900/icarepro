@@ -57,6 +57,7 @@ export function Register() {
     const [showPass, setShowPass] = React.useState(false);
     const [showConfirm, setShowConfirm] = React.useState(false);
     const [selectedRole, setSelectedRole] = React.useState<SelectedRole>('OWNER');
+    const [submitError, setSubmitError] = React.useState<string | null>(null);
 
     const {
         register,
@@ -70,6 +71,21 @@ export function Register() {
     const passwordValue = watch('password') ?? '';
     const hasTypedPassword = passwordValue.length > 0;
     const isAgentlik = selectedRole === 'AGENTLIK';
+
+    const emailValue = watch('email')
+    React.useEffect(() => {
+        if (emailValue) setSubmitError(null)
+    }, [emailValue])
+
+    function mapRegisterError(msg: string): string {
+        if (msg.includes('artıq qeydiyyatdan keçib') || msg.includes('artıq mövcuddur')) {
+            return 'Bu e-poçt ünvanı ilə hesab artıq mövcuddur. Daxil olmaq istəyirsiniz?'
+        }
+        if (msg.includes('limit') || msg.includes('1 saat')) {
+            return 'Çox sayda cəhd. Zəhmət olmasa 1 saat sonra yenidən cəhd edin.'
+        }
+        return 'Qeydiyyat uğursuz oldu. Zəhmət olmasa məlumatları yoxlayın.'
+    }
 
     const onSubmit = async (data: RegisterFormValues) => {
         if (isAgentlik && (!data.organizationName || data.organizationName.trim().length < 2)) {
@@ -97,10 +113,10 @@ export function Register() {
                 navigate('/dashboard');
             }
         } catch (error: any) {
-            addToast({
-                type: 'error',
-                message: error.response?.data?.error || 'Qeydiyyat uğursuz oldu. Zəhmət olmasa təkrar cəhd edin.',
-            });
+            const msg = error.response?.data?.error || 'Qeydiyyat uğursuz oldu.'
+            const friendly = mapRegisterError(msg)
+            setSubmitError(friendly)
+            addToast({ type: 'error', message: friendly })
         } finally {
             setIsLoading(false);
         }
@@ -114,12 +130,8 @@ export function Register() {
             <div className="w-full max-w-lg space-y-6">
                 <div className="text-center">
                     <h1 className="text-5xl font-heading tracking-tight flex items-center justify-center gap-2">
-                        <span className="text-gold font-extrabold">İcarə</span>
-                        <span className="text-white font-normal">Pro</span>
+                        <span className="font-extrabold text-gold">icarepro</span>
                     </h1>
-                    <p style={{ fontStyle: 'italic', color: '#8899B0', fontSize: '13px' }} className="mt-1 mb-2">
-                        "Mülkünüzü ağıllı idarə edin"
-                    </p>
                     <p className="mt-2 text-sm text-text">Yeni hesab yaradın və idarəetməyə başlayın</p>
                 </div>
 
@@ -253,6 +265,19 @@ export function Register() {
                             />
                         </CardContent>
                         <CardFooter className="flex flex-col gap-3">
+                            {submitError && (
+                                <div className="w-full rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400 flex items-start gap-2">
+                                    <span className="flex-shrink-0">⚠️</span>
+                                    <div>
+                                        <p>{submitError}</p>
+                                        {submitError.includes('mövcuddur') && (
+                                            <Link to="/login" className="text-gold underline mt-1 block text-sm">
+                                                Daxil olun →
+                                            </Link>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                             <Button type="submit" variant="primary" className="w-full" size="lg" isLoading={isLoading}>
                                 Hesab yarat
                             </Button>

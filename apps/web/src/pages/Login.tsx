@@ -25,14 +25,34 @@ export function Login() {
     const [isLoading, setIsLoading] = React.useState(false);
     const [showPass, setShowPass] = React.useState(false);
     const [remember, setRemember] = React.useState(true);
+    const [submitError, setSubmitError] = React.useState<string | null>(null);
 
     const {
         register,
         handleSubmit,
+        watch,
         formState: { errors },
     } = useForm<LoginFormValues>({
         resolver: zodResolver(loginSchema),
     });
+
+    const emailValue = watch('email')
+    React.useEffect(() => {
+        if (emailValue) setSubmitError(null)
+    }, [emailValue])
+
+    function mapLoginError(msg: string): string {
+        if (msg.includes('yanlış') || msg.includes('yanlışdır')) {
+            return 'E-poçt və ya şifrə yanlışdır.'
+        }
+        if (msg.includes('tapılmadı') || msg.includes('mövcud deyil')) {
+            return 'Bu e-poçt ünvanı ilə hesab tapılmadı.'
+        }
+        if (msg.includes('bloklan') || msg.includes('müvəqqəti')) {
+            return msg
+        }
+        return 'Daxil olmaq mümkün olmadı. Zəhmət olmasa yenidən cəhd edin.'
+    }
 
     const onSubmit = async (data: LoginFormValues) => {
         try {
@@ -62,10 +82,9 @@ export function Login() {
                 navigate('/dashboard/elanlar');
             }
         } catch (error: any) {
-            addToast({
-                type: 'error',
-                message: error.response?.data?.message || 'Giriş uğursuz oldu. Zəhmət olmasa təkrar cəhd edin.',
-            });
+            const msg = error.response?.data?.error || 'Daxil olmaq mümkün olmadı.'
+            setSubmitError(mapLoginError(msg))
+            addToast({ type: 'error', message: mapLoginError(msg) })
         } finally {
             setIsLoading(false);
         }
@@ -79,12 +98,8 @@ export function Login() {
             <div className="w-full max-w-md space-y-8">
                 <div className="text-center">
                     <Link to="/" className="text-5xl font-heading tracking-tight flex items-center justify-center gap-2 hover:opacity-80 transition-opacity">
-                        <span className="text-gold font-extrabold">İcarə</span>
-                        <span className="text-white font-normal">Pro</span>
+                        <span className="font-extrabold text-gold">icarepro</span>
                     </Link>
-                    <p style={{ fontStyle: 'italic', color: '#8899B0', fontSize: '13px' }} className="mt-1 mb-2">
-                        "Mülkünüzü ağıllı idarə edin"
-                    </p>
                     <p className="mt-2 text-sm text-text">Sistemi idarə etmək üçün daxil olun</p>
                 </div>
 
@@ -130,6 +145,12 @@ export function Login() {
                             </label>
                         </CardContent>
                         <CardFooter className="flex flex-col gap-3">
+                            {submitError && (
+                                <div className="w-full rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400 flex items-start gap-2">
+                                    <span className="flex-shrink-0">⚠️</span>
+                                    <p>{submitError}</p>
+                                </div>
+                            )}
                             <Button type="submit" variant="primary" className="w-full" size="lg" isLoading={isLoading}>
                                 Daxil ol
                             </Button>
