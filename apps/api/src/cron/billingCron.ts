@@ -317,3 +317,13 @@ export async function processAutoRenewals(prisma: PrismaClient): Promise<void> {
         }
     }
 }
+
+/**
+ * resetDailyTickerCounts — runs at midnight to reset todayCount for all ticker slots.
+ */
+export async function resetDailyTickerCounts(prisma: PrismaClient): Promise<void> {
+    await prisma.tickerSlot.updateMany({
+        data: { todayCount: 0, todayDate: new Date() },
+    })
+    logger.info('[BillingCron] Ticker daily counts reset')
+}

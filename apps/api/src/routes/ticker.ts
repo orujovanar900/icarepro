@@ -1,6 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
-import { Prisma } from '@prisma/client'
 import { authenticate } from '../middleware/authenticate.js'
 import { requireRole } from '../middleware/requireRole.js'
 import { writeAuditLog } from '../utils/audit.js'
@@ -20,6 +19,7 @@ const slotBodySchema = z.object({
     endDate:         z.string().datetime(),
     dailyHours:      z.array(z.number().int().min(0).max(23)).default([]),
     maxImpressions:  z.number().int().min(0).default(0),
+    dailyLimit:      z.number().int().min(0).default(0),
 })
 
 const patchBodySchema = slotBodySchema.partial().extend({
@@ -61,23 +61,34 @@ const tickerRoutes: FastifyPluginAsync = async (fastify) => {
             orderBy: { sortOrder: 'asc' },
         })
 
-        // Filter by dailyHours and maxImpressions in JS
+        const todayStr = now.toISOString().slice(0, 10)
+
+        // Filter by dailyHours, maxImpressions, and dailyLimit in JS
         const eligible = candidates.filter(slot => {
             const hours = slot.dailyHours as number[]
             const inHour = hours.length === 0 || hours.includes(currentHour)
             const underCap = slot.maxImpressions === 0 || slot.currentImpressions < slot.maxImpressions
-            return inHour && underCap
+            const slotTodayStr = slot.todayDate ? (slot.todayDate as Date).toISOString().slice(0, 10) : null
+            const effectiveTodayCount = slotTodayStr === todayStr ? slot.todayCount : 0
+            const underDailyLimit = slot.dailyLimit === 0 || effectiveTodayCount < slot.dailyLimit
+            return inHour && underCap && underDailyLimit
         })
 
         if (eligible.length === 0) {
             return reply.send({ success: true, data: [] })
         }
 
-        // Increment impressions for all returned slots (fire and forget)
-        const ids = eligible.map(s => s.id)
-        void fastify.prisma.$executeRaw(
-            Prisma.sql`UPDATE ticker_slots SET "currentImpressions" = "currentImpressions" + 1 WHERE id = ANY(${ids}::text[])`
-        ).catch(() => { /* non-critical */ })
+        // Increment impressions + daily count per slot (fire and forget)
+        for (const slot of eligible) {
+            const slotTodayStr = slot.todayDate ? (slot.todayDate as Date).toISOString().slice(0, 10) : null
+            const isNewDay = slotTodayStr !== todayStr
+            void fastify.prisma.tickerSlot.update({
+                where: { id: slot.id },
+                data: isNewDay
+                    ? { currentImpressions: { increment: 1 }, todayCount: 1, todayDate: now }
+                    : { currentImpressions: { increment: 1 }, todayCount: { increment: 1 } },
+            }).catch(() => { /* non-critical */ })
+        }
 
         const data = eligible.map(slot => ({
             id:        slot.id,
@@ -142,6 +153,7 @@ const tickerRoutes: FastifyPluginAsync = async (fastify) => {
                 endDate:        new Date(body.endDate),
                 dailyHours:     body.dailyHours,
                 maxImpressions: body.maxImpressions,
+                dailyLimit:     body.dailyLimit,
                 createdBy:      req.user.sub,
             },
         })
@@ -191,6 +203,7 @@ const tickerRoutes: FastifyPluginAsync = async (fastify) => {
         if (body.endDate         !== undefined) updateData['endDate']         = new Date(body.endDate)
         if (body.dailyHours      !== undefined) updateData['dailyHours']      = body.dailyHours
         if (body.maxImpressions      !== undefined) updateData['maxImpressions']      = body.maxImpressions
+        if (body.dailyLimit          !== undefined) updateData['dailyLimit']          = body.dailyLimit
         if (body.currentImpressions  !== undefined) updateData['currentImpressions']  = body.currentImpressions
 
         const slot = await fastify.prisma.tickerSlot.update({

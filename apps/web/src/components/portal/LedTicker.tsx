@@ -24,7 +24,7 @@ const BG      = '#1A1A2E';
 const GOLD    = '#C9A84C';
 const WHITE   = '#FFFFFF';
 const HEIGHT  = 38;
-const SPEED_S = 30; // seconds for full animation cycle
+const SPEED_S = 20; // seconds for full animation cycle
 
 const DEFAULT_TEXT = 'icarepro — Bakının birinci rəqəmsal icarə platforması · Elanınızı yerləşdirin · icarepro.az';
 const LOADING_TEXT = 'icarepro · Bakının rəqəmsal icarə platforması · ';
@@ -70,13 +70,13 @@ function SlotItem({ slot, navigate }: SlotItemProps) {
     const emoji     = isAd ? '📢' : '🏠';
     const color     = isAd ? GOLD : WHITE;
     const text      = `${emoji} ${slot.content}`;
-    const clickable = (isAd && !!slot.linkUrl) || (!isAd && !!slot.listingId);
+    const clickable = !!(slot.listingId || slot.linkUrl);
 
     const handleClick = () => {
-        if (isAd && slot.linkUrl) {
-            window.open(slot.linkUrl, '_blank', 'noopener,noreferrer');
-        } else if (!isAd && slot.listingId) {
+        if (slot.listingId) {
             navigate(`/elan/${slot.listingId}`);
+        } else if (slot.linkUrl) {
+            window.open(slot.linkUrl, '_blank', 'noopener,noreferrer');
         }
     };
 

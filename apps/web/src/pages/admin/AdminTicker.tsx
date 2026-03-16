@@ -20,6 +20,9 @@ interface TickerSlot {
     dailyHours:         number[];
     maxImpressions:     number;
     currentImpressions: number;
+    dailyLimit:         number;
+    todayCount:         number;
+    todayDate:          string | null;
     createdBy:          string;
     createdAt:          string;
     updatedAt:          string;
@@ -79,6 +82,7 @@ function defaultForm(): SlotForm {
         endDate:        fmtDateTimeLocal(end.toISOString()),
         dailyHours:     [],
         maxImpressions: 0,
+        dailyLimit:     0,
         isActive:       true,
     };
 }
@@ -93,6 +97,7 @@ interface SlotForm {
     endDate:        string;
     dailyHours:     number[];
     maxImpressions: number;
+    dailyLimit:     number;
     isActive:       boolean;
 }
 
@@ -157,6 +162,7 @@ function SlotModal({
                 endDate:        fmtDateTimeLocal(slot.endDate),
                 dailyHours:     slot.dailyHours,
                 maxImpressions: slot.maxImpressions,
+                dailyLimit:     slot.dailyLimit,
                 isActive:       slot.isActive,
             };
         }
@@ -205,6 +211,7 @@ function SlotModal({
                 endDate:        new Date(form.endDate).toISOString(),
                 dailyHours:     form.dailyHours,
                 maxImpressions: form.maxImpressions,
+                dailyLimit:     form.dailyLimit,
                 isActive:       form.isActive,
             };
             if (mode === 'create') {
@@ -318,8 +325,8 @@ function SlotModal({
                         />
                     </div>
 
-                    {/* Sort order + max impressions */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+                    {/* Sort order + max impressions + daily limit */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 14 }}>
                         <div>
                             <label style={labelStyle}>Sıra</label>
                             <input
@@ -337,6 +344,16 @@ function SlotModal({
                                 min={0}
                                 value={form.maxImpressions}
                                 onChange={e => set('maxImpressions', parseInt(e.target.value, 10) || 0)}
+                            />
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Gündəlik Limit <span style={{ fontWeight: 400, textTransform: 'none' }}>(0=limitsiz)</span></label>
+                            <input
+                                type="number"
+                                style={inputStyle}
+                                min={0}
+                                value={form.dailyLimit}
+                                onChange={e => set('dailyLimit', parseInt(e.target.value, 10) || 0)}
                             />
                         </div>
                     </div>
