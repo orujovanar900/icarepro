@@ -426,7 +426,7 @@ export function AdminStaff() {
                                     title="Rolu dəyiş"
                                     onClick={() => setEditTarget(member)}
                                     style={{
-                                        background: '#F0F9FF', border: '1px solid #BAE6FD',
+                                        background: 'rgba(3,105,161,0.12)', border: '1px solid rgba(3,105,161,0.25)',
                                         borderRadius: 6, padding: '5px 8px', cursor: 'pointer',
                                         color: '#0369A1', display: 'flex', alignItems: 'center',
                                     }}
@@ -439,10 +439,10 @@ export function AdminStaff() {
                                     title={member.isActive ? 'Deaktiv et' : 'Aktiv et'}
                                     onClick={() => toggleActiveMutation.mutate({ id: member.id, isActive: !member.isActive })}
                                     style={{
-                                        background: member.isActive ? '#FEF3C7' : '#D1FAE5',
-                                        border: `1px solid ${member.isActive ? '#FCD34D' : '#6EE7B7'}`,
+                                        background: member.isActive ? 'rgba(251,191,36,0.12)' : 'rgba(16,185,129,0.12)',
+                                        border: `1px solid ${member.isActive ? 'rgba(251,191,36,0.3)' : 'rgba(16,185,129,0.3)'}`,
                                         borderRadius: 6, padding: '5px 8px', cursor: 'pointer',
-                                        color: member.isActive ? '#92400E' : '#065F46',
+                                        color: member.isActive ? '#D97706' : '#059669',
                                         fontSize: 12, fontWeight: 600,
                                     }}
                                 >
@@ -454,7 +454,7 @@ export function AdminStaff() {
                                     title="Sil"
                                     onClick={() => setDeleteConfirm(member)}
                                     style={{
-                                        background: '#FEF2F2', border: '1px solid #FECACA',
+                                        background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)',
                                         borderRadius: 6, padding: '5px 8px', cursor: 'pointer',
                                         color: '#DC2626', display: 'flex', alignItems: 'center',
                                     }}

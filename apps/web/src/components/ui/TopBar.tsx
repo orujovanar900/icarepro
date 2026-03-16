@@ -11,7 +11,7 @@ function timeAgo(dateInput: Date | string) {
     if (diff < 0) {
         const days = Math.ceil(Math.abs(diff) / (1000 * 60 * 60 * 24));
         if (days === 0) return 'Bu gün';
-        return `${days} gün sonra`; // wait overdue is in the past! So `diff < 0` means PAST. So "gün əvvəl".
+        return `${days} gün əvvəl`;
     } else {
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         if (days === 0) return 'Bu gün';
