@@ -42,11 +42,10 @@ const allNavItems = [
     { name: 'billing', path: '/settings/billing', icon: CreditCard, label: 'Abonəlik Planı' },
     { name: 'listings', path: '/dashboard/elanlar', icon: Store, label: 'Elanlarım' },
     // SUPERADMIN items
-    { name: 'admin-dashboard', path: '/admin', icon: LayoutDashboard, label: 'Dashboard', adminOnly: true },
-    { name: 'admin-orgs', path: '/admin/users', icon: Building2, label: 'Təşkilatlar', adminOnly: true },
-    { name: 'admin-users', path: '/users', icon: Users, label: 'İstifadəçilər', adminOnly: true },
-    { name: 'admin-settings', path: '/settings', icon: Settings, label: 'Sistem Parametrləri', adminOnly: true },
-    { name: 'admin-listings', path: '/admin/elanlar', icon: Megaphone, label: 'Elanlar', adminOnly: true },
+    { name: 'admin-dashboard', path: '/admin', icon: LayoutDashboard, label: 'Dashboard', adminOnly: true, roles: ['SUPERADMIN'] },
+    { name: 'admin-orgs', path: '/admin/users', icon: Building2, label: 'Təşkilatlar', adminOnly: true, roles: ['SUPERADMIN', 'SUPPORT'] },
+    { name: 'admin-listings', path: '/admin/elanlar', icon: Megaphone, label: 'Elanlar', adminOnly: true, roles: ['SUPERADMIN', 'MODERATOR'] },
+    { name: 'admin-staff', path: '/admin/staff', icon: ShieldCheck, label: 'Platform Staff', adminOnly: true, roles: ['SUPERADMIN'] },
 ];
 
 export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: boolean; onClose?: () => void }) {
@@ -61,8 +60,13 @@ export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: bool
     const navItems = React.useMemo(() => {
         const role = user?.role || 'TENANT';
 
-        if (role === 'SUPERADMIN') {
-            return allNavItems.filter(item => item.adminOnly);
+        const PLATFORM_STAFF = ['SUPERADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE', 'CONTENT'];
+
+        if (PLATFORM_STAFF.includes(role)) {
+            // Show only admin items that include this role
+            return allNavItems.filter(
+                item => item.adminOnly && (item.roles ? item.roles.includes(role) : role === 'SUPERADMIN')
+            );
         }
 
         const allowedByRole: Record<string, string[]> = {

@@ -1,14 +1,14 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
-type Role = 'SUPERADMIN' | 'OWNER' | 'MANAGER' | 'CASHIER' | 'ACCOUNTANT' | 'ADMINISTRATOR' | 'TENANT' | 'AGENTLIK' | 'AGENT' | 'ICARECI';
+type Role = 'SUPERADMIN' | 'MODERATOR' | 'SUPPORT' | 'FINANCE' | 'CONTENT' | 'OWNER' | 'MANAGER' | 'CASHIER' | 'ACCOUNTANT' | 'ADMINISTRATOR' | 'TENANT' | 'AGENTLIK' | 'AGENT' | 'ICARECI';
 
 interface User {
     id: string;
     email: string;
     name: string;
     role: Role;
-    organizationId: string;
+    organizationId: string | null;  // null for platform staff
     telegramChatId?: string;
     organization?: {
         subscriptionStatus: string;

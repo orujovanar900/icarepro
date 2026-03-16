@@ -4,7 +4,7 @@ import bcrypt from 'bcrypt'
 import crypto from 'crypto'
 import type { UserRole } from '@prisma/client'
 import { authenticate } from '../middleware/authenticate.js'
-import { requireRole } from '../middleware/requireRole.js'
+import { requireRole, PLATFORM_ROLES } from '../middleware/requireRole.js'
 import { sendZodError } from '../utils/zodError.js'
 import { sendPasswordReset } from '../services/email.js'
 
@@ -186,7 +186,9 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
             },
         })
 
-        if (!user || !user.organization?.isActive) {
+        // Platform staff (MODERATOR, SUPPORT, FINANCE, CONTENT) have no organization — bypass org.isActive check
+        const isPlatformStaff = user && PLATFORM_ROLES.includes(user.role as any)
+        if (!user || (!isPlatformStaff && !user.organization?.isActive)) {
             return reply.code(401).send({ success: false, error: 'Məlumatlar yanlışdır' })
         }
 
@@ -308,7 +310,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         if (!body.success) return sendZodError(reply, body.error)
 
         const org = await fastify.prisma.organization.update({
-            where: { id: req.user.organizationId },
+            where: { id: req.user.organizationId as string },
             data: body.data,
             select: { id: true, name: true, plan: true, subscriptionPlan: true, subscriptionStatus: true, planExpiresAt: true, isActive: true, ownerType: true, activityLocation: true, taxVoen: true, isVatPayer: true }
         })

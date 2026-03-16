@@ -244,6 +244,22 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
                             <span className="bg-gold px-2 py-0.5 rounded-full text-[10px] font-medium text-white uppercase leading-none mt-0.5" style={{ letterSpacing: '0.02em' }}>
                                 Super Admin
                             </span>
+                        ) : user?.role === 'MODERATOR' ? (
+                            <span style={{ background: '#DBEAFE', color: '#1D4ED8', padding: '1px 8px', borderRadius: 12, fontSize: 10, fontWeight: 600, letterSpacing: '0.02em', textTransform: 'uppercase', lineHeight: 1 }} className="mt-0.5">
+                                Moderator
+                            </span>
+                        ) : user?.role === 'SUPPORT' ? (
+                            <span style={{ background: '#F3F4F6', color: '#374151', padding: '1px 8px', borderRadius: 12, fontSize: 10, fontWeight: 600, letterSpacing: '0.02em', textTransform: 'uppercase', lineHeight: 1 }} className="mt-0.5">
+                                Dəstək
+                            </span>
+                        ) : user?.role === 'FINANCE' ? (
+                            <span style={{ background: '#D1FAE5', color: '#065F46', padding: '1px 8px', borderRadius: 12, fontSize: 10, fontWeight: 600, letterSpacing: '0.02em', textTransform: 'uppercase', lineHeight: 1 }} className="mt-0.5">
+                                Maliyyə
+                            </span>
+                        ) : user?.role === 'CONTENT' ? (
+                            <span style={{ background: '#FEF3C7', color: '#92400E', padding: '1px 8px', borderRadius: 12, fontSize: 10, fontWeight: 600, letterSpacing: '0.02em', textTransform: 'uppercase', lineHeight: 1 }} className="mt-0.5">
+                                Kontent
+                            </span>
                         ) : (
                             <span className="text-[11px] text-muted leading-none">
                                 {translateRole(user?.role)}

@@ -452,7 +452,7 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
     const listing = await fastify.prisma.listing.create({
       data: {
         ...body.data,
-        organizationId: req.user.organizationId,
+        organizationId: req.user.organizationId as string,
         status: 'DRAFT',
         publisherType,
         publisherName,

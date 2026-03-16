@@ -2,7 +2,7 @@ import type { Prisma } from '@prisma/client'
 import { logger } from '../logger.js'
 
 interface AuditParams {
-    organizationId: string
+    organizationId: string | null  // null for platform staff actions
     userId: string
     action: string
     entityType: string

@@ -72,7 +72,8 @@ export function Login() {
             addToast({ type: 'success', message: 'Uğurla daxil oldunuz!' });
 
             // Role + subscription-based redirect
-            if (user.role === 'SUPERADMIN') {
+            const PLATFORM_STAFF = ['SUPERADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE', 'CONTENT']
+            if (PLATFORM_STAFF.includes(user.role)) {
                 navigate('/admin');
             } else if (user.role === 'ICARECI') {
                 navigate('/kabinet');

@@ -197,6 +197,41 @@ export async function sendListingRejected(to: string, data: {
   });
 }
 
+export async function sendStaffWelcome(to: string, data: {
+  name: string,
+  role: string,
+  tempPassword: string,
+}) {
+  const roleLabels: Record<string, string> = {
+    MODERATOR: 'Moderator',
+    SUPPORT: 'Dəstək',
+    FINANCE: 'Maliyyə',
+    CONTENT: 'Kontent',
+  }
+  const roleLabel = roleLabels[data.role] || data.role
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `İcarəPro — Platform Staff Hesabınız Yaradıldı`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+        <h2 style="color:#C9A84C">Xoş Gəlmisiniz, ${data.name}!</h2>
+        <p>Sizin üçün İcarəPro admin panelinə <b>${roleLabel}</b> rolunda hesab yaradılmışdır.</p>
+        <p>Giriş məlumatlarınız:</p>
+        <ul>
+          <li>E-poçt: <b>${to}</b></li>
+          <li>Şifrə: <b>${data.tempPassword}</b></li>
+        </ul>
+        <p style="color:#e53e3e;font-size:13px">Zəhmət olmasa, ilk girişdən sonra şifrənizi dəyişdirin.</p>
+        <a href="${process.env['FRONTEND_URL'] || 'https://icarepro.az'}/login"
+           style="display:inline-block;padding:12px 24px;background:#1A1A2E;color:#C9A84C;text-decoration:none;border-radius:8px;font-weight:bold;margin:16px 0">
+          Daxil Ol →
+        </a>
+      </div>
+    `
+  });
+}
+
 export async function sendRenewalWarning(to: string, data: {
   contractNumber: string,
   tenantName: string,

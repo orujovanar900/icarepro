@@ -47,6 +47,7 @@ const AdminOrganizations = React.lazy(() => import('./pages/admin/AdminOrganizat
 const SuperAdminDashboard = React.lazy(() => import('./pages/admin/SuperAdminDashboard').then(m => ({ default: m.SuperAdminDashboard })));
 const AdminOrganizationDetail = React.lazy(() => import('./pages/admin/AdminOrganizationDetail').then(m => ({ default: m.AdminOrganizationDetail })));
 const AdminListings = React.lazy(() => import('./pages/admin/AdminListings').then(m => ({ default: m.AdminListings })));
+const AdminStaff = React.lazy(() => import('./pages/admin/AdminStaff').then(m => ({ default: m.AdminStaff })));
 
 /**
  * Guards ERP routes (contracts, properties, tenants, income, expenses, users, settings).
@@ -153,13 +154,20 @@ export default function App() {
                             </Route>
                         </Route>
 
-                        {/* SUPERADMIN Admin Layout */}
+                        {/* Admin Layout — all platform staff roles */}
                         <Route element={<AdminLayout />}>
-                            <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN']} />}>
-                                <Route path="/admin" element={<SuperAdminDashboard />} />
-                                <Route path="/admin/users" element={<AdminOrganizations />} />
-                                <Route path="/admin/organizations/:id" element={<AdminOrganizationDetail />} />
-                                <Route path="/admin/elanlar" element={<AdminListings />} />
+                            <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE', 'CONTENT']} />}>
+                                {/* SUPERADMIN only */}
+                                <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN']} />}>
+                                    <Route path="/admin" element={<SuperAdminDashboard />} />
+                                    <Route path="/admin/users" element={<AdminOrganizations />} />
+                                    <Route path="/admin/organizations/:id" element={<AdminOrganizationDetail />} />
+                                    <Route path="/admin/staff" element={<AdminStaff />} />
+                                </Route>
+                                {/* SUPERADMIN + MODERATOR */}
+                                <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'MODERATOR']} />}>
+                                    <Route path="/admin/elanlar" element={<AdminListings />} />
+                                </Route>
                             </Route>
                         </Route>
 

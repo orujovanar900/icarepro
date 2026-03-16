@@ -5,7 +5,7 @@ export interface JwtPayload {
     sub: string          // userId
     email: string
     role: UserRole
-    organizationId: string
+    organizationId: string | null  // null for platform staff (MODERATOR, SUPPORT, FINANCE, CONTENT)
     name: string
     jwtVersion: number
     avatarUrl: string | null

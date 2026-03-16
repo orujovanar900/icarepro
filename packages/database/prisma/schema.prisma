@@ -28,6 +28,10 @@ enum ActivityLocation {
 
 enum UserRole {
   SUPERADMIN
+  MODERATOR
+  SUPPORT
+  FINANCE
+  CONTENT
   OWNER
   MANAGER
   CASHIER
@@ -199,8 +203,8 @@ model Organization {
 
 model User {
   id             String   @id @default(cuid())
-  organizationId String
-  email          String
+  organizationId String?  // Platform staff (MODERATOR, SUPPORT, FINANCE, CONTENT) have no organization
+  email          String   @unique
   passwordHash   String
   name           String
   role           UserRole @default(MANAGER)
@@ -215,7 +219,7 @@ model User {
   avatarUrl             String?
   jwtVersion            Int       @default(1)
 
-  organization Organization @relation(fields: [organizationId], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id])
   payments     Payment[]
   expenses     Expense[]
   auditLogs    AuditLog[]
@@ -223,7 +227,6 @@ model User {
   queueEntries QueueEntry[]
   favorites    ListingFavorite[]
 
-  @@unique([organizationId, email])
   @@map("users")
 }
 
@@ -399,7 +402,7 @@ model Expense {
 
 model AuditLog {
   id             String   @id @default(cuid())
-  organizationId String
+  organizationId String?  // Nullable: platform staff actions have no organization
   userId         String
   action         String
   entityType     String
@@ -407,8 +410,8 @@ model AuditLog {
   metadata       Json?
   createdAt      DateTime @default(now())
 
-  organization Organization @relation(fields: [organizationId], references: [id])
-  user         User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  user         User          @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@map("audit_logs")
 }
