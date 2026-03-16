@@ -411,7 +411,7 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
         const contract = await fastify.prisma.$transaction(async (tx) => {
             const updated = await tx.contract.update({
                 where: { id, ...withOrg(req) },
-                data: data as never,
+                data: data as Prisma.ContractUncheckedUpdateInput,
             })
 
             if (body.data.status === 'ACTIVE' && updated.propertyId) {
@@ -806,6 +806,10 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
             if (!data) return reply.code(400).send({ success: false, error: 'No file uploaded' })
 
             const buffer = await data.toBuffer()
+            const MAX_SIZE = 10 * 1024 * 1024 // 10MB
+            if (buffer.length > MAX_SIZE) {
+                return reply.code(413).send({ success: false, error: 'Fayl həcmi 10MB-dan çox ola bilməz' })
+            }
             const mimetype = data.mimetype
             const filename = data.filename?.toLowerCase() ?? ''
 
@@ -814,7 +818,7 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
             if (mimetype === 'application/pdf' || filename.endsWith('.pdf')) {
                 try {
                     const { PDFParse } = await import('pdf-parse')
-                    const parser = new PDFParse({ data: new Uint8Array(buffer) })
+                    const parser = new PDFParse({ data: buffer })
                     const pdfData = await parser.getText()
                     textContent = pdfData.text
                 } catch {

@@ -189,6 +189,22 @@ export async function checkRenewalWarnings(prisma: PrismaClient): Promise<void> 
             if (existingWarning) continue
 
             const owner = contract.organization.users[0]
+
+            // Write audit log FIRST (dedup key), then send email
+            if (owner?.id) {
+                await writeAuditLog(prisma, {
+                    organizationId: contract.organizationId,
+                    userId: owner.id,
+                    action: 'CONTRACT_RENEWAL_WARNING',
+                    entityType: 'Contract',
+                    entityId: contract.id,
+                    metadata: {
+                        endDate: contract.endDate.toISOString(),
+                        renewalNoticeDays: noticeDays,
+                    },
+                })
+            }
+
             if (owner?.email) {
                 const tenantName = contract.tenant.tenantType === 'fiziki'
                     ? `${contract.tenant.firstName || ''} ${contract.tenant.lastName || ''}`.trim()
@@ -201,20 +217,6 @@ export async function checkRenewalWarnings(prisma: PrismaClient): Promise<void> 
                     endDate: contract.endDate.toISOString().slice(0, 10),
                     renewalNoticeDays: noticeDays,
                     contractId: contract.id,
-                })
-            }
-
-            if (owner?.id) {
-                await writeAuditLog(prisma, {
-                    organizationId: contract.organizationId,
-                    userId: owner.id,
-                    action: 'CONTRACT_RENEWAL_WARNING',
-                    entityType: 'Contract',
-                    entityId: contract.id,
-                    metadata: {
-                        endDate: contract.endDate.toISOString(),
-                        renewalNoticeDays: noticeDays,
-                    },
                 })
             }
 
@@ -259,9 +261,14 @@ export async function processAutoRenewals(prisma: PrismaClient): Promise<void> {
 
     for (const contract of contracts) {
         try {
-            // Check if this contract was already auto-renewed
+            // Check if this contract was already auto-renewed in the current cycle
             const existingRenewal = await prisma.auditLog.findFirst({
-                where: { entityType: 'Contract', entityId: contract.id, action: 'CONTRACT_AUTO_RENEWED' },
+                where: {
+                    entityType: 'Contract',
+                    entityId: contract.id,
+                    action: 'CONTRACT_AUTO_RENEWED',
+                    createdAt: { gte: contract.endDate },
+                },
                 select: { id: true },
             })
             if (existingRenewal) continue

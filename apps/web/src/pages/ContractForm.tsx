@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useReducer, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Sparkles, Upload, Check, AlertCircle, Plus } from 'lucide-react';
@@ -42,6 +42,89 @@ const MONTH_OPTIONS = [
     { label: 'Sentyabr', value: '9' }, { label: 'Oktyabr', value: '10' },
     { label: 'Noyabr', value: '11' }, { label: 'Dekabr', value: '12' },
 ];
+
+// ─── Property / Tenant option types ──────────────────────────────────────────
+
+interface PropertyOption {
+    id: string
+    name: string
+    address?: string
+    status: string
+    number?: string
+}
+
+interface TenantOption {
+    id: string
+    firstName?: string
+    lastName?: string
+    companyName?: string
+    fin?: string
+    voen?: string
+    tenantType: string
+    isActive?: boolean
+}
+
+// ─── Form state ───────────────────────────────────────────────────────────────
+
+interface FormState {
+    propertyId: string
+    tenantId: string
+    contractNumber: string
+    rentalType: string
+    startDate: string
+    endDate: string
+    monthlyRent: string
+    depositAmount: string
+    taxRate: string
+    paymentTiming: 'PREPAID' | 'POSTPAID'
+    fixedPaymentDay: boolean
+    paymentDay: number
+    firstPeriodAmount: string
+    gracePeriodDays: number
+    notes: string
+    autoRenewal: boolean
+    renewalNoticeDays: string
+    renewalType: 'SAME_PERIOD' | 'MONTHLY'
+}
+
+type FormAction =
+    | { type: 'SET_FIELD'; field: keyof FormState; value: unknown }
+    | { type: 'RESET' }
+    | { type: 'AUTOFILL'; payload: Partial<FormState> }
+
+const initialFormState: FormState = {
+    propertyId: '',
+    tenantId: '',
+    contractNumber: '',
+    rentalType: 'RESIDENTIAL_LONG',
+    startDate: '',
+    endDate: '',
+    monthlyRent: '',
+    depositAmount: '',
+    taxRate: '',
+    paymentTiming: 'PREPAID',
+    fixedPaymentDay: false,
+    paymentDay: 1,
+    firstPeriodAmount: '',
+    gracePeriodDays: 0,
+    notes: '',
+    autoRenewal: false,
+    renewalNoticeDays: '',
+    renewalType: 'SAME_PERIOD',
+}
+
+function formReducer(state: FormState, action: FormAction): FormState {
+    switch (action.type) {
+        case 'SET_FIELD':
+            return { ...state, [action.field]: action.value }
+        case 'RESET':
+            return initialFormState
+        case 'AUTOFILL':
+            return { ...state, ...action.payload }
+        default:
+            return state
+    }
+}
 
 // ─── AI badge wrapper ─────────────────────────────────────────────────────────
 
@@ -96,42 +179,23 @@ export function ContractForm() {
     const addToast = useToastStore(s => s.addToast);
     const queryClient = useQueryClient();
 
-    // ── Section 2 state ───────────────────────────────────────────────────────
-    const [propertyId, setPropertyId] = useState('');
-    const [propertySearch, setPropertySearch] = useState('');
-    const [tenantId, setTenantId] = useState('');
-    const [tenantSearch, setTenantSearch] = useState('');
-    const [number, setNumber] = useState(() => generateContractNumber());
-    const [rentalType, setRentalType] = useState('RESIDENTIAL_LONG');
+    // ── Form state (useReducer) ───────────────────────────────────────────────
+    const [form, dispatch] = useReducer(formReducer, {
+        ...initialFormState,
+        contractNumber: generateContractNumber(),
+    });
 
-    // ── Section 3 state ───────────────────────────────────────────────────────
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
+    // ── UI / search state (separate useState) ─────────────────────────────────
+    const [propertySearch, setPropertySearch] = useState('');
+    const [tenantSearch, setTenantSearch] = useState('');
     const [originalEndDate, setOriginalEndDate] = useState('');
-    const [monthlyRent, setMonthlyRent] = useState('');
     const [originalMonthlyRent, setOriginalMonthlyRent] = useState('');
-    const [depositAmount, setDepositAmount] = useState('');
-    const [taxRate, setTaxRate] = useState('');
+    const [contractStatus, setContractStatus] = useState<'ACTIVE' | 'DRAFT' | string>('DRAFT');
+    const isActiveContract = isEdit && contractStatus === 'ACTIVE';
+
     const nm = nextMonthDefault();
     const [effectiveFromMonth, setEffectiveFromMonth] = useState(String(nm.month));
     const [effectiveFromYear, setEffectiveFromYear] = useState(String(nm.year));
-
-    // ── Section 4 state ───────────────────────────────────────────────────────
-    const [paymentTiming, setPaymentTiming] = useState<'PREPAID' | 'POSTPAID'>('PREPAID');
-    const [fixedPaymentDay, setFixedPaymentDay] = useState(false);
-    const [paymentDay, setPaymentDay] = useState('1');
-    const [firstPeriodAmount, setFirstPeriodAmount] = useState('');
-    const [gracePeriodDays, setGracePeriodDays] = useState('0');
-
-    // ── Section 5 state ───────────────────────────────────────────────────────
-    const [notes, setNotes] = useState('');
-    const [autoRenewal, setAutoRenewal] = useState(false);
-    const [renewalNoticeDays, setRenewalNoticeDays] = useState('');
-    const [renewalTypeValue, setRenewalTypeValue] = useState<'SAME_PERIOD' | 'MONTHLY'>('SAME_PERIOD');
-
-    // ── Edit tracking ─────────────────────────────────────────────────────────
-    const [contractStatus, setContractStatus] = useState<'ACTIVE' | 'DRAFT' | string>('DRAFT');
-    const isActiveContract = isEdit && contractStatus === 'ACTIVE';
 
     // ── AI state ──────────────────────────────────────────────────────────────
     const [isScanning, setIsScanning] = useState(false);
@@ -153,7 +217,7 @@ export function ContractForm() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // ── Queries ───────────────────────────────────────────────────────────────
-    const { data: propertiesData = [] } = useQuery<any[]>({
+    const { data: propertiesData = [] } = useQuery<PropertyOption[]>({
         queryKey: ['properties-for-contract-form'],
         queryFn: async () => {
             const res = await api.get('/properties?limit=300');
@@ -162,7 +226,7 @@ export function ContractForm() {
         },
     });
 
-    const { data: tenantsData = [] } = useQuery<any[]>({
+    const { data: tenantsData = [] } = useQuery<TenantOption[]>({
         queryKey: ['tenants-for-contract-form'],
         queryFn: async () => {
             const res = await api.get('/tenants?limit=300');
@@ -183,36 +247,41 @@ export function ContractForm() {
     // Pre-fill from existing contract
     useEffect(() => {
         if (!existingContract || !isEdit) return;
-        setPropertyId(existingContract.propertyId ?? '');
-        setTenantId(existingContract.tenantId ?? '');
-        setNumber(existingContract.number ?? '');
-        setRentalType(existingContract.rentalType ?? 'RESIDENTIAL_LONG');
         const sd = existingContract.startDate?.split('T')[0] ?? '';
         const ed = existingContract.endDate?.split('T')[0] ?? '';
-        setStartDate(sd);
-        setEndDate(ed);
-        setOriginalEndDate(ed);
         const rent = String(existingContract.monthlyRent ?? '');
-        setMonthlyRent(rent);
+        setOriginalEndDate(ed);
         setOriginalMonthlyRent(rent);
-        setDepositAmount(String(existingContract.depositAmount ?? ''));
-        setTaxRate(String(existingContract.taxRate ?? ''));
-        setPaymentTiming(existingContract.paymentTiming ?? 'PREPAID');
-        setFixedPaymentDay(existingContract.fixedPaymentDay ?? false);
-        setPaymentDay(String(existingContract.paymentDay ?? 1));
-        setGracePeriodDays(String(existingContract.gracePeriodDays ?? 0));
-        setNotes(existingContract.notes ?? '');
-        setAutoRenewal(existingContract.autoRenewal ?? false);
-        setRenewalNoticeDays(String(existingContract.renewalNoticeDays ?? ''));
-        setRenewalTypeValue(existingContract.renewalType ?? 'SAME_PERIOD');
         setContractStatus(existingContract.status ?? 'DRAFT');
+        dispatch({
+            type: 'AUTOFILL',
+            payload: {
+                propertyId: existingContract.propertyId ?? '',
+                tenantId: existingContract.tenantId ?? '',
+                contractNumber: existingContract.number ?? '',
+                rentalType: existingContract.rentalType ?? 'RESIDENTIAL_LONG',
+                startDate: sd,
+                endDate: ed,
+                monthlyRent: rent,
+                depositAmount: String(existingContract.depositAmount ?? ''),
+                taxRate: String(existingContract.taxRate ?? ''),
+                paymentTiming: existingContract.paymentTiming ?? 'PREPAID',
+                fixedPaymentDay: existingContract.fixedPaymentDay ?? false,
+                paymentDay: existingContract.paymentDay ?? 1,
+                gracePeriodDays: existingContract.gracePeriodDays ?? 0,
+                notes: existingContract.notes ?? '',
+                autoRenewal: existingContract.autoRenewal ?? false,
+                renewalNoticeDays: String(existingContract.renewalNoticeDays ?? ''),
+                renewalType: existingContract.renewalType ?? 'SAME_PERIOD',
+            },
+        });
     }, [existingContract, isEdit]);
 
     // ── Derived ───────────────────────────────────────────────────────────────
     const filteredProperties = useMemo(() => {
         if (!propertySearch) return propertiesData;
         const s = propertySearch.toLowerCase();
-        return propertiesData.filter((p: any) =>
+        return propertiesData.filter(p =>
             p.name?.toLowerCase().includes(s) ||
             p.address?.toLowerCase().includes(s) ||
             p.number?.toLowerCase().includes(s)
@@ -222,7 +291,7 @@ export function ContractForm() {
     const filteredTenants = useMemo(() => {
         if (!tenantSearch) return tenantsData;
         const s = tenantSearch.toLowerCase();
-        return tenantsData.filter((t: any) => {
+        return tenantsData.filter(t => {
             const name = t.tenantType === 'fiziki'
                 ? `${t.firstName ?? ''} ${t.lastName ?? ''}`.toLowerCase()
                 : (t.companyName ?? '').toLowerCase();
@@ -230,28 +299,28 @@ export function ContractForm() {
         });
     }, [tenantsData, tenantSearch]);
 
-    const selectedProperty = propertiesData.find((p: any) => p.id === propertyId);
+    const selectedProperty = propertiesData.find(p => p.id === form.propertyId);
     const isPropertyOccupied = !isEdit && selectedProperty?.status === 'OCCUPIED';
 
-    const priceChanged = isEdit && monthlyRent !== '' && monthlyRent !== originalMonthlyRent;
-    const endDateShrunk = isEdit && endDate !== '' && originalEndDate !== '' && endDate < originalEndDate;
+    const priceChanged = isEdit && form.monthlyRent !== '' && form.monthlyRent !== originalMonthlyRent;
+    const endDateShrunk = isEdit && form.endDate !== '' && originalEndDate !== '' && form.endDate < originalEndDate;
 
     const suggestedFirstPeriod = useMemo(() => {
-        if (!startDate || !monthlyRent || fixedPaymentDay) return null;
-        const start = new Date(startDate);
+        if (!form.startDate || !form.monthlyRent || form.fixedPaymentDay) return null;
+        const start = new Date(form.startDate);
         const nextFirst = new Date(start.getFullYear(), start.getMonth() + 1, 1);
         const daysInMonth = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate();
         const remainingDays = Math.floor((nextFirst.getTime() - start.getTime()) / 86400000);
         if (remainingDays <= 0) return null;
-        return Math.round((Number(monthlyRent) / daysInMonth) * remainingDays * 100) / 100;
-    }, [startDate, monthlyRent, fixedPaymentDay]);
+        return Math.round((Number(form.monthlyRent) / daysInMonth) * remainingDays * 100) / 100;
+    }, [form.startDate, form.monthlyRent, form.fixedPaymentDay]);
 
     // Auto-suggest first period (only set once)
     const firstPeriodSetRef = useRef(false);
     useEffect(() => {
         if (!isEdit && suggestedFirstPeriod !== null && !firstPeriodSetRef.current) {
             firstPeriodSetRef.current = true;
-            setFirstPeriodAmount(String(suggestedFirstPeriod));
+            dispatch({ type: 'SET_FIELD', field: 'firstPeriodAmount', value: String(suggestedFirstPeriod) });
         }
     }, [suggestedFirstPeriod, isEdit]);
 
@@ -285,8 +354,9 @@ export function ContractForm() {
             } else {
                 setScanBanner('error');
             }
-        } catch (err: any) {
-            addToast({ type: 'error', message: err.response?.data?.error ?? 'Sənəd oxunmadı' });
+        } catch (err: unknown) {
+            const e = err as { response?: { data?: { error?: string } } };
+            addToast({ type: 'error', message: e.response?.data?.error ?? 'Sənəd oxunmadı' });
             setScanBanner('error');
         } finally {
             setIsScanning(false);
@@ -294,27 +364,28 @@ export function ContractForm() {
         }
     };
 
-    const applyAIScanResult = async (scan: Record<string, any>) => {
-        const filled = new Set<string>(aiFilledFields);
+    const applyAIScanResult = async (scan: Record<string, unknown>) => {
+        const payload: Partial<FormState> = {};
+        const filledFields = new Set<string>(aiFilledFields);
 
-        if (scan['contractNumber']) { setNumber(scan['contractNumber']); filled.add('number'); }
-        if (scan['monthlyRent']) { setMonthlyRent(String(Number(scan['monthlyRent']))); filled.add('monthlyRent'); }
-        if (scan['startDate']) { setStartDate(scan['startDate']); filled.add('startDate'); }
-        if (scan['endDate']) { setEndDate(scan['endDate']); filled.add('endDate'); }
-        if (scan['depositAmount']) { setDepositAmount(String(Number(scan['depositAmount']))); filled.add('depositAmount'); }
+        if (scan['contractNumber']) { payload.contractNumber = String(scan['contractNumber']); filledFields.add('contractNumber'); }
+        if (scan['monthlyRent']) { payload.monthlyRent = String(Number(scan['monthlyRent'])); filledFields.add('monthlyRent'); }
+        if (scan['startDate']) { payload.startDate = String(scan['startDate']); filledFields.add('startDate'); }
+        if (scan['endDate']) { payload.endDate = String(scan['endDate']); filledFields.add('endDate'); }
+        if (scan['depositAmount']) { payload.depositAmount = String(Number(scan['depositAmount'])); filledFields.add('depositAmount'); }
 
         // Tenant: find or auto-create
-        const searchTerm = scan['tenantName'] || scan['finOrVoen'] || '';
+        const searchTerm = (scan['tenantName'] as string) || (scan['finOrVoen'] as string) || '';
         if (searchTerm) {
             try {
                 const res = await api.get(`/tenants?search=${encodeURIComponent(searchTerm)}&limit=5`);
                 const existing = res?.data?.data?.[0];
                 if (existing) {
-                    setTenantId(existing.id);
-                    filled.add('tenantId');
+                    payload.tenantId = existing.id;
+                    filledFields.add('tenantId');
                 } else if (scan['tenantName']) {
-                    const parts = scan['tenantName'].split(' ');
-                    const finOrVoen: string = scan['finOrVoen'] ?? '';
+                    const parts = (scan['tenantName'] as string).split(' ');
+                    const finOrVoen: string = (scan['finOrVoen'] as string) ?? '';
                     const isHuquqi = finOrVoen.length === 10;
                     const tenantRes = await api.post('/tenants', {
                         tenantType: isHuquqi ? 'huquqi' : 'fiziki',
@@ -326,8 +397,8 @@ export function ContractForm() {
                     });
                     const created = tenantRes?.data?.data;
                     if (created) {
-                        setTenantId(created.id);
-                        filled.add('tenantId');
+                        payload.tenantId = created.id;
+                        filledFields.add('tenantId');
                         addToast({ type: 'success', message: `Yeni icarəçi avtomatik yaradıldı: ${scan['tenantName']}` });
                         queryClient.invalidateQueries({ queryKey: ['tenants-for-contract-form'] });
                     }
@@ -340,13 +411,14 @@ export function ContractForm() {
         // Property: fuzzy match on address
         if (scan['propertyAddress'] && propertiesData.length > 0) {
             const s = (scan['propertyAddress'] as string).toLowerCase().slice(0, 20);
-            const match = propertiesData.find((p: any) =>
+            const match = propertiesData.find(p =>
                 p.address?.toLowerCase().includes(s) || p.name?.toLowerCase().includes(s)
             );
-            if (match) { setPropertyId(match.id); filled.add('propertyId'); }
+            if (match) { payload.propertyId = match.id; filledFields.add('propertyId'); }
         }
 
-        setAiFilledFields(filled);
+        dispatch({ type: 'AUTOFILL', payload });
+        setAiFilledFields(filledFields);
     };
 
     // ── Inline tenant save ────────────────────────────────────────────────────
@@ -357,7 +429,7 @@ export function ContractForm() {
         }
         setIsSavingTenant(true);
         try {
-            const payload: Record<string, any> = {
+            const payload: Record<string, unknown> = {
                 tenantType: newTenantType,
                 firstName: newTenantFirstName,
                 lastName: newTenantLastName,
@@ -369,15 +441,16 @@ export function ContractForm() {
             const res = await api.post('/tenants', payload);
             const created = res?.data?.data;
             if (created) {
-                setTenantId(created.id);
+                dispatch({ type: 'SET_FIELD', field: 'tenantId', value: created.id });
                 addToast({ type: 'success', message: 'Yeni icarəçi yaradıldı' });
                 queryClient.invalidateQueries({ queryKey: ['tenants-for-contract-form'] });
                 setShowNewTenantForm(false);
                 setNewTenantFirstName(''); setNewTenantLastName('');
                 setNewTenantPhone(''); setNewTenantFinOrVoen('');
             }
-        } catch (err: any) {
-            addToast({ type: 'error', message: err.response?.data?.error ?? 'İcarəçi yaradılmadı' });
+        } catch (err: unknown) {
+            const e = err as { response?: { data?: { error?: string } } };
+            addToast({ type: 'error', message: e.response?.data?.error ?? 'İcarəçi yaradılmadı' });
         } finally {
             setIsSavingTenant(false);
         }
@@ -385,28 +458,28 @@ export function ContractForm() {
 
     // ── Submit ────────────────────────────────────────────────────────────────
     const buildBasePayload = () => ({
-        number,
-        monthlyRent: Number(monthlyRent),
-        depositAmount: depositAmount ? Number(depositAmount) : undefined,
-        taxRate: taxRate ? Number(taxRate) : undefined,
-        paymentTiming,
-        fixedPaymentDay,
-        paymentDay: fixedPaymentDay ? Number(paymentDay) : undefined,
-        gracePeriodDays: Number(gracePeriodDays || 0),
-        notes: notes || undefined,
-        autoRenewal,
-        renewalNoticeDays: autoRenewal && renewalNoticeDays ? Number(renewalNoticeDays) : undefined,
-        renewalType: autoRenewal ? renewalTypeValue : undefined,
+        number: form.contractNumber,
+        monthlyRent: Number(form.monthlyRent),
+        depositAmount: form.depositAmount ? Number(form.depositAmount) : undefined,
+        taxRate: form.taxRate ? Number(form.taxRate) : undefined,
+        paymentTiming: form.paymentTiming,
+        fixedPaymentDay: form.fixedPaymentDay,
+        paymentDay: form.fixedPaymentDay ? Number(form.paymentDay) : undefined,
+        gracePeriodDays: Number(form.gracePeriodDays || 0),
+        notes: form.notes || undefined,
+        autoRenewal: form.autoRenewal,
+        renewalNoticeDays: form.autoRenewal && form.renewalNoticeDays ? Number(form.renewalNoticeDays) : undefined,
+        renewalType: form.autoRenewal ? form.renewalType : undefined,
     });
 
     const validate = () => {
-        if (!isEdit && !propertyId) { addToast({ type: 'error', message: 'Obyekt seçilməlidir' }); return false; }
-        if (!isEdit && !tenantId) { addToast({ type: 'error', message: 'İcarəçi seçilməlidir' }); return false; }
-        if (!number.trim()) { addToast({ type: 'error', message: 'Müqavilə nömrəsi tələb olunur' }); return false; }
-        if (!isEdit && !startDate) { addToast({ type: 'error', message: 'Başlama tarixi tələb olunur' }); return false; }
-        if (!endDate) { addToast({ type: 'error', message: 'Bitmə tarixi tələb olunur' }); return false; }
-        if (!monthlyRent || Number(monthlyRent) <= 0) { addToast({ type: 'error', message: 'Aylıq icarə haqqı tələb olunur' }); return false; }
-        if (endDate && startDate && new Date(endDate) <= new Date(startDate)) { addToast({ type: 'error', message: 'Bitmə tarixi başlama tarixindən sonra olmalıdır' }); return false; }
+        if (!isEdit && !form.propertyId) { addToast({ type: 'error', message: 'Obyekt seçilməlidir' }); return false; }
+        if (!isEdit && !form.tenantId) { addToast({ type: 'error', message: 'İcarəçi seçilməlidir' }); return false; }
+        if (!form.contractNumber.trim()) { addToast({ type: 'error', message: 'Müqavilə nömrəsi tələb olunur' }); return false; }
+        if (!isEdit && !form.startDate) { addToast({ type: 'error', message: 'Başlama tarixi tələb olunur' }); return false; }
+        if (!form.endDate) { addToast({ type: 'error', message: 'Bitmə tarixi tələb olunur' }); return false; }
+        if (!form.monthlyRent || Number(form.monthlyRent) <= 0) { addToast({ type: 'error', message: 'Aylıq icarə haqqı tələb olunur' }); return false; }
+        if (form.endDate && form.startDate && new Date(form.endDate) <= new Date(form.startDate)) { addToast({ type: 'error', message: 'Bitmə tarixi başlama tarixindən sonra olmalıdır' }); return false; }
         return true;
     };
 
@@ -416,19 +489,20 @@ export function ContractForm() {
         try {
             const res = await api.post('/contracts', {
                 ...buildBasePayload(),
-                propertyId,
-                tenantId,
-                rentalType,
-                startDate,
-                endDate,
+                propertyId: form.propertyId,
+                tenantId: form.tenantId,
+                rentalType: form.rentalType,
+                startDate: form.startDate,
+                endDate: form.endDate,
                 status,
-                firstPeriodAmount: firstPeriodAmount ? Number(firstPeriodAmount) : undefined,
+                firstPeriodAmount: form.firstPeriodAmount ? Number(form.firstPeriodAmount) : undefined,
             });
             const newId = res.data?.data?.id;
             addToast({ type: 'success', message: status === 'DRAFT' ? 'Müqavilə qaralama kimi saxlandı' : 'Müqavilə yaradıldı' });
             navigate(`/contracts/${newId}`);
-        } catch (err: any) {
-            addToast({ type: 'error', message: err.response?.data?.error ?? 'Xəta baş verdi' });
+        } catch (err: unknown) {
+            const e = err as { response?: { data?: { error?: string } } };
+            addToast({ type: 'error', message: e.response?.data?.error ?? 'Xəta baş verdi' });
         } finally {
             setIsSubmitting(false);
         }
@@ -439,22 +513,27 @@ export function ContractForm() {
         setIsSubmitting(true);
         try {
             const base = buildBasePayload();
-            const payload: Record<string, any> = { ...base, endDate };
-            // Only send monthlyRent when changed to avoid spurious price-change audit logs
-            if (!priceChanged) {
-                delete payload['monthlyRent'];
-            }
-            if (priceChanged) {
-                payload['effectiveFrom'] = {
-                    month: Number(effectiveFromMonth),
-                    year: Number(effectiveFromYear),
-                };
-            }
+            const { monthlyRent: _rent, ...baseWithoutRent } = base;
+            const payload: Record<string, unknown> = {
+                ...baseWithoutRent,
+                endDate: form.endDate,
+                ...(priceChanged
+                    ? {
+                        monthlyRent: Number(form.monthlyRent),
+                        effectiveFrom: {
+                            month: Number(effectiveFromMonth),
+                            year: Number(effectiveFromYear),
+                        },
+                    }
+                    : {}),
+            };
             await api.patch(`/contracts/${id}`, payload);
             addToast({ type: 'success', message: 'Müqavilə yeniləndi' });
+            queryClient.invalidateQueries({ queryKey: ['contract', id] });
             navigate(`/contracts/${id}`);
-        } catch (err: any) {
-            addToast({ type: 'error', message: err.response?.data?.error ?? 'Xəta baş verdi' });
+        } catch (err: unknown) {
+            const e = err as { response?: { data?: { error?: string } } };
+            addToast({ type: 'error', message: e.response?.data?.error ?? 'Xəta baş verdi' });
         } finally {
             setIsSubmitting(false);
         }
@@ -462,12 +541,12 @@ export function ContractForm() {
 
     // ── Tenant display name ───────────────────────────────────────────────────
     const tenantDisplayName = useMemo(() => {
-        const t = tenantsData.find((x: any) => x.id === tenantId);
-        if (!t) return tenantId;
+        const t = tenantsData.find(x => x.id === form.tenantId);
+        if (!t) return form.tenantId;
         return t.tenantType === 'fiziki'
             ? `${t.firstName ?? ''} ${t.lastName ?? ''}`.trim()
             : t.companyName ?? '';
-    }, [tenantsData, tenantId]);
+    }, [tenantsData, form.tenantId]);
 
     // ── Render ────────────────────────────────────────────────────────────────
     if (isEdit && isLoadingContract) {
@@ -563,7 +642,7 @@ export function ContractForm() {
                             <label className="block text-sm font-medium text-text mb-1">Obyekt *</label>
                             {isActiveContract ? (
                                 <p className="py-2 px-3 bg-surface rounded-lg text-text border border-border text-sm">
-                                    {selectedProperty ? `${selectedProperty.name} — ${selectedProperty.address ?? ''}` : propertyId}
+                                    {selectedProperty ? `${selectedProperty.name} — ${selectedProperty.address ?? ''}` : form.propertyId}
                                 </p>
                             ) : (
                                 <>
@@ -574,11 +653,11 @@ export function ContractForm() {
                                         className="mb-2"
                                     />
                                     <Select
-                                        value={propertyId}
-                                        onChange={e => setPropertyId(e.target.value)}
+                                        value={form.propertyId}
+                                        onChange={e => dispatch({ type: 'SET_FIELD', field: 'propertyId', value: e.target.value })}
                                         options={[
                                             { label: 'Obyekt seçin...', value: '' },
-                                            ...filteredProperties.map((p: any) => ({
+                                            ...filteredProperties.map(p => ({
                                                 label: `${p.name}${p.address ? ` — ${p.address}` : ''}`,
                                                 value: p.id,
                                             })),
@@ -610,11 +689,11 @@ export function ContractForm() {
                                         className="mb-2"
                                     />
                                     <Select
-                                        value={tenantId}
-                                        onChange={e => setTenantId(e.target.value)}
+                                        value={form.tenantId}
+                                        onChange={e => dispatch({ type: 'SET_FIELD', field: 'tenantId', value: e.target.value })}
                                         options={[
                                             { label: 'İcarəçi seçin...', value: '' },
-                                            ...filteredTenants.map((t: any) => ({
+                                            ...filteredTenants.map(t => ({
                                                 label: t.tenantType === 'fiziki'
                                                     ? `${t.firstName ?? ''} ${t.lastName ?? ''}`.trim() + (t.fin ? ` (${t.fin})` : '')
                                                     : (t.companyName ?? '') + (t.voen ? ` (${t.voen})` : ''),
@@ -684,11 +763,11 @@ export function ContractForm() {
                         </AIField>
 
                         {/* Contract number */}
-                        <AIField filled={aiFilledFields.has('number')}>
+                        <AIField filled={aiFilledFields.has('contractNumber')}>
                             <Input
                                 label="Müqavilə nömrəsi *"
-                                value={number}
-                                onChange={e => setNumber(e.target.value)}
+                                value={form.contractNumber}
+                                onChange={e => dispatch({ type: 'SET_FIELD', field: 'contractNumber', value: e.target.value })}
                             />
                         </AIField>
 
@@ -697,14 +776,14 @@ export function ContractForm() {
                             <div>
                                 <label className="block text-sm font-medium text-text mb-1">İcarə növü</label>
                                 <p className="py-2 px-3 bg-surface rounded-lg text-text border border-border text-sm">
-                                    {RENTAL_TYPE_LABELS[rentalType] ?? rentalType}
+                                    {RENTAL_TYPE_LABELS[form.rentalType] ?? form.rentalType}
                                 </p>
                             </div>
                         ) : (
                             <Select
                                 label="İcarə növü *"
-                                value={rentalType}
-                                onChange={e => setRentalType(e.target.value)}
+                                value={form.rentalType}
+                                onChange={e => dispatch({ type: 'SET_FIELD', field: 'rentalType', value: e.target.value })}
                                 options={Object.entries(RENTAL_TYPE_LABELS).map(([v, l]) => ({ label: l, value: v }))}
                             />
                         )}
@@ -721,7 +800,7 @@ export function ContractForm() {
                             <div>
                                 <label className="block text-sm font-medium text-text mb-1">Başlama tarixi</label>
                                 <p className="py-2 px-3 bg-surface rounded-lg text-text border border-border text-sm">
-                                    {startDate ? new Date(startDate).toLocaleDateString('az-AZ') : '—'}
+                                    {form.startDate ? new Date(form.startDate).toLocaleDateString('az-AZ') : '—'}
                                 </p>
                             </div>
                         ) : (
@@ -729,8 +808,8 @@ export function ContractForm() {
                                 <Input
                                     label="Başlama tarixi *"
                                     type="date"
-                                    value={startDate}
-                                    onChange={e => setStartDate(e.target.value)}
+                                    value={form.startDate}
+                                    onChange={e => dispatch({ type: 'SET_FIELD', field: 'startDate', value: e.target.value })}
                                 />
                             </AIField>
                         )}
@@ -740,9 +819,9 @@ export function ContractForm() {
                             <Input
                                 label="Bitmə tarixi *"
                                 type="date"
-                                value={endDate}
-                                min={startDate || undefined}
-                                onChange={e => setEndDate(e.target.value)}
+                                value={form.endDate}
+                                min={form.startDate || undefined}
+                                onChange={e => dispatch({ type: 'SET_FIELD', field: 'endDate', value: e.target.value })}
                             />
                             {endDateShrunk && (
                                 <p className="mt-1 text-xs text-yellow-600 flex items-center gap-1">
@@ -759,8 +838,8 @@ export function ContractForm() {
                                 type="number"
                                 min="0"
                                 step="0.01"
-                                value={monthlyRent}
-                                onChange={e => setMonthlyRent(e.target.value)}
+                                value={form.monthlyRent}
+                                onChange={e => dispatch({ type: 'SET_FIELD', field: 'monthlyRent', value: e.target.value })}
                             />
                             {priceChanged && (
                                 <div className="mt-3 p-3 bg-blue-500/5 border border-blue-500/20 rounded-lg">
@@ -794,8 +873,8 @@ export function ContractForm() {
                                 type="number"
                                 min="0"
                                 step="0.01"
-                                value={depositAmount}
-                                onChange={e => setDepositAmount(e.target.value)}
+                                value={form.depositAmount}
+                                onChange={e => dispatch({ type: 'SET_FIELD', field: 'depositAmount', value: e.target.value })}
                             />
                         </AIField>
 
@@ -806,8 +885,8 @@ export function ContractForm() {
                             min="0"
                             max="100"
                             step="0.1"
-                            value={taxRate}
-                            onChange={e => setTaxRate(e.target.value)}
+                            value={form.taxRate}
+                            onChange={e => dispatch({ type: 'SET_FIELD', field: 'taxRate', value: e.target.value })}
                         />
                     </CardContent>
                 </Card>
@@ -819,8 +898,8 @@ export function ContractForm() {
 
                         <PillToggle
                             label="Ödəniş vaxtı *"
-                            value={paymentTiming}
-                            onChange={setPaymentTiming}
+                            value={form.paymentTiming}
+                            onChange={v => dispatch({ type: 'SET_FIELD', field: 'paymentTiming', value: v })}
                             options={[
                                 { label: 'Ayın əvvəlində', value: 'PREPAID' },
                                 { label: 'Ayın sonunda', value: 'POSTPAID' },
@@ -829,37 +908,37 @@ export function ContractForm() {
 
                         <PillToggle
                             label="Ödəniş dövrü *"
-                            value={fixedPaymentDay ? 'FIXED' : 'CALENDAR'}
-                            onChange={v => setFixedPaymentDay(v === 'FIXED')}
+                            value={form.fixedPaymentDay ? 'FIXED' : 'CALENDAR'}
+                            onChange={v => dispatch({ type: 'SET_FIELD', field: 'fixedPaymentDay', value: v === 'FIXED' })}
                             options={[
                                 { label: '1-ci günə sabitlənir', value: 'CALENDAR' },
                                 { label: 'Sabit gün (13→13)', value: 'FIXED' },
                             ]}
                         />
 
-                        {fixedPaymentDay && (
+                        {form.fixedPaymentDay && (
                             <Input
                                 label="Ödəniş günü (1–31)"
                                 type="number"
                                 min="1"
                                 max="31"
-                                value={paymentDay}
-                                onChange={e => setPaymentDay(e.target.value)}
+                                value={String(form.paymentDay)}
+                                onChange={e => dispatch({ type: 'SET_FIELD', field: 'paymentDay', value: Number(e.target.value) })}
                             />
                         )}
 
                         {/* First period amount (create only, when startDate filled) */}
-                        {!isEdit && startDate && (
+                        {!isEdit && form.startDate && (
                             <div>
                                 <Input
                                     label="İlk dövr məbləği (₼)"
                                     type="number"
                                     min="0"
                                     step="0.01"
-                                    value={firstPeriodAmount}
-                                    onChange={e => setFirstPeriodAmount(e.target.value)}
+                                    value={form.firstPeriodAmount}
+                                    onChange={e => dispatch({ type: 'SET_FIELD', field: 'firstPeriodAmount', value: e.target.value })}
                                     helperText={
-                                        fixedPaymentDay
+                                        form.fixedPaymentDay
                                             ? 'İlk dövr məbləği əl ilə daxil ediləcək'
                                             : suggestedFirstPeriod !== null
                                                 ? `Təklif olunan: ₼${suggestedFirstPeriod}`
@@ -874,8 +953,8 @@ export function ContractForm() {
                             type="number"
                             min="0"
                             max="30"
-                            value={gracePeriodDays}
-                            onChange={e => setGracePeriodDays(e.target.value)}
+                            value={String(form.gracePeriodDays)}
+                            onChange={e => dispatch({ type: 'SET_FIELD', field: 'gracePeriodDays', value: Number(e.target.value) })}
                             helperText="Ödəniş gecikdirməsi üçün güzəşt müddəti"
                         />
                     </CardContent>
@@ -893,8 +972,8 @@ export function ContractForm() {
                                 className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold resize-none transition-colors"
                                 rows={3}
                                 placeholder="Qeyd daxil edin..."
-                                value={notes}
-                                onChange={e => setNotes(e.target.value)}
+                                value={form.notes}
+                                onChange={e => dispatch({ type: 'SET_FIELD', field: 'notes', value: e.target.value })}
                             />
                         </div>
 
@@ -907,22 +986,22 @@ export function ContractForm() {
                                 </div>
                                 <button
                                     type="button"
-                                    onClick={() => setAutoRenewal(v => !v)}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${autoRenewal ? 'bg-gold' : 'bg-border'}`}
+                                    onClick={() => dispatch({ type: 'SET_FIELD', field: 'autoRenewal', value: !form.autoRenewal })}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${form.autoRenewal ? 'bg-gold' : 'bg-border'}`}
                                 >
-                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow ${autoRenewal ? 'translate-x-6' : 'translate-x-1'}`} />
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow ${form.autoRenewal ? 'translate-x-6' : 'translate-x-1'}`} />
                                 </button>
                             </div>
 
-                            {autoRenewal && (
+                            {form.autoRenewal && (
                                 <div className="mt-4 p-4 bg-surface border border-border rounded-lg space-y-4">
                                     <Input
                                         label="Xəbərdarlıq müddəti (gün)"
                                         type="number"
                                         min="1"
                                         max="180"
-                                        value={renewalNoticeDays}
-                                        onChange={e => setRenewalNoticeDays(e.target.value)}
+                                        value={form.renewalNoticeDays}
+                                        onChange={e => dispatch({ type: 'SET_FIELD', field: 'renewalNoticeDays', value: e.target.value })}
                                         helperText="Müqavilə bitməzdən neçə gün əvvəl xəbərdarlıq göndərilsin?"
                                     />
                                     <div>
@@ -935,8 +1014,8 @@ export function ContractForm() {
                                                 <label key={val} className="flex items-center gap-3 cursor-pointer">
                                                     <input
                                                         type="radio"
-                                                        checked={renewalTypeValue === val}
-                                                        onChange={() => setRenewalTypeValue(val)}
+                                                        checked={form.renewalType === val}
+                                                        onChange={() => dispatch({ type: 'SET_FIELD', field: 'renewalType', value: val })}
                                                         className="accent-gold w-4 h-4"
                                                     />
                                                     <span className="text-sm text-text">{label}</span>

@@ -387,6 +387,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
             select: {
                 id: true, title: true, type: true, district: true, address: true,
                 floor: true, totalFloors: true, area: true, rooms: true,
+                description: true,
                 // basePrice intentionally included for SUPERADMIN moderation view
                 // never exposed in public-facing routes
                 basePrice: true,
