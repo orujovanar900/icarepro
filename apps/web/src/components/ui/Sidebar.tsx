@@ -53,8 +53,9 @@ export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: bool
     const { addToast } = useToastStore();
     const navigate = useNavigate();
 
+    const PLATFORM_STAFF_ROLES = ['SUPERADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE', 'CONTENT'];
     const hasSubscription =
-        user?.role === 'SUPERADMIN' ||
+        PLATFORM_STAFF_ROLES.includes(user?.role ?? '') ||
         user?.organization?.subscriptionStatus === 'ACTIVE';
 
     const navItems = React.useMemo(() => {

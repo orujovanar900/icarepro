@@ -8,7 +8,6 @@ import bcrypt from 'bcrypt'
 const BCRYPT_ROUNDS = 12
 
 const PLATFORM_STAFF_ROLES = ['MODERATOR', 'SUPPORT', 'FINANCE', 'CONTENT'] as const
-type PlatformStaffRole = typeof PLATFORM_STAFF_ROLES[number]
 
 const PLAN_PRICES: Record<string, number> = {
     FREE_TRIAL: 0,
@@ -132,6 +131,33 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
             count,
             price: PLAN_PRICES[plan] || 0,
         }))
+
+        // FINANCE role: return only financial/subscription data — no org-level operational details
+        if (req.user.role === 'FINANCE') {
+            return reply.send({
+                success: true,
+                data: {
+                    overview: {
+                        totalOrganizations,
+                        activePlans,
+                        newThisMonth,
+                        newThisMonthGrowth: growthPct,
+                        suspendedCount,
+                    },
+                    mrr,
+                    planDistribution,
+                    monthlyRegistrations,
+                    mrrTrend,
+                    health: {
+                        active: activePlans,
+                        gracePeriod: gracePeriodCount,
+                        suspended: suspendedCount,
+                        freeTrial: freeTrialCount,
+                    },
+                    expiringInWeek,
+                }
+            })
+        }
 
         return reply.send({
             success: true,
@@ -542,20 +568,29 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
 
         const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
 
-        const staff = await fastify.prisma.user.create({
-            data: {
-                name,
-                email,
-                passwordHash,
-                role: role as any,
-                organizationId: null,
-                isActive: true,
-            },
-            select: {
-                id: true, name: true, email: true, role: true,
-                isActive: true, createdAt: true,
-            },
-        })
+        let staff: { id: string; name: string; email: string; role: string; isActive: boolean; createdAt: Date }
+        try {
+            staff = await fastify.prisma.user.create({
+                data: {
+                    name,
+                    email,
+                    passwordHash,
+                    role: role as any,
+                    organizationId: null,
+                    isActive: true,
+                },
+                select: {
+                    id: true, name: true, email: true, role: true,
+                    isActive: true, createdAt: true,
+                },
+            })
+        } catch (err: any) {
+            // Handle unique constraint violation on email (P2002) from concurrent requests
+            if (err?.code === 'P2002') {
+                return reply.code(409).send({ success: false, error: 'Bu e-poçt ünvanı artıq istifadə olunur.' })
+            }
+            throw err
+        }
 
         // Send welcome email asynchronously
         const { sendStaffWelcome } = await import('../services/email.js')
@@ -573,17 +608,17 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.code(201).send({ success: true, data: staff })
     })
 
-    // PATCH /admin/staff/:id — update role or isActive
+    // PATCH /admin/staff/:id — update role, isActive, or name
     fastify.patch('/staff/:id', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
-        const { role, isActive } = req.body as { role?: string; isActive?: boolean }
+        const { role, isActive, name } = req.body as { role?: string; isActive?: boolean; name?: string }
 
         const staff = await fastify.prisma.user.findFirst({
             where: { id, organizationId: null },
         })
         if (!staff) return reply.code(404).send({ success: false, error: 'Staff member not found' })
 
-        // Prevent SUPERADMIN from accidentally demoting themselves via this endpoint
+        // Prevent demoting any SUPERADMIN via this endpoint
         if (staff.role === 'SUPERADMIN' && role && role !== 'SUPERADMIN') {
             return reply.code(400).send({ success: false, error: 'SUPERADMIN rolunu bu endpointdən dəyişmək olmaz.' })
         }
@@ -592,7 +627,9 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
             return reply.code(400).send({ success: false, error: 'Yalnız platform staff rolları icazəlidir.' })
         }
 
+        // Prisma update payload (may include Prisma operators like { increment: 1 })
         const updateData: any = {}
+        if (name !== undefined) updateData.name = name
         if (role !== undefined) updateData.role = role
         if (isActive !== undefined) updateData.isActive = isActive
         if (isActive === false || role !== undefined) updateData.jwtVersion = { increment: 1 }
@@ -606,13 +643,19 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
             },
         })
 
+        // Audit metadata — only scalar changes, no Prisma operators
+        const auditChanges: Record<string, unknown> = {}
+        if (name !== undefined) auditChanges['name'] = name
+        if (role !== undefined) auditChanges['role'] = role
+        if (isActive !== undefined) auditChanges['isActive'] = isActive
+
         await writeAuditLog(fastify.prisma, {
             organizationId: null,
             userId: req.user.sub,
             action: 'STAFF_UPDATED',
             entityType: 'User',
             entityId: id,
-            metadata: { changes: updateData, updatedBy: req.user.sub },
+            metadata: { changes: auditChanges, updatedBy: req.user.sub },
         })
 
         return reply.send({ success: true, data: updated })

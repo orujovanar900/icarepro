@@ -4,7 +4,6 @@ import { api } from '@/lib/api'
 import { useToastStore } from '@/store/toast'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Badge } from '@/components/ui/Badge'
 import { UserPlus, X, Pencil, Trash2, ShieldCheck } from 'lucide-react'
 
 // ─── Types ───────────────────────────────
@@ -199,22 +198,23 @@ function CreateStaffModal({ onClose, onCreated }: CreateStaffModalProps) {
     )
 }
 
-// ─── Edit Role Modal ──────────────────────
+// ─── Edit Staff Modal ─────────────────────
 
-interface EditRoleModalProps {
+interface EditStaffModalProps {
     staff: StaffMember
     onClose: () => void
     onUpdated: () => void
 }
 
-function EditRoleModal({ staff, onClose, onUpdated }: EditRoleModalProps) {
+function EditStaffModal({ staff, onClose, onUpdated }: EditStaffModalProps) {
     const { addToast } = useToastStore()
     const [role, setRole] = React.useState<PlatformRole>(staff.role)
+    const [name, setName] = React.useState(staff.name)
 
     const mutation = useMutation({
-        mutationFn: () => api.patch(`/admin/staff/${staff.id}`, { role }),
+        mutationFn: () => api.patch(`/admin/staff/${staff.id}`, { role, name: name.trim() }),
         onSuccess: () => {
-            addToast({ type: 'success', message: 'Rol yeniləndi.' })
+            addToast({ type: 'success', message: 'Məlumatlar yeniləndi.' })
             onUpdated()
             onClose()
         },
@@ -232,31 +232,42 @@ function EditRoleModal({ staff, onClose, onUpdated }: EditRoleModalProps) {
             }}
             onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
         >
-            <div style={{ background: '#FFF', borderRadius: 16, padding: 28, width: '100%', maxWidth: 380 }}>
+            <div style={{ background: '#FFF', borderRadius: 16, padding: 28, width: '100%', maxWidth: 400 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                    <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1A1A2E' }}>Rolu Dəyiş</h2>
+                    <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1A1A2E' }}>Staff Redaktəsi</h2>
                     <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280' }}>
                         <X size={20} />
                     </button>
                 </div>
-                <p style={{ margin: '0 0 16px', color: '#6B7280', fontSize: 14 }}>{staff.name} — {staff.email}</p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
-                    {ROLE_OPTIONS.map(opt => (
-                        <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => setRole(opt.value)}
-                            style={{
-                                padding: '8px 12px', borderRadius: 8,
-                                border: `2px solid ${role === opt.value ? '#1A1A2E' : '#E5E7EB'}`,
-                                background: role === opt.value ? '#1A1A2E' : '#FFF',
-                                color: role === opt.value ? '#C9A84C' : '#374151',
-                                fontWeight: 600, fontSize: 13, cursor: 'pointer',
-                            }}
-                        >
-                            {opt.label}
-                        </button>
-                    ))}
+                <p style={{ margin: '0 0 16px', color: '#6B7280', fontSize: 13 }}>{staff.email}</p>
+                <div style={{ marginBottom: 16 }}>
+                    <Input
+                        label="Ad Soyad"
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        placeholder="Ad Soyad"
+                    />
+                </div>
+                <div style={{ marginBottom: 20 }}>
+                    <label style={{ fontSize: 13, fontWeight: 500, color: '#374151', display: 'block', marginBottom: 8 }}>Rol</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                        {ROLE_OPTIONS.map(opt => (
+                            <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => setRole(opt.value)}
+                                style={{
+                                    padding: '8px 12px', borderRadius: 8,
+                                    border: `2px solid ${role === opt.value ? '#1A1A2E' : '#E5E7EB'}`,
+                                    background: role === opt.value ? '#1A1A2E' : '#FFF',
+                                    color: role === opt.value ? '#C9A84C' : '#374151',
+                                    fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                                }}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                     <Button type="button" variant="ghost" size="md" onClick={onClose} style={{ flex: 1 }}>Ləğv et</Button>
@@ -504,7 +515,7 @@ export function AdminStaff() {
                 <CreateStaffModal onClose={() => setShowCreate(false)} onCreated={refresh} />
             )}
             {editTarget && (
-                <EditRoleModal staff={editTarget} onClose={() => setEditTarget(null)} onUpdated={refresh} />
+                <EditStaffModal staff={editTarget} onClose={() => setEditTarget(null)} onUpdated={refresh} />
             )}
         </div>
     )

@@ -197,6 +197,8 @@ export async function sendListingRejected(to: string, data: {
   });
 }
 
+// TODO: Replace with a password-reset flow to avoid sending plaintext credentials via email.
+// Currently the SUPERADMIN sets the initial password and it is emailed to the new staff member.
 export async function sendStaffWelcome(to: string, data: {
   name: string,
   role: string,
