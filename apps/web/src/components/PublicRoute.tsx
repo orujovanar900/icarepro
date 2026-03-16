@@ -10,7 +10,8 @@ export function PublicRoute() {
     const { isAuthenticated, user } = useAuthStore();
 
     if (isAuthenticated && user) {
-        if (user.role === 'SUPERADMIN') {
+        const PLATFORM_STAFF = ['SUPERADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE', 'CONTENT'];
+        if (PLATFORM_STAFF.includes(user.role)) {
             return <Navigate to="/admin" replace />;
         }
         // ICARECI (tenant) always goes to /kabinet — no subscription check needed,
