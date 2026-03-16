@@ -124,22 +124,31 @@ export function Register() {
     };
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-bg p-4 relative isolate w-full">
-            {/* Background decoration */}
-            <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gold/10 via-bg to-bg" />
-
+        <div
+            className="flex min-h-screen flex-col items-center justify-center p-6 w-full"
+            style={{ backgroundColor: '#F5F0E8' }}
+        >
             <div className="w-full max-w-lg space-y-6">
                 <div className="text-center">
                     <h1 className="text-5xl font-heading tracking-tight flex items-center justify-center gap-2">
-                        <span className="font-extrabold"><span className="text-gold">icare</span><span className="text-white">pro</span></span>
+                        <span className="font-extrabold">
+                            <span className="text-gold">icare</span>
+                            <span style={{ color: '#1A1A2E' }}>pro</span>
+                        </span>
                     </h1>
-                    <p className="mt-2 text-sm text-text">Yeni hesab yaradın və idarəetməyə başlayın</p>
+                    <p className="mt-2 text-sm" style={{ color: '#6B7280' }}>
+                        Yeni hesab yaradın və idarəetməyə başlayın
+                    </p>
                 </div>
 
-                <Card variant="elevated" className="border-border/50 bg-surface/50 backdrop-blur-md">
+                <Card
+                    variant="elevated"
+                    className="border border-[#E5E0D8] shadow-md"
+                    style={{ backgroundColor: '#FFFFFF' }}
+                >
                     <form onSubmit={handleSubmit(onSubmit)}>
                         <CardHeader>
-                            <CardTitle className="text-xl text-center">
+                            <CardTitle className="text-xl text-center" style={{ color: '#1A1A2E' }}>
                                 Hesab növünüzü seçin
                             </CardTitle>
                         </CardHeader>
@@ -156,7 +165,7 @@ export function Register() {
                                             className={`relative flex flex-col items-start gap-1 rounded-xl border-2 p-3.5 text-left transition-all focus:outline-none ${
                                                 isSelected
                                                     ? 'border-gold bg-gold/10 shadow-sm'
-                                                    : 'border-border/40 bg-surface hover:border-gold/40 hover:bg-white/5'
+                                                    : 'border-[#E5E0D8] bg-white hover:border-gold/60 hover:bg-gold/5'
                                             }`}
                                         >
                                             {isSelected && (
@@ -165,10 +174,15 @@ export function Register() {
                                                 </span>
                                             )}
                                             <span className="text-2xl leading-none">{emoji}</span>
-                                            <span className={`text-sm font-semibold leading-snug ${isSelected ? 'text-gold' : 'text-text'}`}>
+                                            <span
+                                                className="text-sm font-semibold leading-snug"
+                                                style={{ color: isSelected ? '#C9A84C' : '#1A1A2E' }}
+                                            >
                                                 {title}
                                             </span>
-                                            <span className="text-[11px] text-muted leading-snug">{subtitle}</span>
+                                            <span className="text-[11px] leading-snug" style={{ color: '#9CA3AF' }}>
+                                                {subtitle}
+                                            </span>
                                         </button>
                                     );
                                 })}
@@ -176,9 +190,9 @@ export function Register() {
 
                             {/* Divider */}
                             <div className="flex items-center gap-3">
-                                <div className="flex-1 h-px bg-border/40" />
-                                <span className="text-xs text-muted">Məlumatlarınızı daxil edin</span>
-                                <div className="flex-1 h-px bg-border/40" />
+                                <div className="flex-1 h-px bg-[#E5E0D8]" />
+                                <span className="text-xs" style={{ color: '#9CA3AF' }}>Məlumatlarınızı daxil edin</span>
+                                <div className="flex-1 h-px bg-[#E5E0D8]" />
                             </div>
 
                             <Input
@@ -216,7 +230,7 @@ export function Register() {
                                     <button
                                         type="button"
                                         onClick={() => setShowPass(!showPass)}
-                                        style={{ color: '#4A6080' }}
+                                        style={{ color: '#9CA3AF' }}
                                         className="hover:!text-[#C9A84C] transition-colors flex items-center justify-center p-1"
                                     >
                                         {showPass ? <Eye size={18} /> : <EyeOff size={18} />}
@@ -226,18 +240,18 @@ export function Register() {
 
                             {/* Password strength checklist */}
                             {hasTypedPassword && (
-                                <div className="rounded-lg border border-border/40 bg-surface/60 px-4 py-3 space-y-1.5">
+                                <div className="rounded-lg border border-[#E5E0D8] bg-gray-50 px-4 py-3 space-y-1.5">
                                     {passwordRules.map((rule) => {
                                         const passed = rule.test(passwordValue);
                                         return (
                                             <div
                                                 key={rule.label}
-                                                className={`flex items-center gap-2 text-xs transition-colors ${passed ? 'text-green-400' : 'text-muted'}`}
+                                                className={`flex items-center gap-2 text-xs transition-colors ${passed ? 'text-green-600' : 'text-gray-400'}`}
                                             >
-                                                <span className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center transition-all ${passed ? 'bg-green-400/20' : 'bg-white/5'}`}>
+                                                <span className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center transition-all ${passed ? 'bg-green-100' : 'bg-gray-100'}`}>
                                                     {passed
                                                         ? <Check size={10} strokeWidth={3} />
-                                                        : <X size={10} strokeWidth={3} className="text-muted/50" />
+                                                        : <X size={10} strokeWidth={3} className="text-gray-300" />
                                                     }
                                                 </span>
                                                 {rule.label}
@@ -257,7 +271,7 @@ export function Register() {
                                     <button
                                         type="button"
                                         onClick={() => setShowConfirm(!showConfirm)}
-                                        style={{ color: '#4A6080' }}
+                                        style={{ color: '#9CA3AF' }}
                                         className="hover:!text-[#C9A84C] transition-colors flex items-center justify-center p-1"
                                     >
                                         {showConfirm ? <Eye size={18} /> : <EyeOff size={18} />}
@@ -267,7 +281,7 @@ export function Register() {
                         </CardContent>
                         <CardFooter className="flex flex-col gap-3">
                             {submitError && (
-                                <div className="w-full rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400 flex items-start gap-2">
+                                <div className="w-full rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-600 flex items-start gap-2">
                                     <span className="flex-shrink-0">⚠️</span>
                                     <div>
                                         <p>{submitError}</p>
@@ -279,11 +293,18 @@ export function Register() {
                                     </div>
                                 </div>
                             )}
-                            <Button type="submit" variant="primary" className="w-full" size="lg" isLoading={isLoading}>
+                            <Button
+                                type="submit"
+                                variant="primary"
+                                className="w-full"
+                                size="lg"
+                                isLoading={isLoading}
+                                style={{ backgroundColor: '#1A1A2E', color: '#C9A84C' }}
+                            >
                                 Hesab yarat
                             </Button>
 
-                            <p className="text-[11px] text-muted text-center leading-relaxed px-2">
+                            <p className="text-[11px] text-center leading-relaxed px-2" style={{ color: '#9CA3AF' }}>
                                 Qeydiyyatdan keçməklə{' '}
                                 <a
                                     href="/terms"
@@ -307,7 +328,8 @@ export function Register() {
 
                             <Link
                                 to="/login"
-                                className="text-sm text-muted hover:text-gold transition-colors text-center"
+                                className="text-sm text-center transition-colors hover:text-gold"
+                                style={{ color: '#9CA3AF' }}
                             >
                                 Hesabınız var? <span className="text-gold font-medium">Daxil olun</span>
                             </Link>

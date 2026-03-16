@@ -91,22 +91,36 @@ export function Login() {
     };
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-bg p-4 relative isolate w-full">
-            {/* Background decoration */}
-            <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gold/10 via-bg to-bg" />
-
+        <div
+            className="flex min-h-screen flex-col items-center justify-center p-6 w-full"
+            style={{ backgroundColor: '#F5F0E8' }}
+        >
             <div className="w-full max-w-md space-y-8">
                 <div className="text-center">
-                    <Link to="/" className="text-5xl font-heading tracking-tight flex items-center justify-center gap-2 hover:opacity-80 transition-opacity">
-                        <span className="font-extrabold"><span className="text-gold">icare</span><span className="text-white">pro</span></span>
+                    <Link
+                        to="/"
+                        className="text-5xl font-heading tracking-tight flex items-center justify-center gap-2 hover:opacity-80 transition-opacity"
+                    >
+                        <span className="font-extrabold">
+                            <span className="text-gold">icare</span>
+                            <span style={{ color: '#1A1A2E' }}>pro</span>
+                        </span>
                     </Link>
-                    <p className="mt-2 text-sm text-text">Sistemi idarə etmək üçün daxil olun</p>
+                    <p className="mt-2 text-sm" style={{ color: '#6B7280' }}>
+                        Sistemi idarə etmək üçün daxil olun
+                    </p>
                 </div>
 
-                <Card variant="elevated" className="border-border/50 bg-surface/50 backdrop-blur-md">
+                <Card
+                    variant="elevated"
+                    className="border border-[#E5E0D8] shadow-md"
+                    style={{ backgroundColor: '#FFFFFF' }}
+                >
                     <form onSubmit={handleSubmit(onSubmit)}>
                         <CardHeader>
-                            <CardTitle className="text-2xl text-center">Xoş gəlmisiniz!</CardTitle>
+                            <CardTitle className="text-2xl text-center" style={{ color: '#1A1A2E' }}>
+                                Xoş gəlmisiniz!
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <Input
@@ -126,7 +140,7 @@ export function Login() {
                                     <button
                                         type="button"
                                         onClick={() => setShowPass(!showPass)}
-                                        style={{ color: '#4A6080' }}
+                                        style={{ color: '#9CA3AF' }}
                                         className="hover:!text-[#C9A84C] transition-colors flex items-center justify-center p-1"
                                     >
                                         {showPass ? <Eye size={18} /> : <EyeOff size={18} />}
@@ -134,7 +148,10 @@ export function Login() {
                                 }
                             />
 
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }} className="text-sm text-muted cursor-pointer hover:text-text transition-colors w-fit pt-2">
+                            <label
+                                style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6B7280' }}
+                                className="text-sm cursor-pointer w-fit pt-2 hover:opacity-80 transition-opacity"
+                            >
                                 <input
                                     type="checkbox"
                                     checked={remember}
@@ -146,23 +163,32 @@ export function Login() {
                         </CardContent>
                         <CardFooter className="flex flex-col gap-3">
                             {submitError && (
-                                <div className="w-full rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400 flex items-start gap-2">
+                                <div className="w-full rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-600 flex items-start gap-2">
                                     <span className="flex-shrink-0">⚠️</span>
                                     <p>{submitError}</p>
                                 </div>
                             )}
-                            <Button type="submit" variant="primary" className="w-full" size="lg" isLoading={isLoading}>
+                            <Button
+                                type="submit"
+                                variant="primary"
+                                className="w-full"
+                                size="lg"
+                                isLoading={isLoading}
+                                style={{ backgroundColor: '#1A1A2E', color: '#C9A84C' }}
+                            >
                                 Daxil ol
                             </Button>
                             <Link
                                 to="/forgot-password"
-                                className="text-sm text-muted hover:text-gold transition-colors text-center"
+                                className="text-sm text-center transition-colors hover:text-gold"
+                                style={{ color: '#9CA3AF' }}
                             >
                                 Şifrəni unutmusunuz?
                             </Link>
                             <Link
                                 to="/register"
-                                className="text-sm text-muted hover:text-gold transition-colors text-center"
+                                className="text-sm text-center transition-colors hover:text-gold"
+                                style={{ color: '#9CA3AF' }}
                             >
                                 Hesabınız yoxdur? <span className="text-gold font-medium">Qeydiyyat</span>
                             </Link>
