@@ -72,6 +72,21 @@ export function Register() {
     const hasTypedPassword = passwordValue.length > 0;
     const isAgentlik = selectedRole === 'AGENTLIK';
 
+    const emailValue = watch('email')
+    React.useEffect(() => {
+        if (emailValue) setSubmitError(null)
+    }, [emailValue])
+
+    function mapRegisterError(msg: string): string {
+        if (msg.includes('artıq qeydiyyatdan keçib') || msg.includes('artıq mövcuddur')) {
+            return 'Bu e-poçt ünvanı ilə hesab artıq mövcuddur. Daxil olmaq istəyirsiniz?'
+        }
+        if (msg.includes('limit') || msg.includes('1 saat')) {
+            return 'Çox sayda cəhd. Zəhmət olmasa 1 saat sonra yenidən cəhd edin.'
+        }
+        return 'Qeydiyyat uğursuz oldu. Zəhmət olmasa məlumatları yoxlayın.'
+    }
+
     const onSubmit = async (data: RegisterFormValues) => {
         setSubmitError(null);
         if (isAgentlik && (!data.organizationName || data.organizationName.trim().length < 2)) {
@@ -96,36 +111,45 @@ export function Register() {
             if (selectedRole === 'ICARECI') {
                 navigate('/kabinet');
             } else {
-                navigate('/dashboard');
+                const hasSubscription = user.organization?.subscriptionStatus === 'ACTIVE';
+                navigate(hasSubscription ? '/dashboard' : '/dashboard/elanlar');
             }
         } catch (error: any) {
-            setSubmitError(error.response?.data?.error || 'Qeydiyyat uğursuz oldu. Zəhmət olmasa təkrar cəhd edin.');
+            const msg = error.response?.data?.error || 'Qeydiyyat uğursuz oldu.'
+            const friendly = mapRegisterError(msg)
+            setSubmitError(friendly)
+            addToast({ type: 'error', message: friendly })
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-bg p-4 relative isolate w-full">
-            {/* Background decoration */}
-            <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gold/10 via-bg to-bg" />
-
+        <div
+            className="flex min-h-screen flex-col items-center justify-center p-6 w-full"
+            style={{ backgroundColor: '#F5F0E8' }}
+        >
             <div className="w-full max-w-lg space-y-6">
                 <div className="text-center">
                     <h1 className="text-5xl font-heading tracking-tight flex items-center justify-center gap-2">
-                        <span className="text-gold font-extrabold">İcarə</span>
-                        <span className="text-white font-normal">Pro</span>
+                        <span className="font-extrabold">
+                            <span className="text-gold">icare</span>
+                            <span style={{ color: '#1A1A2E' }}>pro</span>
+                        </span>
                     </h1>
-                    <p style={{ fontStyle: 'italic', color: '#8899B0', fontSize: '13px' }} className="mt-1 mb-2">
-                        "Mülkünüzü ağıllı idarə edin"
+                    <p className="mt-2 text-sm" style={{ color: '#6B7280' }}>
+                        Yeni hesab yaradın və idarəetməyə başlayın
                     </p>
-                    <p className="mt-2 text-sm text-text">Yeni hesab yaradın və idarəetməyə başlayın</p>
                 </div>
 
-                <Card variant="elevated" className="border-border/50 bg-surface/50 backdrop-blur-md">
+                <Card
+                    variant="elevated"
+                    className="border border-[#E5E0D8] shadow-md"
+                    style={{ backgroundColor: '#FFFFFF' }}
+                >
                     <form onSubmit={handleSubmit(onSubmit)}>
                         <CardHeader>
-                            <CardTitle className="text-xl text-center">
+                            <CardTitle className="text-xl text-center" style={{ color: '#1A1A2E' }}>
                                 Hesab növünüzü seçin
                             </CardTitle>
                         </CardHeader>
@@ -142,7 +166,7 @@ export function Register() {
                                             className={`relative flex flex-col items-start gap-1 rounded-xl border-2 p-3.5 text-left transition-all focus:outline-none ${
                                                 isSelected
                                                     ? 'border-gold bg-gold/10 shadow-sm'
-                                                    : 'border-border/40 bg-surface hover:border-gold/40 hover:bg-white/5'
+                                                    : 'border-[#E5E0D8] bg-white hover:border-gold/60 hover:bg-gold/5'
                                             }`}
                                         >
                                             {isSelected && (
@@ -151,10 +175,15 @@ export function Register() {
                                                 </span>
                                             )}
                                             <span className="text-2xl leading-none">{emoji}</span>
-                                            <span className={`text-sm font-semibold leading-snug ${isSelected ? 'text-gold' : 'text-text'}`}>
+                                            <span
+                                                className="text-sm font-semibold leading-snug"
+                                                style={{ color: isSelected ? '#C9A84C' : '#1A1A2E' }}
+                                            >
                                                 {title}
                                             </span>
-                                            <span className="text-[11px] text-muted leading-snug">{subtitle}</span>
+                                            <span className="text-[11px] leading-snug" style={{ color: '#9CA3AF' }}>
+                                                {subtitle}
+                                            </span>
                                         </button>
                                     );
                                 })}
@@ -162,9 +191,9 @@ export function Register() {
 
                             {/* Divider */}
                             <div className="flex items-center gap-3">
-                                <div className="flex-1 h-px bg-border/40" />
-                                <span className="text-xs text-muted">Məlumatlarınızı daxil edin</span>
-                                <div className="flex-1 h-px bg-border/40" />
+                                <div className="flex-1 h-px bg-[#E5E0D8]" />
+                                <span className="text-xs" style={{ color: '#9CA3AF' }}>Məlumatlarınızı daxil edin</span>
+                                <div className="flex-1 h-px bg-[#E5E0D8]" />
                             </div>
 
                             {submitError && (
@@ -241,7 +270,7 @@ export function Register() {
                                     <button
                                         type="button"
                                         onClick={() => setShowPass(!showPass)}
-                                        style={{ color: '#4A6080' }}
+                                        style={{ color: '#9CA3AF' }}
                                         className="hover:!text-[#C9A84C] transition-colors flex items-center justify-center p-1"
                                     >
                                         {showPass ? <Eye size={18} /> : <EyeOff size={18} />}
@@ -251,18 +280,18 @@ export function Register() {
 
                             {/* Password strength checklist */}
                             {hasTypedPassword && (
-                                <div className="rounded-lg border border-border/40 bg-surface/60 px-4 py-3 space-y-1.5">
+                                <div className="rounded-lg border border-[#E5E0D8] bg-gray-50 px-4 py-3 space-y-1.5">
                                     {passwordRules.map((rule) => {
                                         const passed = rule.test(passwordValue);
                                         return (
                                             <div
                                                 key={rule.label}
-                                                className={`flex items-center gap-2 text-xs transition-colors ${passed ? 'text-green-400' : 'text-muted'}`}
+                                                className={`flex items-center gap-2 text-xs transition-colors ${passed ? 'text-green-600' : 'text-gray-400'}`}
                                             >
-                                                <span className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center transition-all ${passed ? 'bg-green-400/20' : 'bg-white/5'}`}>
+                                                <span className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center transition-all ${passed ? 'bg-green-100' : 'bg-gray-100'}`}>
                                                     {passed
                                                         ? <Check size={10} strokeWidth={3} />
-                                                        : <X size={10} strokeWidth={3} className="text-muted/50" />
+                                                        : <X size={10} strokeWidth={3} className="text-gray-300" />
                                                     }
                                                 </span>
                                                 {rule.label}
@@ -283,7 +312,7 @@ export function Register() {
                                     <button
                                         type="button"
                                         onClick={() => setShowConfirm(!showConfirm)}
-                                        style={{ color: '#4A6080' }}
+                                        style={{ color: '#9CA3AF' }}
                                         className="hover:!text-[#C9A84C] transition-colors flex items-center justify-center p-1"
                                     >
                                         {showConfirm ? <Eye size={18} /> : <EyeOff size={18} />}
@@ -292,11 +321,52 @@ export function Register() {
                             />
                         </CardContent>
                         <CardFooter className="flex flex-col gap-3">
-                            <Button type="submit" variant="primary" className="w-full" size="lg" isLoading={isLoading}>
+                            {submitError && (
+                                <div style={{
+                                    background: '#FEF2F2',
+                                    border: '1px solid #FECACA',
+                                    borderRadius: '8px',
+                                    padding: '12px 16px',
+                                    marginBottom: '8px',
+                                }}>
+                                    <p style={{
+                                        color: '#DC2626',
+                                        fontSize: '14px',
+                                        fontWeight: '500',
+                                        margin: 0,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px'
+                                    }}>
+                                        <span>⚠️</span>
+                                        {submitError}
+                                    </p>
+                                    {submitError.includes('mövcuddur') && (
+                                        <Link to="/login" style={{
+                                            color: '#C9A84C',
+                                            fontSize: '13px',
+                                            textDecoration: 'underline',
+                                            display: 'block',
+                                            marginTop: '6px',
+                                            marginLeft: '24px'
+                                        }}>
+                                            Daxil olun →
+                                        </Link>
+                                    )}
+                                </div>
+                            )}
+                            <Button
+                                type="submit"
+                                variant="primary"
+                                className="w-full"
+                                size="lg"
+                                isLoading={isLoading}
+                                style={{ backgroundColor: '#1A1A2E', color: '#C9A84C' }}
+                            >
                                 Hesab yarat
                             </Button>
 
-                            <p className="text-[11px] text-muted text-center leading-relaxed px-2">
+                            <p className="text-[11px] text-center leading-relaxed px-2" style={{ color: '#9CA3AF' }}>
                                 Qeydiyyatdan keçməklə{' '}
                                 <a
                                     href="/terms"
@@ -320,7 +390,8 @@ export function Register() {
 
                             <Link
                                 to="/login"
-                                className="text-sm text-muted hover:text-gold transition-colors text-center"
+                                className="text-sm text-center transition-colors hover:text-gold"
+                                style={{ color: '#9CA3AF' }}
                             >
                                 Hesabınız var? <span className="text-gold font-medium">Daxil olun</span>
                             </Link>

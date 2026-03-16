@@ -6,6 +6,10 @@ import type { FastifyReply, FastifyRequest } from 'fastify'
  */
 export type AppRole =
     | 'SUPERADMIN'
+    | 'MODERATOR'
+    | 'SUPPORT'
+    | 'FINANCE'
+    | 'CONTENT'
     | 'OWNER'
     | 'MANAGER'
     | 'CASHIER'
@@ -15,6 +19,9 @@ export type AppRole =
     | 'AGENT'
     | 'AGENTLIK'
     | 'ICARECI'
+
+/** Platform staff roles — these users have no organization */
+export const PLATFORM_ROLES: AppRole[] = ['SUPERADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE', 'CONTENT']
 
 /**
  * requireRole(['OWNER', 'MANAGER']) — returns a Fastify preHandler hook.

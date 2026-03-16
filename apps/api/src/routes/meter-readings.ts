@@ -57,7 +57,7 @@ const meterReadingsRoutes: FastifyPluginAsync = async (fastify) => {
         const reading = await fastify.prisma.meterReading.create({
             data: {
                 ...body.data,
-                organizationId: req.user.organizationId,
+                organizationId: req.user.organizationId as string,
                 readingDate: new Date(body.data.readingDate),
                 consumption: consumption ?? undefined,
             },

@@ -14,15 +14,14 @@ import { Select } from '@/components/ui/Select';
 const LISTING_TYPES = [
     { value: 'MENZIL', label: '🏠 Mənzil' },
     { value: 'OFIS', label: '🏢 Ofis' },
-    { value: 'MAGAZA', label: '🛍 Mağaza' },
-    { value: 'ANBAR', label: '📦 Anbar' },
-    { value: 'KOMERSIYA', label: '🏗 Komersiya' },
-    { value: 'TORPAQ', label: '🌱 Torpaq' },
+    { value: 'OBYEKT', label: '🏗 Obyekt' },
     { value: 'HEYET_EVI', label: '🏡 Həyət evi' },
-    { value: 'VILLA', label: '🏰 Villa' },
+    { value: 'GARAJ', label: '🚗 Qaraj' },
+    { value: 'TORPAQ', label: '🌱 Torpaq' },
+    { value: 'ANBAR', label: '📦 Anbar' },
 ];
 
-const TYPES_WITH_ROOMS = ['MENZIL', 'OFIS', 'HEYET_EVI', 'VILLA'];
+const TYPES_WITH_ROOMS = ['MENZIL', 'OFIS', 'HEYET_EVI'];
 
 const DISTRICTS = [
     'Nəsimi', 'Nərimanov', 'Səbail', 'Yasamal', 'Xətai',
@@ -49,8 +48,8 @@ const AMENITIES = [
 ];
 
 const TYPE_LABEL_MAP: Record<string, string> = {
-    MENZIL: 'Mənzil', OFIS: 'Ofis', MAGAZA: 'Mağaza', ANBAR: 'Anbar',
-    KOMERSIYA: 'Komersiya', TORPAQ: 'Torpaq', HEYET_EVI: 'Həyət evi', VILLA: 'Villa',
+    MENZIL: 'Mənzil', OFIS: 'Ofis', OBYEKT: 'Obyekt', HEYET_EVI: 'Həyət evi',
+    GARAJ: 'Qaraj', TORPAQ: 'Torpaq', ANBAR: 'Anbar',
 };
 
 /* ──────────── Component ──────────── */
@@ -98,11 +97,27 @@ export function CreateDashboardListing() {
         if (!titleEdited) setTitle(autoTitle);
     }, [autoTitle, titleEdited]);
 
-    /* Create listing mutation */
-    const createMutation = useMutation({
+    /* Create listing — save as DRAFT */
+    const draftMutation = useMutation({
         mutationFn: async (payload: Record<string, unknown>) => {
             const res = await api.post('/listings', payload);
             return res.data;
+        },
+        onSuccess: () => {
+            addToast({ message: 'Elan qaralama kimi saxlandı.', type: 'success' });
+            navigate('/dashboard/elanlar');
+        },
+        onError: () => addToast({ message: 'Xəta baş verdi. Yenidən cəhd edin.', type: 'error' }),
+    });
+
+    /* Create listing — save then immediately publish */
+    const publishMutation = useMutation({
+        mutationFn: async (payload: Record<string, unknown>) => {
+            const createRes = await api.post('/listings', payload);
+            const listingId: string = createRes.data?.data?.id ?? createRes.data?.id;
+            if (!listingId) throw new Error('Listing ID not returned');
+            await api.post(`/listings/${listingId}/publish`);
+            return listingId;
         },
         onSuccess: () => {
             addToast({ message: 'Elanınız moderasiyaya göndərildi! 24 saat ərzində yoxlanılacaq.', type: 'success' });
@@ -151,11 +166,11 @@ export function CreateDashboardListing() {
         );
     };
 
-    const handleSubmit = () => {
-        if (!type) { addToast({ message: 'Elan növünü seçin', type: 'error' }); return; }
-        if (!district) { addToast({ message: 'Rayonu seçin', type: 'error' }); return; }
-        if (!address) { addToast({ message: 'Ünvanı daxil edin', type: 'error' }); return; }
-        if (!basePrice) { addToast({ message: 'Qiyməti daxil edin', type: 'error' }); return; }
+    const buildPayload = (): Record<string, unknown> | null => {
+        if (!type) { addToast({ message: 'Elan növünü seçin', type: 'error' }); return null; }
+        if (!district) { addToast({ message: 'Rayonu seçin', type: 'error' }); return null; }
+        if (!address) { addToast({ message: 'Ünvanı daxil edin', type: 'error' }); return null; }
+        if (!basePrice) { addToast({ message: 'Qiyməti daxil edin', type: 'error' }); return null; }
 
         const payload: Record<string, unknown> = {
             type,
@@ -180,8 +195,17 @@ export function CreateDashboardListing() {
         if (availStatus === 'INSAAT') {
             payload['expectedFreeDate'] = expectedFreeDate;
         }
+        return payload;
+    };
 
-        createMutation.mutate(payload);
+    const handleDraft = () => {
+        const payload = buildPayload();
+        if (payload) draftMutation.mutate(payload);
+    };
+
+    const handlePublish = () => {
+        const payload = buildPayload();
+        if (payload) publishMutation.mutate(payload);
     };
 
     const showRooms = TYPES_WITH_ROOMS.includes(type);
@@ -198,7 +222,7 @@ export function CreateDashboardListing() {
                 </Button>
                 <div>
                     <h1 className="text-2xl font-bold text-text">Yeni elan yarat</h1>
-                    <p className="text-sm text-muted mt-0.5">Doldurduqdan sonra moderasiyaya göndəriləcək</p>
+                    <p className="text-sm text-muted mt-0.5">Qaralama kimi saxlaya və ya birbaşa dərc edə bilərsiniz</p>
                 </div>
             </div>
 
@@ -502,14 +526,25 @@ export function CreateDashboardListing() {
                 <Button variant="ghost" onClick={() => navigate(-1)}>
                     ← Geri
                 </Button>
-                <Button
-                    onClick={handleSubmit}
-                    isLoading={createMutation.isPending}
-                    disabled={createMutation.isPending}
-                    className="px-6"
-                >
-                    Moderasiyaya göndər
-                </Button>
+                <div className="flex items-center gap-3">
+                    <Button
+                        variant="outline"
+                        onClick={handleDraft}
+                        isLoading={draftMutation.isPending}
+                        disabled={draftMutation.isPending || publishMutation.isPending}
+                        className="px-5"
+                    >
+                        Qaralama saxla
+                    </Button>
+                    <Button
+                        onClick={handlePublish}
+                        isLoading={publishMutation.isPending}
+                        disabled={draftMutation.isPending || publishMutation.isPending}
+                        className="px-6"
+                    >
+                        Dərc et
+                    </Button>
+                </div>
             </div>
         </div>
     );

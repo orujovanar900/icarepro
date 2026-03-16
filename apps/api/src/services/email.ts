@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env['RESEND_API_KEY']);
+const FROM = process.env['EMAIL_FROM'] ?? 'icare@icarepro.az'
 
 export async function sendDebtAlert(to: string, data: {
   tenantName: string,
@@ -9,7 +10,7 @@ export async function sendDebtAlert(to: string, data: {
   contractNumber: string
 }) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: `⚠️ Borc xəbərdarlığı — ${data.tenantName}`,
     html: `
@@ -34,7 +35,7 @@ export async function sendExpiringContractAlert(to: string, data: {
   contractNumber: string
 }) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: `📅 Müqavilə başa çatır — ${data.daysLeft} gün qalıb`,
     html: `
@@ -53,7 +54,7 @@ export async function sendExpiringContractAlert(to: string, data: {
 
 export async function sendPasswordReset(to: string, resetUrl: string) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: '🔐 İcarəPro — Şifrə Sıfırlama',
     html: `
@@ -73,7 +74,7 @@ export async function sendPasswordReset(to: string, resetUrl: string) {
 
 export async function sendPlanExpiryWarning(to: string, orgName: string) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: `⚠️ İcarəPro — Abunəliyiniz bu gün bitir`,
     html: `
@@ -87,7 +88,7 @@ export async function sendPlanExpiryWarning(to: string, orgName: string) {
 
 export async function sendGracePeriodReminder(to: string, orgName: string, daysLeft: number) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: `⚠️ İcarəPro — Hesabınızın dayandırılmasına ${daysLeft} gün qalıb`,
     html: `
@@ -101,7 +102,7 @@ export async function sendGracePeriodReminder(to: string, orgName: string, daysL
 
 export async function sendSuspensionNotice(to: string, orgName: string) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: `⛔ İcarəPro — Hesabınız dayandırılıb`,
     html: `
@@ -116,7 +117,7 @@ export async function sendSuspensionNotice(to: string, orgName: string) {
 
 export async function sendFinalDeletionWarning(to: string, orgName: string) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: `🚨 İcarəPro — Məlumatlarınız 7 gün sonra SİLİNƏCƏK`,
     html: `
@@ -139,7 +140,7 @@ export async function sendQueueConfirmation(to: string, data: {
   queueCount: number
 }) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: `Növbə Təsdiqi — Mövqe #${data.position}`,
     html: `
@@ -161,7 +162,7 @@ export async function sendListingApproved(to: string, data: {
   address: string
 }) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: `Elanınız Təsdiqləndi — ${data.title}`,
     html: `
@@ -181,7 +182,7 @@ export async function sendListingRejected(to: string, data: {
   reason: string
 }) {
   await resend.emails.send({
-    from: 'icare@icarepro.az',
+    from: FROM,
     to,
     subject: `Elanınız Rədd Edildi — ${data.title}`,
     html: `
@@ -192,6 +193,69 @@ export async function sendListingRejected(to: string, data: {
         <p>Səbəb: <b>${data.reason}</b></p>
         <p style="color:#888;font-size:13px">Düzəlişlər edərək yenidən göndərə bilərsiniz.</p>
       </div>
+    `
+  });
+}
+
+// TODO: Replace with a password-reset flow to avoid sending plaintext credentials via email.
+// Currently the SUPERADMIN sets the initial password and it is emailed to the new staff member.
+export async function sendStaffWelcome(to: string, data: {
+  name: string,
+  role: string,
+  tempPassword: string,
+}) {
+  const roleLabels: Record<string, string> = {
+    MODERATOR: 'Moderator',
+    SUPPORT: 'Dəstək',
+    FINANCE: 'Maliyyə',
+    CONTENT: 'Kontent',
+  }
+  const roleLabel = roleLabels[data.role] || data.role
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `İcarəPro — Platform Staff Hesabınız Yaradıldı`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+        <h2 style="color:#C9A84C">Xoş Gəlmisiniz, ${data.name}!</h2>
+        <p>Sizin üçün İcarəPro admin panelinə <b>${roleLabel}</b> rolunda hesab yaradılmışdır.</p>
+        <p>Giriş məlumatlarınız:</p>
+        <ul>
+          <li>E-poçt: <b>${to}</b></li>
+          <li>Şifrə: <b>${data.tempPassword}</b></li>
+        </ul>
+        <p style="color:#e53e3e;font-size:13px">Zəhmət olmasa, ilk girişdən sonra şifrənizi dəyişdirin.</p>
+        <a href="${process.env['FRONTEND_URL'] || 'https://icarepro.az'}/login"
+           style="display:inline-block;padding:12px 24px;background:#1A1A2E;color:#C9A84C;text-decoration:none;border-radius:8px;font-weight:bold;margin:16px 0">
+          Daxil Ol →
+        </a>
+      </div>
+    `
+  });
+}
+
+export async function sendRenewalWarning(to: string, data: {
+  contractNumber: string,
+  tenantName: string,
+  propertyName: string,
+  endDate: string,
+  renewalNoticeDays: number,
+  contractId: string,
+}) {
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject: `🔄 Müqavilə avtomatik yenilənəcək — ${data.contractNumber}`,
+    html: `
+      <h2>Avtomatik Yeniləmə Xəbərdarlığı</h2>
+      <p>Müqavilə: <b>${data.contractNumber}</b></p>
+      <p>İcarəçi: <b>${data.tenantName}</b></p>
+      <p>Obyekt: <b>${data.propertyName}</b></p>
+      <p>Bitmə tarixi: <b>${data.endDate}</b></p>
+      <p>Bu müqavilə ${data.renewalNoticeDays} gün ərzində avtomatik yenilənəcək.</p>
+      <a href="${process.env['FRONTEND_URL'] || 'https://icarepro.pages.dev'}/contracts/${data.contractId}">
+        Müqaviləyə bax →
+      </a>
     `
   });
 }

@@ -1,10 +1,12 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
+import type { Prisma } from '@prisma/client'
 import { createClient } from '@supabase/supabase-js'
 import { authenticate } from '../middleware/authenticate.js'
 import { requireRole } from '../middleware/requireRole.js'
 import { sendZodError } from '../utils/zodError.js'
 import { withOrg } from '../utils/withOrg.js'
+import { writeAuditLog } from '../utils/audit.js'
 import {
   sendQueueConfirmation,
   sendListingApproved,
@@ -76,10 +78,11 @@ function computeHeatLevel(queueCount: number): string {
   return 'YUKSEK'
 }
 
-function stripBasePrice<T extends { basePrice?: unknown }>(listing: T): Omit<T, 'basePrice'> {
-  const { basePrice, ...rest } = listing as any
-  void basePrice
-  return rest
+function stripBasePrice<T extends Record<string, unknown>>(
+    listing: T
+): Omit<T, 'basePrice'> {
+    const { basePrice: _ignored, ...rest } = listing
+    return rest as Omit<T, 'basePrice'>
 }
 
 const KEY_FIELDS = ['title', 'address', 'basePrice', 'type', 'district', 'area', 'rooms', 'availStatus']
@@ -193,7 +196,11 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
       select: {
         id: true, title: true, type: true, district: true, address: true,
         area: true, rooms: true, availStatus: true, status: true,
+        // basePrice visible to owner on their own listings
+        // stripped from all public-facing responses via stripBasePrice()
+        basePrice: true,
         isVip: true, isPushed: true, isPanorama: true, photos: true,
+        rejectionReason: true,
         createdAt: true, updatedAt: true,
         _count: { select: { queueEntries: { where: { status: 'ACTIVE' } } } },
       },
@@ -356,7 +363,7 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
     const { id } = req.params as { id: string }
 
     const listing = await fastify.prisma.listing.findFirst({
-      where: { id, status: 'ACTIVE', deletedAt: null },
+      where: { id, status: { in: ['ACTIVE', 'CLOSING_PENDING'] }, deletedAt: null },
       // Explicitly exclude basePrice — tenants in the queue must not see the floor price
       select: { id: true },
     })
@@ -445,8 +452,8 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
     const listing = await fastify.prisma.listing.create({
       data: {
         ...body.data,
-        organizationId: req.user.organizationId,
-        status: 'PENDING',
+        organizationId: req.user.organizationId as string,
+        status: 'DRAFT',
         publisherType,
         publisherName,
       },
@@ -469,7 +476,7 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
     if (!existing) return reply.code(404).send({ success: false, error: 'Elan tapılmadı' })
 
     const resetToModeration = isKeyFieldChanged(existing, body.data)
-    const updateData: any = {
+    const updateData: Prisma.ListingUncheckedUpdateInput = {
       ...body.data,
       ...(resetToModeration ? { status: 'PENDING', moderatedAt: null, moderatedBy: null, rejectionReason: null } : {}),
     }
@@ -510,6 +517,216 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     return reply.send({ success: true, data: entries })
+  })
+
+  // POST /listings/:id/publish — DRAFT → PENDING (submit for moderation)
+  fastify.post('/:id/publish', {
+    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK', 'MANAGER'])],
+  }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+
+    const existing = await fastify.prisma.listing.findFirst({
+      where: { id, ...withOrg(req), deletedAt: null },
+      select: { id: true, status: true, title: true, address: true, type: true, basePrice: true },
+    })
+    if (!existing) return reply.code(404).send({ success: false, error: 'Elan tapılmadı' })
+    if (existing.status !== 'DRAFT') {
+      return reply.code(400).send({ success: false, error: 'Yalnız qaralama elanlar dərc edilə bilər' })
+    }
+
+    // FIX 5: readiness check — minimum required fields before going to moderation
+    if (!existing.title || !existing.address || !existing.type ||
+        !existing.basePrice || Number(existing.basePrice) <= 0) {
+      return reply.code(400).send({
+        success: false,
+        error: 'Elanı dərc etmək üçün ad, ünvan, növ və qiymət tələb olunur',
+        code: 'LISTING_INCOMPLETE',
+      })
+    }
+
+    const listing = await fastify.prisma.listing.update({
+      where: { id },
+      data: { status: 'PENDING' },
+    })
+
+    await writeAuditLog(fastify.prisma, {
+      organizationId: req.user.organizationId,
+      userId: req.user.sub,
+      action: 'LISTING_PUBLISHED',
+      entityType: 'Listing',
+      entityId: id,
+    })
+
+    return reply.send({ success: true, data: stripBasePrice(listing) })
+  })
+
+  // POST /listings/:id/select-winner — ACTIVE → CLOSING_PENDING, mark entry SELECTED
+  fastify.post('/:id/select-winner', {
+    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK', 'MANAGER'])],
+  }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const { entryId } = req.body as { entryId: string }
+
+    if (!entryId) return reply.code(400).send({ success: false, error: 'entryId is required' })
+
+    const existing = await fastify.prisma.listing.findFirst({
+      where: { id, ...withOrg(req), deletedAt: null },
+      select: { id: true, status: true },
+    })
+    if (!existing) return reply.code(404).send({ success: false, error: 'Elan tapılmadı' })
+    if (existing.status !== 'ACTIVE') {
+      return reply.code(400).send({ success: false, error: 'Yalnız aktiv elanlar üçün icarəçi seçilə bilər' })
+    }
+
+    const entry = await fastify.prisma.queueEntry.findFirst({
+      where: { id: entryId, listingId: id, status: 'ACTIVE' },
+      select: { id: true },
+    })
+    if (!entry) return reply.code(404).send({ success: false, error: 'Növbə qeydi tapılmadı' })
+
+    const [updatedListing] = await fastify.prisma.$transaction([
+      fastify.prisma.listing.update({
+        where: { id },
+        data: { status: 'CLOSING_PENDING' },
+      }),
+      fastify.prisma.queueEntry.update({
+        where: { id: entryId },
+        data: { status: 'SELECTED' },
+      }),
+    ])
+
+    await writeAuditLog(fastify.prisma, {
+      organizationId: req.user.organizationId,
+      userId: req.user.sub,
+      action: 'LISTING_WINNER_SELECTED',
+      entityType: 'Listing',
+      entityId: id,
+      metadata: { selectedEntryId: entryId },
+    })
+
+    return reply.send({ success: true, data: stripBasePrice(updatedListing) })
+  })
+
+  // PATCH /listings/:id/confirm-deal — CLOSING_PENDING → DEACTIVATED, expire remaining queue
+  fastify.patch('/:id/confirm-deal', {
+    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK', 'MANAGER'])],
+  }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+
+    const existing = await fastify.prisma.listing.findFirst({
+      where: { id, ...withOrg(req), deletedAt: null },
+      select: { id: true, status: true },
+    })
+    if (!existing) return reply.code(404).send({ success: false, error: 'Elan tapılmadı' })
+    if (existing.status !== 'CLOSING_PENDING') {
+      return reply.code(400).send({ success: false, error: 'Yalnız CLOSING_PENDING elanlar təsdiqlənə bilər' })
+    }
+
+    // FIX 2: expire all remaining ACTIVE entries atomically with the listing update
+    const listing = await fastify.prisma.$transaction(async (tx) => {
+      await tx.queueEntry.updateMany({
+        where: { listingId: id, status: 'ACTIVE' },
+        data: { status: 'EXPIRED' },
+      })
+      return tx.listing.update({
+        where: { id },
+        data: { status: 'DEACTIVATED', closedById: req.user.sub },
+      })
+    })
+
+    await writeAuditLog(fastify.prisma, {
+      organizationId: req.user.organizationId,
+      userId: req.user.sub,
+      action: 'LISTING_DEAL_CONFIRMED',
+      entityType: 'Listing',
+      entityId: id,
+    })
+
+    return reply.send({ success: true, data: stripBasePrice(listing) })
+  })
+
+  // PATCH /listings/:id/cancel-deal — CLOSING_PENDING → ACTIVE (preserve queue)
+  // FIX 1: both writes wrapped in $transaction (atomic)
+  // FIX 6: accepts optional availStatus + expectedFreeDate to update in same transaction
+  fastify.patch('/:id/cancel-deal', {
+    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK', 'MANAGER'])],
+  }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const { availStatus, expectedFreeDate } =
+      (req.body as { availStatus?: string; expectedFreeDate?: string }) ?? {}
+
+    const validAvailStatuses = ['BOSHDUR', 'BOSHALIR', 'INSAAT']
+    if (availStatus && !validAvailStatuses.includes(availStatus)) {
+      return reply.code(400).send({ success: false, error: 'Etibarsız mövcudluq statusu' })
+    }
+
+    const existing = await fastify.prisma.listing.findFirst({
+      where: { id, ...withOrg(req), deletedAt: null },
+      select: { id: true, status: true },
+    })
+    if (!existing) return reply.code(404).send({ success: false, error: 'Elan tapılmadı' })
+    if (existing.status !== 'CLOSING_PENDING') {
+      return reply.code(400).send({ success: false, error: 'Yalnız CLOSING_PENDING elanlar üçün ləğv edilə bilər' })
+    }
+
+    const listingUpdateData: Record<string, unknown> = { status: 'ACTIVE' }
+    if (availStatus) listingUpdateData['availStatus'] = availStatus
+    if (expectedFreeDate) listingUpdateData['expectedFreeDate'] = new Date(expectedFreeDate)
+    else if (availStatus === 'BOSHDUR') listingUpdateData['expectedFreeDate'] = null
+
+    const listing = await fastify.prisma.$transaction(async (tx) => {
+      // Restore SELECTED entry back to ACTIVE so queue position is preserved
+      await tx.queueEntry.updateMany({
+        where: { listingId: id, status: 'SELECTED' },
+        data: { status: 'ACTIVE' },
+      })
+      return tx.listing.update({
+        where: { id },
+        data: listingUpdateData,
+      })
+    })
+
+    await writeAuditLog(fastify.prisma, {
+      organizationId: req.user.organizationId,
+      userId: req.user.sub,
+      action: 'LISTING_DEAL_CANCELLED',
+      entityType: 'Listing',
+      entityId: id,
+      metadata: { availStatus: availStatus ?? null },
+    })
+
+    return reply.send({ success: true, data: stripBasePrice(listing) })
+  })
+
+  // PATCH /listings/:id/availability — update availStatus + expectedFreeDate
+  fastify.patch('/:id/availability', {
+    preHandler: [authenticate, requireRole(['OWNER', 'AGENT', 'AGENTLIK', 'MANAGER'])],
+  }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const { availStatus, expectedFreeDate } = req.body as { availStatus?: string; expectedFreeDate?: string }
+
+    const validAvailStatuses = ['BOSHDUR', 'BOSHALIR', 'INSAAT']
+    if (availStatus && !validAvailStatuses.includes(availStatus)) {
+      return reply.code(400).send({ success: false, error: 'Etibarsız mövcudluq statusu' })
+    }
+
+    const existing = await fastify.prisma.listing.findFirst({
+      where: { id, ...withOrg(req), deletedAt: null },
+      select: { id: true },
+    })
+    if (!existing) return reply.code(404).send({ success: false, error: 'Elan tapılmadı' })
+
+    const updateData: Record<string, unknown> = {}
+    if (availStatus) updateData['availStatus'] = availStatus
+    if (expectedFreeDate) updateData['expectedFreeDate'] = new Date(expectedFreeDate)
+    else if (availStatus === 'BOSHDUR') updateData['expectedFreeDate'] = null
+
+    const listing = await fastify.prisma.listing.update({
+      where: { id },
+      data: updateData,
+    })
+
+    return reply.send({ success: true, data: stripBasePrice(listing) })
   })
 
   // POST /listings/upload-photo — multipart to Supabase

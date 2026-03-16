@@ -1,5 +1,6 @@
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import type { JwtPayload } from '../types.js'
+import { PLATFORM_ROLES } from './requireRole.js'
 
 /**
  * preHandler: проверяет Bearer token, заполняет req.user с organizationId.
@@ -33,7 +34,7 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply) {
             return reply.code(401).send({ success: false, error: 'Session expired. Please log in again.' })
         }
 
-        if (user.organization?.subscriptionStatus === 'SUSPENDED' && user.role !== 'SUPERADMIN') {
+        if (user.organization?.subscriptionStatus === 'SUSPENDED' && !PLATFORM_ROLES.includes(user.role as any)) {
             const rawPath = req.url.split('?')[0] || '';
             // Exclude /auth and /billing related routes so users can log out / pay while suspended
             if (!rawPath.includes('/auth/') && !rawPath.includes('/billing/')) {
@@ -50,7 +51,7 @@ export async function authenticate(req: FastifyRequest, reply: FastifyReply) {
             sub: user.id,
             email: user.email,
             role: user.role,
-            organizationId: user.organizationId,
+            organizationId: user.organizationId ?? null,
             name: user.name,
             jwtVersion: user.jwtVersion,
             avatarUrl: user.avatarUrl,

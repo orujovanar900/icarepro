@@ -29,7 +29,7 @@ export function NotFound() {
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Geri Qayıt
                 </Button>
-                <Button onClick={() => navigate('/dashboard')}>
+                <Button onClick={() => navigate('/')}>
                     <Home className="w-4 h-4 mr-2" />
                     Ana Səhifəyə Get
                 </Button>

@@ -25,7 +25,7 @@ export function CreateListing() {
     // If owner — redirect to dashboard property creation
     React.useEffect(() => {
         if (isOwner) {
-            navigate('/dashboard/properties/new', { replace: true });
+            navigate('/dashboard/elanlar/yeni', { replace: true });
         }
     }, [isOwner, navigate]);
 

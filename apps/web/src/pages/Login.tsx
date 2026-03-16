@@ -30,10 +30,29 @@ export function Login() {
     const {
         register,
         handleSubmit,
+        watch,
         formState: { errors },
     } = useForm<LoginFormValues>({
         resolver: zodResolver(loginSchema),
     });
+
+    const emailValue = watch('email')
+    React.useEffect(() => {
+        if (emailValue) setSubmitError(null)
+    }, [emailValue])
+
+    function mapLoginError(msg: string): string {
+        if (msg.includes('yanlış') || msg.includes('yanlışdır')) {
+            return 'E-poçt və ya şifrə yanlışdır.'
+        }
+        if (msg.includes('tapılmadı') || msg.includes('mövcud deyil')) {
+            return 'Bu e-poçt ünvanı ilə hesab tapılmadı.'
+        }
+        if (msg.includes('bloklan') || msg.includes('müvəqqəti')) {
+            return msg
+        }
+        return 'Daxil olmaq mümkün olmadı. Zəhmət olmasa yenidən cəhd edin.'
+    }
 
     const onSubmit = async (data: LoginFormValues) => {
         setSubmitError(null);
@@ -53,49 +72,57 @@ export function Login() {
 
             addToast({ type: 'success', message: 'Uğurla daxil oldunuz!' });
 
-            // Role-based redirect
-            // ICARECI → personal cabinet; portal users → kabinet; dashboard users → dashboard
-            if (user.role === 'SUPERADMIN') {
+            // Role + subscription-based redirect
+            const PLATFORM_STAFF = ['SUPERADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE', 'CONTENT']
+            if (PLATFORM_STAFF.includes(user.role)) {
                 navigate('/admin');
             } else if (user.role === 'ICARECI') {
                 navigate('/kabinet');
-            } else if (user.role === 'OWNER') {
+            } else if (user.organization?.subscriptionStatus === 'ACTIVE') {
                 navigate('/dashboard');
-            } else if (['AGENT', 'AGENTLIK'].includes(user.role)) {
-                navigate('/dashboard');
-            } else if (user.role === 'STAFF') {
-                navigate('/contracts');
             } else {
-                navigate('/dashboard');
+                navigate('/dashboard/elanlar');
             }
         } catch (error: any) {
-            setSubmitError(error.response?.data?.message || 'Giriş uğursuz oldu. Zəhmət olmasa təkrar cəhd edin.');
+            const msg = error.response?.data?.error || 'Daxil olmaq mümkün olmadı.'
+            setSubmitError(mapLoginError(msg))
+            addToast({ type: 'error', message: mapLoginError(msg) })
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-bg p-4 relative isolate w-full">
-            {/* Background decoration */}
-            <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gold/10 via-bg to-bg" />
-
+        <div
+            className="flex min-h-screen flex-col items-center justify-center p-6 w-full"
+            style={{ backgroundColor: '#F5F0E8' }}
+        >
             <div className="w-full max-w-md space-y-8">
                 <div className="text-center">
-                    <Link to="/" className="text-5xl font-heading tracking-tight flex items-center justify-center gap-2 hover:opacity-80 transition-opacity">
-                        <span className="text-gold font-extrabold">İcarə</span>
-                        <span className="text-white font-normal">Pro</span>
+                    <Link
+                        to="/"
+                        className="text-5xl font-heading tracking-tight flex items-center justify-center gap-2 hover:opacity-80 transition-opacity"
+                    >
+                        <span className="font-extrabold">
+                            <span className="text-gold">icare</span>
+                            <span style={{ color: '#1A1A2E' }}>pro</span>
+                        </span>
                     </Link>
-                    <p style={{ fontStyle: 'italic', color: '#8899B0', fontSize: '13px' }} className="mt-1 mb-2">
-                        "Mülkünüzü ağıllı idarə edin"
+                    <p className="mt-2 text-sm" style={{ color: '#6B7280' }}>
+                        Sistemi idarə etmək üçün daxil olun
                     </p>
-                    <p className="mt-2 text-sm text-text">Sistemi idarə etmək üçün daxil olun</p>
                 </div>
 
-                <Card variant="elevated" className="border-border/50 bg-surface/50 backdrop-blur-md">
+                <Card
+                    variant="elevated"
+                    className="border border-[#E5E0D8] shadow-md"
+                    style={{ backgroundColor: '#FFFFFF' }}
+                >
                     <form onSubmit={handleSubmit(onSubmit)}>
                         <CardHeader>
-                            <CardTitle className="text-2xl text-center">Xoş gəlmisiniz!</CardTitle>
+                            <CardTitle className="text-2xl text-center" style={{ color: '#1A1A2E' }}>
+                                Xoş gəlmisiniz!
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {submitError && (
@@ -151,7 +178,7 @@ export function Login() {
                                     <button
                                         type="button"
                                         onClick={() => setShowPass(!showPass)}
-                                        style={{ color: '#4A6080' }}
+                                        style={{ color: '#9CA3AF' }}
                                         className="hover:!text-[#C9A84C] transition-colors flex items-center justify-center p-1"
                                     >
                                         {showPass ? <Eye size={18} /> : <EyeOff size={18} />}
@@ -159,7 +186,10 @@ export function Login() {
                                 }
                             />
 
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }} className="text-sm text-muted cursor-pointer hover:text-text transition-colors w-fit pt-2">
+                            <label
+                                style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#6B7280' }}
+                                className="text-sm cursor-pointer w-fit pt-2 hover:opacity-80 transition-opacity"
+                            >
                                 <input
                                     type="checkbox"
                                     checked={remember}
@@ -170,18 +200,61 @@ export function Login() {
                             </label>
                         </CardContent>
                         <CardFooter className="flex flex-col gap-3">
-                            <Button type="submit" variant="primary" className="w-full" size="lg" isLoading={isLoading}>
+                            {submitError && (
+                                <div style={{
+                                    background: '#FEF2F2',
+                                    border: '1px solid #FECACA',
+                                    borderRadius: '8px',
+                                    padding: '12px 16px',
+                                    marginBottom: '8px',
+                                }}>
+                                    <p style={{
+                                        color: '#DC2626',
+                                        fontSize: '14px',
+                                        fontWeight: '500',
+                                        margin: 0,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px'
+                                    }}>
+                                        <span>⚠️</span>
+                                        {submitError}
+                                    </p>
+                                    {submitError.includes('mövcuddur') && (
+                                        <Link to="/login" style={{
+                                            color: '#C9A84C',
+                                            fontSize: '13px',
+                                            textDecoration: 'underline',
+                                            display: 'block',
+                                            marginTop: '6px',
+                                            marginLeft: '24px'
+                                        }}>
+                                            Daxil olun →
+                                        </Link>
+                                    )}
+                                </div>
+                            )}
+                            <Button
+                                type="submit"
+                                variant="primary"
+                                className="w-full"
+                                size="lg"
+                                isLoading={isLoading}
+                                style={{ backgroundColor: '#1A1A2E', color: '#C9A84C' }}
+                            >
                                 Daxil ol
                             </Button>
                             <Link
                                 to="/forgot-password"
-                                className="text-sm text-muted hover:text-gold transition-colors text-center"
+                                className="text-sm text-center transition-colors hover:text-gold"
+                                style={{ color: '#9CA3AF' }}
                             >
                                 Şifrəni unutmusunuz?
                             </Link>
                             <Link
                                 to="/register"
-                                className="text-sm text-muted hover:text-gold transition-colors text-center"
+                                className="text-sm text-center transition-colors hover:text-gold"
+                                style={{ color: '#9CA3AF' }}
                             >
                                 Hesabınız yoxdur? <span className="text-gold font-medium">Qeydiyyat</span>
                             </Link>

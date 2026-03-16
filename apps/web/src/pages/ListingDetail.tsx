@@ -5,6 +5,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 import { PortalNavbar } from '@/components/portal/PortalNavbar';
+import { LedTicker } from '@/components/portal/LedTicker';
 import { PortalFooter } from '@/components/portal/PortalFooter';
 import { QueueModal } from '@/components/portal/QueueModal';
 import { ReportModal } from '@/components/portal/ReportModal';
@@ -396,6 +397,7 @@ export function ListingDetail() {
         return (
             <div style={{ minHeight: '100vh', background: C.bg }}>
                 <PortalNavbar />
+                <LedTicker placement="LISTING_DETAIL" />
                 <SkeletonDetail />
                 <PortalFooter />
             </div>
@@ -406,6 +408,7 @@ export function ListingDetail() {
         return (
             <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column' }}>
                 <PortalNavbar />
+                <LedTicker placement="LISTING_DETAIL" />
                 <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{
                         background: C.white, borderRadius: 20, padding: '48px 40px',
@@ -453,6 +456,7 @@ export function ListingDetail() {
     return (
         <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column' }}>
             <PortalNavbar />
+            <LedTicker placement="LISTING_DETAIL" />
 
             <main style={{ flex: 1, maxWidth: 1200, width: '100%', margin: '0 auto', padding: '20px 20px 60px' }}>
                 {/* Back button + breadcrumb */}

@@ -18,6 +18,8 @@ const queueRoutes: FastifyPluginAsync = async (fastify) => {
 
     const entry = await fastify.prisma.queueEntry.findFirst({
       where: { id: entryId, userId: req.user.sub, status: 'ACTIVE' },
+      // basePrice fetched server-side for offer validation only
+      // not returned in response (queueEntry, not listing, is returned)
       include: { listing: { select: { basePrice: true, status: true } } },
     })
     if (!entry) return reply.code(404).send({ success: false, error: 'Növbə qeydi tapılmadı' })

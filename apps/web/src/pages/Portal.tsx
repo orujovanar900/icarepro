@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, SlidersHorizontal, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { PortalNavbar } from '@/components/portal/PortalNavbar';
+import { LedTicker } from '@/components/portal/LedTicker';
 import { PortalFooter } from '@/components/portal/PortalFooter';
 import { HeroSection } from '@/components/portal/HeroSection';
 import { api } from '@/lib/api';
@@ -177,6 +178,7 @@ export function Portal() {
     return (
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: C.cream }}>
             <PortalNavbar />
+            <LedTicker placement="PORTAL_MAIN" />
 
             {/* Hero */}
             <HeroSection total={countData ?? 0} />

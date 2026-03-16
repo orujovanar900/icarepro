@@ -30,8 +30,8 @@ export function ForgotPassword() {
             <div className="w-full max-w-sm">
                 {/* Logo */}
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-extrabold font-heading text-gold">
-                        İcarə<span className="text-text font-light">Pro</span>
+                    <h1 className="text-3xl font-extrabold font-heading">
+                        <span className="font-extrabold"><span className="text-gold">icare</span><span style={{ color: '#1A1A2E' }}>pro</span></span>
                     </h1>
                 </div>
 

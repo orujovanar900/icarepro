@@ -3,6 +3,11 @@ import { authenticate } from '../middleware/authenticate.js'
 import { requireRole } from '../middleware/requireRole.js'
 import { writeAuditLog } from '../utils/audit.js'
 import { z } from 'zod'
+import bcrypt from 'bcrypt'
+
+const BCRYPT_ROUNDS = 12
+
+const PLATFORM_STAFF_ROLES = ['MODERATOR', 'SUPPORT', 'FINANCE', 'CONTENT'] as const
 
 const PLAN_PRICES: Record<string, number> = {
     FREE_TRIAL: 0,
@@ -14,7 +19,7 @@ const PLAN_PRICES: Record<string, number> = {
 
 const adminRoutes: FastifyPluginAsync = async (fastify) => {
     // GET /admin/stats — Full SuperAdmin Dashboard Data
-    fastify.get('/stats', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+    fastify.get('/stats', { preHandler: [authenticate, requireRole(['SUPERADMIN', 'FINANCE'])] }, async (req, reply) => {
         const now = new Date()
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
         const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
@@ -127,6 +132,33 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
             price: PLAN_PRICES[plan] || 0,
         }))
 
+        // FINANCE role: return only financial/subscription data — no org-level operational details
+        if (req.user.role === 'FINANCE') {
+            return reply.send({
+                success: true,
+                data: {
+                    overview: {
+                        totalOrganizations,
+                        activePlans,
+                        newThisMonth,
+                        newThisMonthGrowth: growthPct,
+                        suspendedCount,
+                    },
+                    mrr,
+                    planDistribution,
+                    monthlyRegistrations,
+                    mrrTrend,
+                    health: {
+                        active: activePlans,
+                        gracePeriod: gracePeriodCount,
+                        suspended: suspendedCount,
+                        freeTrial: freeTrialCount,
+                    },
+                    expiringInWeek,
+                }
+            })
+        }
+
         return reply.send({
             success: true,
             data: {
@@ -163,7 +195,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // GET /admin/users (Organizations List)
-    fastify.get('/users', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+    fastify.get('/users', { preHandler: [authenticate, requireRole(['SUPERADMIN', 'SUPPORT'])] }, async (req, reply) => {
         const organizations = await fastify.prisma.organization.findMany({
             include: {
                 users: {
@@ -198,7 +230,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // GET /admin/organizations/:id
-    fastify.get('/organizations/:id', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+    fastify.get('/organizations/:id', { preHandler: [authenticate, requireRole(['SUPERADMIN', 'SUPPORT'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
         const org = await fastify.prisma.organization.findUnique({
             where: { id },
@@ -364,7 +396,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
     // ══════════════════════════════════════
 
     // GET /admin/listings/stats — must be before /:id route
-    fastify.get('/listings/stats', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (_req, reply) => {
+    fastify.get('/listings/stats', { preHandler: [authenticate, requireRole(['SUPERADMIN', 'MODERATOR'])] }, async (_req, reply) => {
         const [total, pending, active, rejected, totalQueues] = await Promise.all([
             fastify.prisma.listing.count({ where: { deletedAt: null } }),
             fastify.prisma.listing.count({ where: { status: 'PENDING', deletedAt: null } }),
@@ -377,14 +409,26 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // GET /admin/listings
-    fastify.get('/listings', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+    fastify.get('/listings', { preHandler: [authenticate, requireRole(['SUPERADMIN', 'MODERATOR'])] }, async (req, reply) => {
         const q = req.query as Record<string, string>
         const statusFilter = q['status'] ?? 'PENDING'
         const where: any = statusFilter === 'ALL' ? { deletedAt: null } : { status: statusFilter, deletedAt: null }
 
         const listings = await fastify.prisma.listing.findMany({
             where,
-            include: {
+            select: {
+                id: true, title: true, type: true, district: true, address: true,
+                floor: true, totalFloors: true, area: true, rooms: true,
+                description: true,
+                // basePrice intentionally included for SUPERADMIN moderation view
+                // never exposed in public-facing routes
+                basePrice: true,
+                availStatus: true, status: true, rejectionReason: true,
+                isVip: true, isPushed: true, isPanorama: true,
+                photos: true, lat: true, lng: true,
+                publisherType: true, publisherName: true,
+                moderatedAt: true, moderatedBy: true,
+                createdAt: true, updatedAt: true, deletedAt: true,
                 organization: { select: { id: true, name: true } },
                 _count: { select: { queueEntries: { where: { status: 'ACTIVE' } } } },
             },
@@ -394,7 +438,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // PATCH /admin/listings/:id/moderate
-    fastify.patch('/listings/:id/moderate', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+    fastify.patch('/listings/:id/moderate', { preHandler: [authenticate, requireRole(['SUPERADMIN', 'MODERATOR'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
         const { action, reason } = req.body as { action: string; reason?: string }
 
@@ -455,7 +499,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // GET /admin/reports
-    fastify.get('/reports', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+    fastify.get('/reports', { preHandler: [authenticate, requireRole(['SUPERADMIN', 'MODERATOR'])] }, async (req, reply) => {
         const q = req.query as Record<string, string>
         const statusFilter = q['status'] ?? 'PENDING'
         const where: any = statusFilter === 'ALL' ? {} : { status: statusFilter }
@@ -469,7 +513,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // PATCH /admin/reports/:id
-    fastify.patch('/reports/:id', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+    fastify.patch('/reports/:id', { preHandler: [authenticate, requireRole(['SUPERADMIN', 'MODERATOR'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
         const { action } = req.body as { action: string }
 
@@ -479,6 +523,169 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
             data: { status: newStatus },
         })
         return reply.send({ success: true, data: report })
+    })
+
+    // ══════════════════════════════════════
+    // Platform Staff Management (SUPERADMIN only)
+    // ══════════════════════════════════════
+
+    // GET /admin/staff — list all platform staff
+    fastify.get('/staff', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (_req, reply) => {
+        const staff = await fastify.prisma.user.findMany({
+            where: {
+                organizationId: null,
+                role: { in: PLATFORM_STAFF_ROLES as any },
+            },
+            select: {
+                id: true, name: true, email: true, role: true,
+                isActive: true, createdAt: true, avatarUrl: true, phone: true,
+            },
+            orderBy: { createdAt: 'desc' },
+        })
+        return reply.send({ success: true, data: staff })
+    })
+
+    // POST /admin/staff — create new platform staff member
+    const createStaffSchema = z.object({
+        name: z.string().min(2),
+        email: z.email(),
+        password: z.string().min(8),
+        role: z.enum(PLATFORM_STAFF_ROLES),
+    })
+
+    fastify.post('/staff', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+        const parsed = createStaffSchema.safeParse(req.body)
+        if (!parsed.success) {
+            return reply.code(400).send({ success: false, error: parsed.error.issues[0]?.message || 'Validation error' })
+        }
+        const { name, email, password, role } = parsed.data
+
+        // Ensure email is globally unique (PostgreSQL allows multiple nulls in composite unique, so enforce at app level)
+        const existing = await fastify.prisma.user.findFirst({ where: { email } })
+        if (existing) {
+            return reply.code(409).send({ success: false, error: 'Bu e-poçt ünvanı artıq istifadə olunur.' })
+        }
+
+        const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
+
+        let staff: { id: string; name: string; email: string; role: string; isActive: boolean; createdAt: Date }
+        try {
+            staff = await fastify.prisma.user.create({
+                data: {
+                    name,
+                    email,
+                    passwordHash,
+                    role: role as any,
+                    organizationId: null,
+                    isActive: true,
+                },
+                select: {
+                    id: true, name: true, email: true, role: true,
+                    isActive: true, createdAt: true,
+                },
+            })
+        } catch (err: any) {
+            // Handle unique constraint violation on email (P2002) from concurrent requests
+            if (err?.code === 'P2002') {
+                return reply.code(409).send({ success: false, error: 'Bu e-poçt ünvanı artıq istifadə olunur.' })
+            }
+            throw err
+        }
+
+        // Send welcome email asynchronously
+        const { sendStaffWelcome } = await import('../services/email.js')
+        sendStaffWelcome(email, { name, role, tempPassword: password }).catch(() => null)
+
+        await writeAuditLog(fastify.prisma, {
+            organizationId: null,
+            userId: req.user.sub,
+            action: 'STAFF_CREATED',
+            entityType: 'User',
+            entityId: staff.id,
+            metadata: { role, createdBy: req.user.sub },
+        })
+
+        return reply.code(201).send({ success: true, data: staff })
+    })
+
+    // PATCH /admin/staff/:id — update role, isActive, or name
+    fastify.patch('/staff/:id', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const { role, isActive, name } = req.body as { role?: string; isActive?: boolean; name?: string }
+
+        const staff = await fastify.prisma.user.findFirst({
+            where: { id, organizationId: null },
+        })
+        if (!staff) return reply.code(404).send({ success: false, error: 'Staff member not found' })
+
+        // Prevent demoting any SUPERADMIN via this endpoint
+        if (staff.role === 'SUPERADMIN' && role && role !== 'SUPERADMIN') {
+            return reply.code(400).send({ success: false, error: 'SUPERADMIN rolunu bu endpointdən dəyişmək olmaz.' })
+        }
+
+        if (role && !PLATFORM_STAFF_ROLES.includes(role as any)) {
+            return reply.code(400).send({ success: false, error: 'Yalnız platform staff rolları icazəlidir.' })
+        }
+
+        // Prisma update payload (may include Prisma operators like { increment: 1 })
+        const updateData: any = {}
+        if (name !== undefined) updateData.name = name
+        if (role !== undefined) updateData.role = role
+        if (isActive !== undefined) updateData.isActive = isActive
+        if (isActive === false || role !== undefined) updateData.jwtVersion = { increment: 1 }
+
+        const updated = await fastify.prisma.user.update({
+            where: { id },
+            data: updateData,
+            select: {
+                id: true, name: true, email: true, role: true,
+                isActive: true, createdAt: true,
+            },
+        })
+
+        // Audit metadata — only scalar changes, no Prisma operators
+        const auditChanges: Record<string, unknown> = {}
+        if (name !== undefined) auditChanges['name'] = name
+        if (role !== undefined) auditChanges['role'] = role
+        if (isActive !== undefined) auditChanges['isActive'] = isActive
+
+        await writeAuditLog(fastify.prisma, {
+            organizationId: null,
+            userId: req.user.sub,
+            action: 'STAFF_UPDATED',
+            entityType: 'User',
+            entityId: id,
+            metadata: { changes: auditChanges, updatedBy: req.user.sub },
+        })
+
+        return reply.send({ success: true, data: updated })
+    })
+
+    // DELETE /admin/staff/:id — hard delete (platform staff are not org data)
+    fastify.delete('/staff/:id', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+
+        if (id === req.user.sub) {
+            return reply.code(400).send({ success: false, error: 'Özünüzü silə bilməzsiniz.' })
+        }
+
+        const staff = await fastify.prisma.user.findFirst({
+            where: { id, organizationId: null },
+        })
+        if (!staff) return reply.code(404).send({ success: false, error: 'Staff member not found' })
+
+        await fastify.prisma.user.delete({ where: { id } })
+
+        await writeAuditLog(fastify.prisma, {
+            organizationId: null,
+            userId: req.user.sub,
+            action: 'STAFF_DELETED',
+            entityType: 'User',
+            entityId: id,
+            metadata: { deletedEmail: staff.email, deletedBy: req.user.sub },
+        })
+
+        return reply.send({ success: true })
     })
 }
 
