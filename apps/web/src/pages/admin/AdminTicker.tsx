@@ -28,8 +28,6 @@ interface TickerSlot {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const GOLD   = '#C9A84C';
-const NAVY   = '#1A1A2E';
-const WHITE  = '#FFFFFF';
 
 const HOUR_GROUPS = [
     { label: 'Gecə',   hours: [0,1,2,3,4,5] },
@@ -102,7 +100,7 @@ interface SlotForm {
 
 const STATUS_CFG: Record<'active' | 'inactive' | 'expired' | 'scheduled', { bg: string; color: string; label: string }> = {
     active:    { bg: '#DCFCE7', color: '#16A34A', label: 'Aktiv' },
-    inactive:  { bg: '#F3F4F6', color: '#6B7280', label: 'Deaktiv' },
+    inactive:  { bg: '#F3F4F6', color: '#374151', label: 'Deaktiv' },
     expired:   { bg: '#FEE2E2', color: '#DC2626', label: 'Müddəti keçib' },
     scheduled: { bg: '#EFF6FF', color: '#2563EB', label: 'Zamanlanmış' },
 };
@@ -234,12 +232,13 @@ function SlotModal({
 
     const inputStyle: React.CSSProperties = {
         width: '100%', padding: '8px 10px',
-        border: '1px solid rgba(0,0,0,0.15)', borderRadius: 8,
+        border: '1px solid var(--color-border)', borderRadius: 8,
         fontSize: 13, outline: 'none', boxSizing: 'border-box',
+        background: 'var(--color-card)', color: 'var(--color-text)',
     };
     const labelStyle: React.CSSProperties = {
         display: 'block', fontSize: 11, fontWeight: 700,
-        color: '#6B7280', textTransform: 'uppercase',
+        color: 'var(--color-muted)', textTransform: 'uppercase',
         letterSpacing: '0.04em', marginBottom: 5,
     };
     const errStyle: React.CSSProperties = { fontSize: 11, color: '#EF4444', marginTop: 3 };
@@ -256,11 +255,11 @@ function SlotModal({
             }}
         >
             <div style={{
-                background: WHITE, borderRadius: 16, padding: '28px 28px 24px',
+                background: 'var(--color-surface)', borderRadius: 16, padding: '28px 28px 24px',
                 width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto',
                 boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
             }}>
-                <h2 style={{ fontSize: 17, fontWeight: 700, color: NAVY, marginBottom: 20 }}>
+                <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--color-text)', marginBottom: 20 }}>
                     {mode === 'create' ? 'Yeni Ticker Slot' : 'Slotu Düzəlt'}
                 </h2>
 
@@ -271,7 +270,7 @@ function SlotModal({
                             <label style={labelStyle}>Növ *</label>
                             <div style={{ display: 'flex', gap: 8 }}>
                                 {(['AD', 'LISTING'] as const).map(t => (
-                                    <label key={t} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}>
+                                    <label key={t} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13, color: 'var(--color-text)' }}>
                                         <input
                                             type="radio"
                                             checked={form.type === t}
@@ -299,7 +298,7 @@ function SlotModal({
                     <div style={{ marginBottom: 14 }}>
                         <label style={labelStyle}>Məzmun * <span style={{ fontWeight: 400, textTransform: 'none' }}>({form.content.length}/100)</span></label>
                         <input
-                            style={{ ...inputStyle, borderColor: errors['content'] ? '#EF4444' : 'rgba(0,0,0,0.15)' }}
+                            style={{ ...inputStyle, borderColor: errors['content'] ? '#EF4444' : 'var(--color-border)' }}
                             value={form.content}
                             maxLength={100}
                             placeholder="Tickerdə görünəcək mətn"
@@ -348,7 +347,7 @@ function SlotModal({
                             <label style={labelStyle}>Başlama tarixi *</label>
                             <input
                                 type="datetime-local"
-                                style={{ ...inputStyle, borderColor: errors['startDate'] ? '#EF4444' : 'rgba(0,0,0,0.15)' }}
+                                style={{ ...inputStyle, borderColor: errors['startDate'] ? '#EF4444' : 'var(--color-border)' }}
                                 value={form.startDate}
                                 onChange={e => set('startDate', e.target.value)}
                             />
@@ -358,7 +357,7 @@ function SlotModal({
                             <label style={labelStyle}>Bitmə tarixi *</label>
                             <input
                                 type="datetime-local"
-                                style={{ ...inputStyle, borderColor: errors['endDate'] ? '#EF4444' : 'rgba(0,0,0,0.15)' }}
+                                style={{ ...inputStyle, borderColor: errors['endDate'] ? '#EF4444' : 'var(--color-border)' }}
                                 value={form.endDate}
                                 onChange={e => set('endDate', e.target.value)}
                             />
@@ -376,7 +375,7 @@ function SlotModal({
                         </label>
                         {HOUR_GROUPS.map(group => (
                             <div key={group.label} style={{ marginBottom: 8 }}>
-                                <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 4, fontWeight: 600 }}>{group.label}</div>
+                                <div style={{ fontSize: 11, color: 'var(--color-muted)', marginBottom: 4, fontWeight: 600 }}>{group.label}</div>
                                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                                     {group.hours.map(h => {
                                         const selected = form.dailyHours.includes(h);
@@ -388,8 +387,8 @@ function SlotModal({
                                                 style={{
                                                     width: 38, height: 28, borderRadius: 6, fontSize: 11, fontWeight: 600,
                                                     border: 'none', cursor: 'pointer',
-                                                    background: selected ? GOLD : '#F3F4F6',
-                                                    color:      selected ? '#0A0B0F' : '#6B7280',
+                                                    background: selected ? GOLD : 'var(--color-card)',
+                                                    color:      selected ? '#0A0B0F' : 'var(--color-muted)',
                                                 }}
                                             >
                                                 {String(h).padStart(2, '0')}
@@ -408,18 +407,18 @@ function SlotModal({
                             onClick={() => set('isActive', !form.isActive)}
                             style={{
                                 width: 44, height: 24, borderRadius: 12,
-                                background: form.isActive ? '#22C55E' : '#D1D5DB',
+                                background: form.isActive ? '#22C55E' : 'rgba(255,255,255,0.15)',
                                 cursor: 'pointer', position: 'relative', transition: 'background 0.2s',
                             }}
                         >
                             <div style={{
                                 width: 18, height: 18, borderRadius: '50%',
-                                background: WHITE, position: 'absolute',
+                                background: '#FFFFFF', position: 'absolute',
                                 top: 3, left: form.isActive ? 23 : 3, transition: 'left 0.2s',
                                 boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
                             }} />
                         </div>
-                        <span style={{ fontSize: 12, color: form.isActive ? '#16A34A' : '#6B7280' }}>
+                        <span style={{ fontSize: 12, color: form.isActive ? '#16A34A' : 'var(--color-muted)' }}>
                             {form.isActive ? 'Aktiv' : 'Deaktiv'}
                         </span>
                     </div>
@@ -430,8 +429,8 @@ function SlotModal({
                             type="button"
                             onClick={onClose}
                             style={{
-                                padding: '9px 20px', borderRadius: 9, border: '1px solid rgba(0,0,0,0.15)',
-                                background: WHITE, fontSize: 13, cursor: 'pointer', color: '#374151',
+                                padding: '9px 20px', borderRadius: 9, border: '1px solid var(--color-border)',
+                                background: 'var(--color-surface)', fontSize: 13, cursor: 'pointer', color: 'var(--color-text)',
                             }}
                         >
                             Ləğv et
@@ -477,19 +476,19 @@ function ConfirmDeleteOverlay({
             }}
         >
             <div style={{
-                background: '#fff', borderRadius: 14, padding: '28px 28px 22px',
+                background: 'var(--color-surface)', borderRadius: 14, padding: '28px 28px 22px',
                 maxWidth: 380, width: '90%', textAlign: 'center',
                 boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
             }}>
                 <p style={{ fontSize: 36, marginBottom: 10 }}>🗑️</p>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: NAVY, marginBottom: 8 }}>Slotu sil</h3>
-                <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 22 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text)', marginBottom: 8 }}>Slotu sil</h3>
+                <p style={{ fontSize: 13, color: 'var(--color-muted)', marginBottom: 22 }}>
                     <strong>"{slot.content}"</strong> slotunu silmək istədiyinizə əminsiniz?
                 </p>
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                     <button onClick={onCancel} style={{
-                        padding: '9px 22px', borderRadius: 9, border: '1px solid rgba(0,0,0,0.15)',
-                        background: '#fff', fontSize: 13, cursor: 'pointer',
+                        padding: '9px 22px', borderRadius: 9, border: '1px solid var(--color-border)',
+                        background: 'var(--color-surface)', fontSize: 13, cursor: 'pointer', color: 'var(--color-text)',
                     }}>Ləğv et</button>
                     <button onClick={onConfirm} style={{
                         padding: '9px 22px', borderRadius: 9, border: 'none',
@@ -524,22 +523,22 @@ function ConfirmResetOverlay({
             }}
         >
             <div style={{
-                background: '#fff', borderRadius: 14, padding: '28px 28px 22px',
+                background: 'var(--color-surface)', borderRadius: 14, padding: '28px 28px 22px',
                 maxWidth: 380, width: '90%', textAlign: 'center',
                 boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
             }}>
                 <p style={{ fontSize: 36, marginBottom: 10 }}>↺</p>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: NAVY, marginBottom: 8 }}>Sayğacı sıfırla</h3>
-                <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 6 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text)', marginBottom: 8 }}>Sayğacı sıfırla</h3>
+                <p style={{ fontSize: 13, color: 'var(--color-muted)', marginBottom: 6 }}>
                     <strong>"{slot.content}"</strong> slotu üçün sayğac sıfırlanacaq.
                 </p>
-                <p style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 22 }}>
+                <p style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 22 }}>
                     Cari göstəriş: <strong style={{ color: GOLD }}>{slot.currentImpressions.toLocaleString()}</strong>
                 </p>
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                     <button onClick={onCancel} style={{
-                        padding: '9px 22px', borderRadius: 9, border: '1px solid rgba(0,0,0,0.15)',
-                        background: '#fff', fontSize: 13, cursor: 'pointer',
+                        padding: '9px 22px', borderRadius: 9, border: '1px solid var(--color-border)',
+                        background: 'var(--color-surface)', fontSize: 13, cursor: 'pointer', color: 'var(--color-text)',
                     }}>Ləğv et</button>
                     <button onClick={onConfirm} style={{
                         padding: '9px 22px', borderRadius: 9, border: 'none',
@@ -611,20 +610,20 @@ export function AdminTicker() {
 
     // ── Styles ─────────────────────────────────────────────────────────────
     const cardStyle: React.CSSProperties = {
-        background: WHITE, borderRadius: 12, padding: '16px 20px',
-        border: '1px solid rgba(0,0,0,0.08)', textAlign: 'center',
+        background: 'var(--color-surface)', borderRadius: 12, padding: '16px 20px',
+        border: '1px solid var(--color-border)', textAlign: 'center',
     };
 
     const thStyle: React.CSSProperties = {
         padding: '10px 12px', fontSize: 11, fontWeight: 700,
-        color: '#6B7280', textAlign: 'left', textTransform: 'uppercase',
-        letterSpacing: '0.04em', borderBottom: '1px solid rgba(0,0,0,0.08)',
-        background: '#F9FAFB', whiteSpace: 'nowrap',
+        color: 'var(--color-muted)', textAlign: 'left', textTransform: 'uppercase',
+        letterSpacing: '0.04em', borderBottom: '1px solid var(--color-border)',
+        background: 'var(--color-card)', whiteSpace: 'nowrap',
     };
 
     const tdStyle: React.CSSProperties = {
-        padding: '10px 12px', fontSize: 13, color: '#374151',
-        borderBottom: '1px solid rgba(0,0,0,0.06)', verticalAlign: 'middle',
+        padding: '10px 12px', fontSize: 13, color: 'var(--color-text)',
+        borderBottom: '1px solid var(--color-border)', verticalAlign: 'middle',
     };
 
     return (
@@ -632,8 +631,8 @@ export function AdminTicker() {
             {/* ── Header ─────────────────────────────────────────────────── */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
                 <div>
-                    <h1 style={{ fontSize: 22, fontWeight: 800, color: NAVY, margin: 0 }}>📡 LED Ticker İdarəsi</h1>
-                    <p style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
+                    <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-text)', margin: 0 }}>📡 LED Ticker İdarəsi</h1>
+                    <p style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 4 }}>
                         Portal tickerı üçün slotları idarə edin
                     </p>
                 </div>
@@ -652,23 +651,23 @@ export function AdminTicker() {
             {/* ── Stats ──────────────────────────────────────────────────── */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 28 }}>
                 <div style={cardStyle}>
-                    <p style={{ fontSize: 28, fontWeight: 800, color: NAVY, margin: '0 0 4px' }}>{totalSlots}</p>
-                    <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>Ümumi slot</p>
+                    <p style={{ fontSize: 28, fontWeight: 800, color: 'var(--color-text)', margin: '0 0 4px' }}>{totalSlots}</p>
+                    <p style={{ fontSize: 12, color: 'var(--color-muted)', margin: 0 }}>Ümumi slot</p>
                 </div>
                 <div style={cardStyle}>
                     <p style={{ fontSize: 28, fontWeight: 800, color: '#16A34A', margin: '0 0 4px' }}>{activeNowSlots}</p>
-                    <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>İndi aktiv</p>
+                    <p style={{ fontSize: 12, color: 'var(--color-muted)', margin: 0 }}>İndi aktiv</p>
                 </div>
                 <div style={cardStyle}>
                     <p style={{ fontSize: 28, fontWeight: 800, color: GOLD, margin: '0 0 4px' }}>
                         {totalImpressions.toLocaleString()}
                     </p>
-                    <p style={{ fontSize: 12, color: '#6B7280', margin: 0 }}>Ümumi göstəriş</p>
+                    <p style={{ fontSize: 12, color: 'var(--color-muted)', margin: 0 }}>Ümumi göstəriş</p>
                 </div>
             </div>
 
             {/* ── Tabs ───────────────────────────────────────────────────── */}
-            <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '2px solid rgba(0,0,0,0.08)' }}>
+            <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '2px solid var(--color-border)' }}>
                 {TABS.map(t => (
                     <button
                         key={t.key}
@@ -677,7 +676,7 @@ export function AdminTicker() {
                             padding: '10px 22px', border: 'none', cursor: 'pointer',
                             fontSize: 13, fontWeight: 700,
                             background: 'none',
-                            color: tab === t.key ? GOLD : '#6B7280',
+                            color: tab === t.key ? GOLD : 'var(--color-muted)',
                             borderBottom: tab === t.key ? `2px solid ${GOLD}` : '2px solid transparent',
                             marginBottom: -2,
                         }}
@@ -685,8 +684,8 @@ export function AdminTicker() {
                         {t.label}
                         <span style={{
                             marginLeft: 7, fontSize: 11, fontWeight: 700,
-                            background: tab === t.key ? 'rgba(201,168,76,0.15)' : '#F3F4F6',
-                            color: tab === t.key ? GOLD : '#6B7280',
+                            background: tab === t.key ? 'rgba(201,168,76,0.15)' : 'var(--color-card)',
+                            color: tab === t.key ? GOLD : 'var(--color-muted)',
                             padding: '1px 7px', borderRadius: 10,
                         }}>
                             {allSlots.filter(s => s.placement === t.key).length}
@@ -696,13 +695,13 @@ export function AdminTicker() {
             </div>
 
             {/* ── Table ──────────────────────────────────────────────────── */}
-            <div style={{ background: WHITE, borderRadius: 14, border: '1px solid rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+            <div style={{ background: 'var(--color-surface)', borderRadius: 14, border: '1px solid var(--color-border)', overflow: 'hidden' }}>
                 {isLoading ? (
-                    <div style={{ padding: 40, textAlign: 'center', color: '#6B7280', fontSize: 14 }}>
+                    <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-muted)', fontSize: 14 }}>
                         Yüklənir...
                     </div>
                 ) : tabSlots.length === 0 ? (
-                    <div style={{ padding: 60, textAlign: 'center', color: '#9CA3AF', fontSize: 14 }}>
+                    <div style={{ padding: 60, textAlign: 'center', color: 'var(--color-muted)', fontSize: 14 }}>
                         Bu yerləşdirmə üçün heç bir slot yoxdur
                     </div>
                 ) : (
@@ -718,18 +717,18 @@ export function AdminTicker() {
                             <tbody>
                                 {tabSlots.map(slot => (
                                     <tr key={slot.id} style={{ transition: 'background 0.1s' }}
-                                        onMouseEnter={e => (e.currentTarget.style.background = '#FAFAFA')}
+                                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-card)')}
                                         onMouseLeave={e => (e.currentTarget.style.background = '')}
                                     >
                                         <td style={{ ...tdStyle, maxWidth: 220 }}>
                                             <div style={{
                                                 overflow: 'hidden', textOverflow: 'ellipsis',
-                                                whiteSpace: 'nowrap', fontWeight: 600, color: NAVY,
+                                                whiteSpace: 'nowrap', fontWeight: 600, color: 'var(--color-text)',
                                             }} title={slot.content}>
                                                 {slot.content}
                                             </div>
                                             {slot.linkUrl && (
-                                                <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                <div style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                                     🔗 {slot.linkUrl}
                                                 </div>
                                             )}
@@ -739,7 +738,7 @@ export function AdminTicker() {
                                         <td style={tdStyle}>{fmtDate(slot.endDate)}</td>
                                         <td style={{ ...tdStyle, fontSize: 12 }}>
                                             {slot.dailyHours.length === 0
-                                                ? <span style={{ color: '#9CA3AF' }}>Həmişə</span>
+                                                ? <span style={{ color: 'var(--color-muted)' }}>Həmişə</span>
                                                 : slot.dailyHours.map(h => String(h).padStart(2, '0')).join(', ')
                                             }
                                         </td>
@@ -758,7 +757,7 @@ export function AdminTicker() {
                                                 >↺</button>
                                             </div>
                                         </td>
-                                        <td style={{ ...tdStyle, color: '#6B7280' }}>
+                                        <td style={{ ...tdStyle, color: 'var(--color-muted)' }}>
                                             {slot.maxImpressions === 0 ? '∞' : slot.maxImpressions.toLocaleString()}
                                         </td>
                                         <td style={tdStyle}><StatusBadge slot={slot} /></td>
@@ -768,15 +767,15 @@ export function AdminTicker() {
                                                 <button
                                                     onClick={() => setEditSlot(slot)}
                                                     style={{
-                                                        padding: '5px 10px', borderRadius: 7, border: '1px solid rgba(0,0,0,0.12)',
-                                                        background: '#fff', fontSize: 12, cursor: 'pointer', color: '#374151',
+                                                        padding: '5px 10px', borderRadius: 7, border: '1px solid var(--color-border)',
+                                                        background: 'var(--color-card)', fontSize: 12, cursor: 'pointer', color: 'var(--color-text)',
                                                     }}
                                                 >✏️</button>
                                                 {/* Toggle active */}
                                                 <button
                                                     onClick={() => toggleMutation.mutate({ id: slot.id, isActive: !slot.isActive })}
                                                     style={{
-                                                        padding: '5px 10px', borderRadius: 7, border: '1px solid rgba(0,0,0,0.12)',
+                                                        padding: '5px 10px', borderRadius: 7, border: '1px solid var(--color-border)',
                                                         background: slot.isActive ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)',
                                                         fontSize: 12, cursor: 'pointer',
                                                         color: slot.isActive ? '#DC2626' : '#16A34A',

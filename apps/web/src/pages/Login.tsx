@@ -128,6 +128,7 @@ export function Login() {
                                 label="E-poçt"
                                 type="email"
                                 placeholder="ad@email.com"
+                                variant="light"
                                 {...register('email')}
                                 error={errors.email?.message}
                             />
@@ -135,6 +136,7 @@ export function Login() {
                                 label="Şifrə"
                                 type={showPass ? 'text' : 'password'}
                                 placeholder="••••••••"
+                                variant="light"
                                 {...register('password')}
                                 error={errors.password?.message}
                                 rightElement={
@@ -164,9 +166,37 @@ export function Login() {
                         </CardContent>
                         <CardFooter className="flex flex-col gap-3">
                             {submitError && (
-                                <div className="w-full rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-600 flex items-start gap-2">
-                                    <span className="flex-shrink-0">⚠️</span>
-                                    <p>{submitError}</p>
+                                <div style={{
+                                    background: '#FEF2F2',
+                                    border: '1px solid #FECACA',
+                                    borderRadius: '8px',
+                                    padding: '12px 16px',
+                                    marginBottom: '8px',
+                                }}>
+                                    <p style={{
+                                        color: '#DC2626',
+                                        fontSize: '14px',
+                                        fontWeight: '500',
+                                        margin: 0,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px'
+                                    }}>
+                                        <span>⚠️</span>
+                                        {submitError}
+                                    </p>
+                                    {submitError.includes('mövcuddur') && (
+                                        <Link to="/login" style={{
+                                            color: '#C9A84C',
+                                            fontSize: '13px',
+                                            textDecoration: 'underline',
+                                            display: 'block',
+                                            marginTop: '6px',
+                                            marginLeft: '24px'
+                                        }}>
+                                            Daxil olun →
+                                        </Link>
+                                    )}
                                 </div>
                             )}
                             <Button

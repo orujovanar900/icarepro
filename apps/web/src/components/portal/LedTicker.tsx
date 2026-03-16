@@ -23,7 +23,7 @@ interface LedTickerProps {
 const BG      = '#1A1A2E';
 const GOLD    = '#C9A84C';
 const WHITE   = '#FFFFFF';
-const HEIGHT  = 36;
+const HEIGHT  = 38;
 const SPEED_S = 30; // seconds for full animation cycle
 
 const DEFAULT_TEXT = 'icarepro — Bakının birinci rəqəmsal icarə platforması · Elanınızı yerləşdirin · icarepro.az';
@@ -125,7 +125,7 @@ function TickerRow({
     navigate:  ReturnType<typeof useNavigate>;
 }) {
     return (
-        <div style={{ overflow: 'hidden', height: HEIGHT / 2, display: 'flex', alignItems: 'center' }}>
+        <div style={{ overflow: 'hidden', height: HEIGHT, display: 'flex', alignItems: 'center' }}>
             <div
                 style={{
                     display:            'flex',
@@ -157,7 +157,7 @@ function PlainTextRow({
 }) {
     const repeated = Array.from({ length: 4 }, () => text).join(' · ') + ' · ';
     return (
-        <div style={{ overflow: 'hidden', height: HEIGHT / 2, display: 'flex', alignItems: 'center' }}>
+        <div style={{ overflow: 'hidden', height: HEIGHT, display: 'flex', alignItems: 'center' }}>
             <div
                 style={{
                     display:            'flex',
@@ -212,25 +212,16 @@ export function LedTicker({ placement }: LedTickerProps) {
                 justifyContent: 'center',
                 fontFamily:     'monospace',
                 fontWeight:     700,
-                fontSize:       13,
+                fontSize:       20,
                 userSelect:     'none',
             }}
         >
             {isLoading ? (
-                <>
-                    <PlainTextRow text={LOADING_TEXT} direction="left"  paused={paused} />
-                    <PlainTextRow text={LOADING_TEXT} direction="right" paused={paused} />
-                </>
+                <PlainTextRow text={LOADING_TEXT} direction="left" paused={paused} />
             ) : slots.length === 0 ? (
-                <>
-                    <PlainTextRow text={DEFAULT_TEXT} direction="left"  paused={paused} />
-                    <PlainTextRow text={DEFAULT_TEXT} direction="right" paused={paused} />
-                </>
+                <PlainTextRow text={DEFAULT_TEXT} direction="left" paused={paused} />
             ) : (
-                <>
-                    <TickerRow slots={slots} direction="left"  paused={paused} navigate={navigate} />
-                    <TickerRow slots={slots} direction="right" paused={paused} navigate={navigate} />
-                </>
+                <TickerRow slots={slots} direction="left" paused={paused} navigate={navigate} />
             )}
         </div>
     );

@@ -16,6 +16,11 @@ const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
 
     // GET /notifications - Computes system notifications dynamically
     fastify.get('/', { preHandler: [authenticate] }, async (req, reply) => {
+        const PLATFORM_ROLES = ['SUPERADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE', 'CONTENT']
+        if (PLATFORM_ROLES.includes(req.user.role)) {
+            return reply.send({ success: true, data: [] })
+        }
+
         const org = withOrg(req)
         const now = new Date()
 

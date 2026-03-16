@@ -109,19 +109,19 @@ function CreateStaffModal({ onClose, onCreated }: CreateStaffModalProps) {
         >
             <div
                 style={{
-                    background: '#FFF', borderRadius: 16, padding: 28,
+                    background: 'var(--color-surface)', borderRadius: 16, padding: 28,
                     width: '100%', maxWidth: 480,
                     boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
                 }}
             >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                    <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1A1A2E' }}>
+                    <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--color-text)' }}>
                         Yeni Staff Əlavə Et
                     </h2>
                     <button
                         type="button"
                         onClick={onClose}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280', padding: 4 }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-muted)', padding: 4 }}
                     >
                         <X size={20} />
                     </button>
@@ -153,7 +153,7 @@ function CreateStaffModal({ onClose, onCreated }: CreateStaffModalProps) {
                     />
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <label style={{ fontSize: 13, fontWeight: 500, color: '#374151' }}>Rol</label>
+                        <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text)' }}>Rol</label>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                             {ROLE_OPTIONS.map(opt => (
                                 <button
@@ -163,9 +163,9 @@ function CreateStaffModal({ onClose, onCreated }: CreateStaffModalProps) {
                                     style={{
                                         padding: '8px 12px',
                                         borderRadius: 8,
-                                        border: `2px solid ${role === opt.value ? '#1A1A2E' : '#E5E7EB'}`,
-                                        background: role === opt.value ? '#1A1A2E' : '#FFF',
-                                        color: role === opt.value ? '#C9A84C' : '#374151',
+                                        border: `2px solid ${role === opt.value ? '#C9A84C' : 'var(--color-border)'}`,
+                                        background: role === opt.value ? '#1A1A2E' : 'var(--color-surface)',
+                                        color: role === opt.value ? '#C9A84C' : 'var(--color-text)',
                                         fontWeight: 600,
                                         fontSize: 13,
                                         cursor: 'pointer',
@@ -232,14 +232,14 @@ function EditStaffModal({ staff, onClose, onUpdated }: EditStaffModalProps) {
             }}
             onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
         >
-            <div style={{ background: '#FFF', borderRadius: 16, padding: 28, width: '100%', maxWidth: 400 }}>
+            <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: 28, width: '100%', maxWidth: 400 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                    <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1A1A2E' }}>Staff Redaktəsi</h2>
-                    <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280' }}>
+                    <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--color-text)' }}>Staff Redaktəsi</h2>
+                    <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-muted)' }}>
                         <X size={20} />
                     </button>
                 </div>
-                <p style={{ margin: '0 0 16px', color: '#6B7280', fontSize: 13 }}>{staff.email}</p>
+                <p style={{ margin: '0 0 16px', color: 'var(--color-muted)', fontSize: 13 }}>{staff.email}</p>
                 <div style={{ marginBottom: 16 }}>
                     <Input
                         label="Ad Soyad"
@@ -249,7 +249,7 @@ function EditStaffModal({ staff, onClose, onUpdated }: EditStaffModalProps) {
                     />
                 </div>
                 <div style={{ marginBottom: 20 }}>
-                    <label style={{ fontSize: 13, fontWeight: 500, color: '#374151', display: 'block', marginBottom: 8 }}>Rol</label>
+                    <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--color-text)', display: 'block', marginBottom: 8 }}>Rol</label>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                         {ROLE_OPTIONS.map(opt => (
                             <button
@@ -258,9 +258,9 @@ function EditStaffModal({ staff, onClose, onUpdated }: EditStaffModalProps) {
                                 onClick={() => setRole(opt.value)}
                                 style={{
                                     padding: '8px 12px', borderRadius: 8,
-                                    border: `2px solid ${role === opt.value ? '#1A1A2E' : '#E5E7EB'}`,
-                                    background: role === opt.value ? '#1A1A2E' : '#FFF',
-                                    color: role === opt.value ? '#C9A84C' : '#374151',
+                                    border: `2px solid ${role === opt.value ? '#C9A84C' : 'var(--color-border)'}`,
+                                    background: role === opt.value ? '#1A1A2E' : 'var(--color-surface)',
+                                    color: role === opt.value ? '#C9A84C' : 'var(--color-text)',
                                     fontWeight: 600, fontSize: 13, cursor: 'pointer',
                                 }}
                             >
@@ -337,10 +337,10 @@ export function AdminStaff() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <ShieldCheck size={24} color="#C9A84C" />
                     <div>
-                        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1A1A2E' }}>
+                        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--color-text)' }}>
                             Platform Staff
                         </h1>
-                        <p style={{ margin: 0, fontSize: 13, color: '#6B7280' }}>
+                        <p style={{ margin: 0, fontSize: 13, color: 'var(--color-muted)' }}>
                             Moderator, Dəstək, Maliyyə və Kontent əməkdaşları
                         </p>
                     </div>
@@ -357,17 +357,17 @@ export function AdminStaff() {
             </div>
 
             {/* Table */}
-            <div style={{ background: '#FFF', borderRadius: 12, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
+            <div style={{ background: 'var(--color-surface)', borderRadius: 12, border: '1px solid var(--color-border)', overflow: 'hidden' }}>
                 {/* Table Head */}
                 <div style={{
                     display: 'grid',
                     gridTemplateColumns: '2fr 2fr 1fr 1fr auto',
                     padding: '12px 20px',
-                    background: '#F9FAFB',
-                    borderBottom: '1px solid #E5E7EB',
+                    background: 'var(--color-card)',
+                    borderBottom: '1px solid var(--color-border)',
                     fontSize: 12,
                     fontWeight: 600,
-                    color: '#6B7280',
+                    color: 'var(--color-muted)',
                     gap: 12,
                 }}>
                     <span>Ad Soyad</span>
@@ -378,13 +378,13 @@ export function AdminStaff() {
                 </div>
 
                 {isLoading ? (
-                    <div style={{ padding: 40, textAlign: 'center', color: '#9CA3AF', fontSize: 14 }}>
+                    <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-muted)', fontSize: 14 }}>
                         Yüklənir...
                     </div>
                 ) : !data || data.length === 0 ? (
                     <div style={{ padding: 60, textAlign: 'center' }}>
-                        <ShieldCheck size={40} color="#E5E7EB" style={{ margin: '0 auto 12px' }} />
-                        <p style={{ color: '#9CA3AF', fontSize: 14, margin: 0 }}>
+                        <ShieldCheck size={40} color="var(--color-border)" style={{ margin: '0 auto 12px' }} />
+                        <p style={{ color: 'var(--color-muted)', fontSize: 14, margin: 0 }}>
                             Hələ heç bir platform staff əlavə edilməyib.
                         </p>
                     </div>
@@ -396,27 +396,27 @@ export function AdminStaff() {
                                 display: 'grid',
                                 gridTemplateColumns: '2fr 2fr 1fr 1fr auto',
                                 padding: '14px 20px',
-                                borderBottom: idx < data.length - 1 ? '1px solid #F3F4F6' : 'none',
+                                borderBottom: idx < data.length - 1 ? '1px solid var(--color-border)' : 'none',
                                 alignItems: 'center',
                                 gap: 12,
                                 transition: 'background 0.1s',
                             }}
-                            onMouseEnter={e => (e.currentTarget.style.background = '#FAFAFA')}
+                            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-card)')}
                             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                         >
                             <div>
-                                <p style={{ margin: 0, fontWeight: 600, color: '#1A1A2E', fontSize: 14 }}>{member.name}</p>
-                                <p style={{ margin: 0, fontSize: 12, color: '#9CA3AF' }}>
+                                <p style={{ margin: 0, fontWeight: 600, color: 'var(--color-text)', fontSize: 14 }}>{member.name}</p>
+                                <p style={{ margin: 0, fontSize: 12, color: 'var(--color-muted)' }}>
                                     {new Date(member.createdAt).toLocaleDateString('az-AZ')}
                                 </p>
                             </div>
-                            <span style={{ color: '#374151', fontSize: 14 }}>{member.email}</span>
+                            <span style={{ color: 'var(--color-text)', fontSize: 14 }}>{member.email}</span>
                             <RoleBadge role={member.role} />
                             <div>
                                 {member.isActive ? (
                                     <span style={{ color: '#059669', fontSize: 13, fontWeight: 500 }}>● Aktiv</span>
                                 ) : (
-                                    <span style={{ color: '#9CA3AF', fontSize: 13, fontWeight: 500 }}>● Deaktiv</span>
+                                    <span style={{ color: 'var(--color-muted)', fontSize: 13, fontWeight: 500 }}>● Deaktiv</span>
                                 )}
                             </div>
                             <div style={{ display: 'flex', gap: 6 }}>
@@ -476,11 +476,11 @@ export function AdminStaff() {
                         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
                     }}
                 >
-                    <div style={{ background: '#FFF', borderRadius: 16, padding: 28, maxWidth: 400, width: '100%' }}>
-                        <h3 style={{ margin: '0 0 12px', color: '#1A1A2E', fontSize: 18, fontWeight: 700 }}>
+                    <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: 28, maxWidth: 400, width: '100%' }}>
+                        <h3 style={{ margin: '0 0 12px', color: 'var(--color-text)', fontSize: 18, fontWeight: 700 }}>
                             Staff üzvünü sil
                         </h3>
-                        <p style={{ color: '#6B7280', fontSize: 14, margin: '0 0 20px' }}>
+                        <p style={{ color: 'var(--color-muted)', fontSize: 14, margin: '0 0 20px' }}>
                             <b>{deleteConfirm.name}</b> ({deleteConfirm.email}) silinəcək. Bu əməliyyat geri qaytarıla bilməz.
                         </p>
                         <div style={{ display: 'flex', gap: 8 }}>
