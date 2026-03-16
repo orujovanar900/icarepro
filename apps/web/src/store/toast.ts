@@ -6,6 +6,7 @@ export interface Toast {
     id: string;
     type: ToastType;
     message: string;
+    action?: { label: string; onClick: () => void };
 }
 
 interface ToastState {

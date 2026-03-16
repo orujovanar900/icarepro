@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
+import { useToastStore } from '@/store/toast';
 import {
     LayoutDashboard,
     FileText,
@@ -13,6 +14,7 @@ import {
     Settings,
     Sparkles,
     X,
+    Lock,
     Building2,
     ShieldCheck,
     CreditCard,
@@ -20,6 +22,11 @@ import {
     Megaphone
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+const ERP_ITEMS = [
+    'dashboard', 'contracts', 'properties', 'tenants',
+    'income', 'expenses', 'sanad', 'users', 'settings', 'billing',
+];
 
 const allNavItems = [
     // OWNER/MANAGER items
@@ -44,6 +51,12 @@ const allNavItems = [
 
 export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: boolean; onClose?: () => void }) {
     const { user } = useAuthStore();
+    const { addToast } = useToastStore();
+    const navigate = useNavigate();
+
+    const hasSubscription =
+        user?.role === 'SUPERADMIN' ||
+        user?.organization?.subscriptionStatus === 'ACTIVE';
 
     const navItems = React.useMemo(() => {
         const role = user?.role || 'TENANT';
@@ -95,37 +108,68 @@ export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: bool
                     </button>
                 </div>
                 <nav className="flex-1 space-y-1 p-4">
-                    {navItems.map((item) => (
-                        <NavLink
-                            key={item.path + item.name}
-                            to={item.path}
-                            end={item.path === '/admin'}
-                            className={({ isActive }) =>
-                                cn(
-                                    'group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors',
-                                    item.isSpecial
-                                        ? 'bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/20 shadow-sm mt-2 mb-2'
-                                        : isActive
-                                            ? 'bg-gold/10 text-gold'
-                                            : 'text-muted hover:bg-surface/50 hover:text-text'
-                                )
-                            }
-                        >
-                            {({ isActive }) => (
-                                <>
-                                    <item.icon
-                                        className={cn(
-                                            'mr-3 h-5 w-5 flex-shrink-0 transition-colors',
-                                            item.isSpecial
-                                                ? 'text-[#C9A84C]'
-                                                : isActive ? 'text-gold' : 'text-muted group-hover:text-text'
-                                        )}
-                                    />
-                                    {item.label}
-                                </>
-                            )}
-                        </NavLink>
-                    ))}
+                    {navItems.map((item) => {
+                        const isLocked = !hasSubscription && ERP_ITEMS.includes(item.name);
+
+                        if (isLocked) {
+                            return (
+                                <div
+                                    key={item.path + item.name}
+                                    onClick={() => addToast({
+                                        type: 'info',
+                                        message: 'Bu bölməyə daxil olmaq üçün abunəlik tələb olunur',
+                                        action: {
+                                            label: 'Plana bax →',
+                                            onClick: () => navigate('/settings/billing'),
+                                        },
+                                    })}
+                                    className={cn(
+                                        'group flex items-center rounded-md px-3 py-2 text-sm font-medium',
+                                        'opacity-40 cursor-not-allowed select-none',
+                                        item.isSpecial
+                                            ? 'bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] mt-2 mb-2'
+                                            : 'text-muted'
+                                    )}
+                                >
+                                    <item.icon className="mr-3 h-5 w-5 flex-shrink-0 text-muted" />
+                                    <span className="flex-1">{item.label}</span>
+                                    <Lock className="h-3.5 w-3.5 text-muted flex-shrink-0" />
+                                </div>
+                            );
+                        }
+
+                        return (
+                            <NavLink
+                                key={item.path + item.name}
+                                to={item.path}
+                                end={item.path === '/admin'}
+                                className={({ isActive }) =>
+                                    cn(
+                                        'group flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                                        item.isSpecial
+                                            ? 'bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/20 shadow-sm mt-2 mb-2'
+                                            : isActive
+                                                ? 'bg-gold/10 text-gold'
+                                                : 'text-muted hover:bg-surface/50 hover:text-text'
+                                    )
+                                }
+                            >
+                                {({ isActive }) => (
+                                    <>
+                                        <item.icon
+                                            className={cn(
+                                                'mr-3 h-5 w-5 flex-shrink-0 transition-colors',
+                                                item.isSpecial
+                                                    ? 'text-[#C9A84C]'
+                                                    : isActive ? 'text-gold' : 'text-muted group-hover:text-text'
+                                            )}
+                                        />
+                                        {item.label}
+                                    </>
+                                )}
+                            </NavLink>
+                        );
+                    })}
                 </nav>
                 <div className="p-4 flex justify-center border-t border-border">
                     <span className="text-[11px] text-muted opacity-60 font-mono">

@@ -21,10 +21,20 @@ export function ToastContainer() {
                     )}
                 >
                     <div className="flex items-center gap-3">
-                        {toast.type === 'success' && <CheckCircle className="h-5 w-5" />}
-                        {toast.type === 'error' && <AlertCircle className="h-5 w-5" />}
-                        {toast.type === 'info' && <Info className="h-5 w-5" />}
-                        <p className="text-sm font-medium">{toast.message}</p>
+                        {toast.type === 'success' && <CheckCircle className="h-5 w-5 flex-shrink-0" />}
+                        {toast.type === 'error' && <AlertCircle className="h-5 w-5 flex-shrink-0" />}
+                        {toast.type === 'info' && <Info className="h-5 w-5 flex-shrink-0" />}
+                        <div className="flex flex-col gap-0.5">
+                            <p className="text-sm font-medium">{toast.message}</p>
+                            {toast.action && (
+                                <button
+                                    onClick={() => { toast.action!.onClick(); removeToast(toast.id); }}
+                                    className="text-xs font-semibold underline underline-offset-2 opacity-80 hover:opacity-100 text-left transition-opacity"
+                                >
+                                    {toast.action.label}
+                                </button>
+                            )}
+                        </div>
                     </div>
                     <button
                         onClick={() => removeToast(toast.id)}
