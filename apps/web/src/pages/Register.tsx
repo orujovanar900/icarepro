@@ -130,7 +130,7 @@ export function Register() {
             <div className="w-full max-w-lg space-y-6">
                 <div className="text-center">
                     <h1 className="text-5xl font-heading tracking-tight flex items-center justify-center gap-2">
-                        <span className="font-extrabold text-gold">icarepro</span>
+                        <span className="font-extrabold"><span className="text-gold">icare</span><span className="text-white">pro</span></span>
                     </h1>
                     <p className="mt-2 text-sm text-text">Yeni hesab yaradın və idarəetməyə başlayın</p>
                 </div>

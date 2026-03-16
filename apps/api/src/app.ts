@@ -22,6 +22,7 @@ import hesabatRoutes from './routes/hesabat.js'
 import adminRoutes from './routes/admin.js'
 import listingsRoutes from './routes/listings.js'
 import queueRoutes from './routes/queue.js'
+import notificationsRoutes from './routes/notifications.js'
 
 import cron from 'node-cron'
 import { generateUnpaidRecords, markOverduePayments, checkRenewalWarnings, processAutoRenewals } from './cron/billingCron.js'
@@ -121,6 +122,7 @@ export async function buildApp() {
     await app.register(adminRoutes, { prefix: '/admin' })
     await app.register(listingsRoutes, { prefix: '/listings' })
     await app.register(queueRoutes, { prefix: '/queue' })
+    await app.register(notificationsRoutes, { prefix: '/notifications' })
 
     // Billing cron — runs daily at midnight
     cron.schedule('0 0 * * *', async () => {

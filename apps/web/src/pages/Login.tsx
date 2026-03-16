@@ -98,7 +98,7 @@ export function Login() {
             <div className="w-full max-w-md space-y-8">
                 <div className="text-center">
                     <Link to="/" className="text-5xl font-heading tracking-tight flex items-center justify-center gap-2 hover:opacity-80 transition-opacity">
-                        <span className="font-extrabold text-gold">icarepro</span>
+                        <span className="font-extrabold"><span className="text-gold">icare</span><span className="text-white">pro</span></span>
                     </Link>
                     <p className="mt-2 text-sm text-text">Sistemi idarə etmək üçün daxil olun</p>
                 </div>

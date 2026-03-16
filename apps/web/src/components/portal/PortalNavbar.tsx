@@ -46,7 +46,7 @@ export function PortalNavbar() {
 
                 {/* Logo */}
                 <Link to="/" className="shrink-0 flex items-center hover:opacity-80 transition-opacity" style={{ textDecoration: 'none', letterSpacing: '-0.5px' }}>
-                    <span style={{ fontSize: 24, fontWeight: 800, color: '#C9A84C' }}>icarepro</span>
+                    <span style={{ fontSize: 24, fontWeight: 800 }}><span style={{ color: '#C9A84C' }}>icare</span><span style={{ color: '#1A1A2E' }}>pro</span></span>
                 </Link>
 
                 {/* Desktop nav */}
