@@ -57,10 +57,11 @@ function fmtDateTimeLocal(str?: string) {
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function slotStatus(slot: TickerSlot): 'active' | 'inactive' | 'expired' {
+function slotStatus(slot: TickerSlot): 'active' | 'inactive' | 'expired' | 'scheduled' {
     if (!slot.isActive) return 'inactive';
     const now = Date.now();
     if (new Date(slot.endDate).getTime() < now) return 'expired';
+    if (new Date(slot.startDate).getTime() > now) return 'scheduled';
     return 'active';
 }
 
@@ -95,6 +96,41 @@ interface SlotForm {
     dailyHours:     number[];
     maxImpressions: number;
     isActive:       boolean;
+}
+
+// ─── StatusBadge ─────────────────────────────────────────────────────────────
+
+const STATUS_CFG: Record<'active' | 'inactive' | 'expired' | 'scheduled', { bg: string; color: string; label: string }> = {
+    active:    { bg: '#DCFCE7', color: '#16A34A', label: 'Aktiv' },
+    inactive:  { bg: '#F3F4F6', color: '#6B7280', label: 'Deaktiv' },
+    expired:   { bg: '#FEE2E2', color: '#DC2626', label: 'Müddəti keçib' },
+    scheduled: { bg: '#EFF6FF', color: '#2563EB', label: 'Zamanlanmış' },
+};
+
+function StatusBadge({ slot }: { slot: TickerSlot }) {
+    const st = slotStatus(slot);
+    const c = STATUS_CFG[st];
+    return (
+        <span style={{
+            background: c.bg, color: c.color, fontSize: 11, fontWeight: 700,
+            padding: '3px 8px', borderRadius: 5,
+        }}>{c.label}</span>
+    );
+}
+
+// ─── TypeBadge ────────────────────────────────────────────────────────────────
+
+function TypeBadge({ type }: { type: 'LISTING' | 'AD' }) {
+    const isAd = type === 'AD';
+    return (
+        <span style={{
+            background: isAd ? 'rgba(201,168,76,0.15)' : 'rgba(59,130,246,0.12)',
+            color:      isAd ? GOLD : '#2563EB',
+            fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 5,
+        }}>
+            {isAd ? 'Reklam' : 'Elan'}
+        </span>
+    );
 }
 
 // ─── SlotModal ────────────────────────────────────────────────────────────────
@@ -465,6 +501,56 @@ function ConfirmDeleteOverlay({
     );
 }
 
+// ─── ConfirmResetOverlay ──────────────────────────────────────────────────────
+
+function ConfirmResetOverlay({
+    slot,
+    onConfirm,
+    onCancel,
+}: {
+    slot:      TickerSlot;
+    onConfirm: () => void;
+    onCancel:  () => void;
+}) {
+    const overlayRef = React.useRef<HTMLDivElement>(null);
+    return (
+        <div
+            ref={overlayRef}
+            onClick={e => { if (e.target === overlayRef.current) onCancel(); }}
+            style={{
+                position: 'fixed', inset: 0, zIndex: 1100,
+                background: 'rgba(0,0,0,0.5)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+        >
+            <div style={{
+                background: '#fff', borderRadius: 14, padding: '28px 28px 22px',
+                maxWidth: 380, width: '90%', textAlign: 'center',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
+            }}>
+                <p style={{ fontSize: 36, marginBottom: 10 }}>↺</p>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: NAVY, marginBottom: 8 }}>Sayğacı sıfırla</h3>
+                <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 6 }}>
+                    <strong>"{slot.content}"</strong> slotu üçün sayğac sıfırlanacaq.
+                </p>
+                <p style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 22 }}>
+                    Cari göstəriş: <strong style={{ color: GOLD }}>{slot.currentImpressions.toLocaleString()}</strong>
+                </p>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                    <button onClick={onCancel} style={{
+                        padding: '9px 22px', borderRadius: 9, border: '1px solid rgba(0,0,0,0.15)',
+                        background: '#fff', fontSize: 13, cursor: 'pointer',
+                    }}>Ləğv et</button>
+                    <button onClick={onConfirm} style={{
+                        padding: '9px 22px', borderRadius: 9, border: 'none',
+                        background: GOLD, color: '#0A0B0F', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                    }}>Sıfırla</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 // ─── AdminTicker ──────────────────────────────────────────────────────────────
 
 export function AdminTicker() {
@@ -472,8 +558,9 @@ export function AdminTicker() {
     const qc = useQueryClient();
     const [tab, setTab] = React.useState<'PORTAL_MAIN' | 'LISTING_DETAIL'>('PORTAL_MAIN');
     const [showCreate, setShowCreate] = React.useState(false);
-    const [editSlot, setEditSlot]     = React.useState<TickerSlot | null>(null);
-    const [deleteSlot, setDeleteSlot] = React.useState<TickerSlot | null>(null);
+    const [editSlot, setEditSlot]         = React.useState<TickerSlot | null>(null);
+    const [deleteSlot, setDeleteSlot]     = React.useState<TickerSlot | null>(null);
+    const [resetSlot, setResetSlot]       = React.useState<TickerSlot | null>(null);
 
     const { data: allSlots = [], isLoading } = useQuery({
         queryKey: ['ticker-admin'],
@@ -505,6 +592,16 @@ export function AdminTicker() {
         onError: () => addToast({ type: 'error', message: 'Xəta baş verdi' }),
     });
 
+    const resetMutation = useMutation({
+        mutationFn: (id: string) => api.patch(`/ticker/admin/${id}`, { currentImpressions: 0 }),
+        onSuccess: () => {
+            addToast({ type: 'success', message: 'Sayğac sıfırlandı' });
+            setResetSlot(null);
+            refetch();
+        },
+        onError: () => addToast({ type: 'error', message: 'Xəta baş verdi' }),
+    });
+
     const tabSlots = allSlots.filter(s => s.placement === tab);
 
     // ── Stats ──────────────────────────────────────────────────────────────
@@ -529,35 +626,6 @@ export function AdminTicker() {
         padding: '10px 12px', fontSize: 13, color: '#374151',
         borderBottom: '1px solid rgba(0,0,0,0.06)', verticalAlign: 'middle',
     };
-
-    function StatusBadge({ slot }: { slot: TickerSlot }) {
-        const st = slotStatus(slot);
-        const cfg: Record<typeof st, { bg: string; color: string; label: string }> = {
-            active:   { bg: '#DCFCE7', color: '#16A34A', label: 'Aktiv' },
-            inactive: { bg: '#F3F4F6', color: '#6B7280', label: 'Deaktiv' },
-            expired:  { bg: '#FEE2E2', color: '#DC2626', label: 'Müddəti keçib' },
-        };
-        const c = cfg[st];
-        return (
-            <span style={{
-                background: c.bg, color: c.color, fontSize: 11, fontWeight: 700,
-                padding: '3px 8px', borderRadius: 5,
-            }}>{c.label}</span>
-        );
-    }
-
-    function TypeBadge({ type }: { type: 'LISTING' | 'AD' }) {
-        const isAd = type === 'AD';
-        return (
-            <span style={{
-                background: isAd ? 'rgba(201,168,76,0.15)' : 'rgba(59,130,246,0.12)',
-                color:      isAd ? GOLD : '#2563EB',
-                fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 5,
-            }}>
-                {isAd ? 'Reklam' : 'Elan'}
-            </span>
-        );
-    }
 
     return (
         <div style={{ padding: '24px 28px', maxWidth: 1200, margin: '0 auto' }}>
@@ -676,7 +744,19 @@ export function AdminTicker() {
                                             }
                                         </td>
                                         <td style={{ ...tdStyle, fontWeight: 700, color: GOLD }}>
-                                            {slot.currentImpressions.toLocaleString()}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                {slot.currentImpressions.toLocaleString()}
+                                                <button
+                                                    title="Sayğacı sıfırla"
+                                                    onClick={() => setResetSlot(slot)}
+                                                    style={{
+                                                        padding: '2px 6px', borderRadius: 5,
+                                                        border: '1px solid rgba(201,168,76,0.3)',
+                                                        background: 'rgba(201,168,76,0.08)',
+                                                        fontSize: 10, cursor: 'pointer', color: GOLD,
+                                                    }}
+                                                >↺</button>
+                                            </div>
                                         </td>
                                         <td style={{ ...tdStyle, color: '#6B7280' }}>
                                             {slot.maxImpressions === 0 ? '∞' : slot.maxImpressions.toLocaleString()}
@@ -743,6 +823,13 @@ export function AdminTicker() {
                     slot={deleteSlot}
                     onConfirm={() => deleteMutation.mutate(deleteSlot.id)}
                     onCancel={() => setDeleteSlot(null)}
+                />
+            )}
+            {resetSlot && (
+                <ConfirmResetOverlay
+                    slot={resetSlot}
+                    onConfirm={() => resetMutation.mutate(resetSlot.id)}
+                    onCancel={() => setResetSlot(null)}
                 />
             )}
         </div>

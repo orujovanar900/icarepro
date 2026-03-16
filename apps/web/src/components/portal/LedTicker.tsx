@@ -60,8 +60,12 @@ function Sep() {
 
 // ─── SlotItem ─────────────────────────────────────────────────────────────────
 
-function SlotItem({ slot }: { slot: TickerSlot }) {
-    const navigate  = useNavigate();
+interface SlotItemProps {
+    slot:     TickerSlot;
+    navigate: ReturnType<typeof useNavigate>;
+}
+
+function SlotItem({ slot, navigate }: SlotItemProps) {
     const isAd      = slot.type === 'AD';
     const emoji     = isAd ? '📢' : '🏠';
     const color     = isAd ? GOLD : WHITE;
@@ -94,12 +98,12 @@ function SlotItem({ slot }: { slot: TickerSlot }) {
 // ─── SlotsContent ─────────────────────────────────────────────────────────────
 // Renders one set of slots with separators (used twice for seamless loop)
 
-function SlotsContent({ slots, prefix }: { slots: TickerSlot[]; prefix: string }) {
+function SlotsContent({ slots, prefix, navigate }: { slots: TickerSlot[]; prefix: string; navigate: ReturnType<typeof useNavigate> }) {
     return (
         <>
             {slots.map((slot, i) => (
                 <React.Fragment key={`${prefix}-${slot.id}-${i}`}>
-                    <SlotItem slot={slot} />
+                    <SlotItem slot={slot} navigate={navigate} />
                     <Sep />
                 </React.Fragment>
             ))}
@@ -113,10 +117,12 @@ function TickerRow({
     slots,
     direction,
     paused,
+    navigate,
 }: {
     slots:     TickerSlot[];
     direction: 'left' | 'right';
     paused:    boolean;
+    navigate:  ReturnType<typeof useNavigate>;
 }) {
     return (
         <div style={{ overflow: 'hidden', height: HEIGHT / 2, display: 'flex', alignItems: 'center' }}>
@@ -131,8 +137,8 @@ function TickerRow({
                 }}
             >
                 {/* Two identical copies for seamless loop */}
-                <SlotsContent slots={slots} prefix="a" />
-                <SlotsContent slots={slots} prefix="b" />
+                <SlotsContent slots={slots} prefix="a" navigate={navigate} />
+                <SlotsContent slots={slots} prefix="b" navigate={navigate} />
             </div>
         </div>
     );
@@ -149,7 +155,7 @@ function PlainTextRow({
     direction: 'left' | 'right';
     paused:    boolean;
 }) {
-    const repeated = Array.from({ length: 4 }, () => text).join(' · ');
+    const repeated = Array.from({ length: 4 }, () => text).join(' · ') + ' · ';
     return (
         <div style={{ overflow: 'hidden', height: HEIGHT / 2, display: 'flex', alignItems: 'center' }}>
             <div
@@ -164,7 +170,7 @@ function PlainTextRow({
                 }}
             >
                 <span>{repeated}</span>
-                <span style={{ marginLeft: 28 }}>{repeated}</span>
+                <span>{repeated}</span>
             </div>
         </div>
     );
@@ -174,6 +180,7 @@ function PlainTextRow({
 
 export function LedTicker({ placement }: LedTickerProps) {
     const [paused, setPaused] = React.useState(false);
+    const navigate = useNavigate();
 
     React.useEffect(() => { ensureKeyframes(); }, []);
 
@@ -221,8 +228,8 @@ export function LedTicker({ placement }: LedTickerProps) {
                 </>
             ) : (
                 <>
-                    <TickerRow slots={slots} direction="left"  paused={paused} />
-                    <TickerRow slots={slots} direction="right" paused={paused} />
+                    <TickerRow slots={slots} direction="left"  paused={paused} navigate={navigate} />
+                    <TickerRow slots={slots} direction="right" paused={paused} navigate={navigate} />
                 </>
             )}
         </div>

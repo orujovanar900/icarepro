@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 import { authenticate } from '../middleware/authenticate.js'
 import { requireRole } from '../middleware/requireRole.js'
 import { writeAuditLog } from '../utils/audit.js'
@@ -21,7 +22,11 @@ const slotBodySchema = z.object({
     maxImpressions:  z.number().int().min(0).default(0),
 })
 
-const patchBodySchema = slotBodySchema.partial()
+const patchBodySchema = slotBodySchema.partial().extend({
+    currentImpressions: z.number().int().min(0).optional(),
+}).refine(data => Object.keys(data).length > 0, {
+    message: 'Dəyişiklik məlumatı göndərilməyib.',
+})
 
 const adminQuerySchema = z.object({
     placement: z.enum(['PORTAL_MAIN', 'LISTING_DETAIL']).optional(),
@@ -35,8 +40,12 @@ const tickerRoutes: FastifyPluginAsync = async (fastify) => {
     // No auth required. Returns active + in-range + in-hour slots.
     // Increments currentImpressions for each returned slot.
     fastify.get('/', async (req, reply) => {
-        const query = req.query as { placement?: string }
-        const placement = query['placement'] ?? 'PORTAL_MAIN'
+        const placementParsed = z.enum(['PORTAL_MAIN', 'LISTING_DETAIL'])
+            .safeParse((req.query as { placement?: string })['placement'] ?? 'PORTAL_MAIN')
+        if (!placementParsed.success) {
+            return reply.code(400).send({ success: false, error: 'Yanlış placement dəyəri.' })
+        }
+        const placement = placementParsed.data
 
         const now = new Date()
         const currentHour = now.getHours()
@@ -65,9 +74,9 @@ const tickerRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         // Increment impressions for all returned slots (fire and forget)
-        void fastify.prisma.$executeRawUnsafe(
-            `UPDATE ticker_slots SET "currentImpressions" = "currentImpressions" + 1 WHERE id = ANY($1::text[])`,
-            eligible.map(s => s.id),
+        const ids = eligible.map(s => s.id)
+        void fastify.prisma.$executeRaw(
+            Prisma.sql`UPDATE ticker_slots SET "currentImpressions" = "currentImpressions" + 1 WHERE id = ANY(${ids}::text[])`
         ).catch(() => { /* non-critical */ })
 
         const data = eligible.map(slot => ({
@@ -181,7 +190,8 @@ const tickerRoutes: FastifyPluginAsync = async (fastify) => {
         if (body.startDate       !== undefined) updateData['startDate']       = new Date(body.startDate)
         if (body.endDate         !== undefined) updateData['endDate']         = new Date(body.endDate)
         if (body.dailyHours      !== undefined) updateData['dailyHours']      = body.dailyHours
-        if (body.maxImpressions  !== undefined) updateData['maxImpressions']  = body.maxImpressions
+        if (body.maxImpressions      !== undefined) updateData['maxImpressions']      = body.maxImpressions
+        if (body.currentImpressions  !== undefined) updateData['currentImpressions']  = body.currentImpressions
 
         const slot = await fastify.prisma.tickerSlot.update({
             where: { id },
