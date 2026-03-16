@@ -6,16 +6,26 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
     error?: string;
     helperText?: string;
     rightElement?: React.ReactNode;
+    variant?: 'default' | 'light';
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-    ({ className, label, error, helperText, id, ...props }, ref) => {
+    ({ className, label, error, helperText, id, variant = 'default', style, ...props }, ref) => {
         const inputId = id || React.useId();
+        const isLight = variant === 'light';
+
+        const inputStyle: React.CSSProperties = isLight
+            ? { WebkitBoxShadow: '0 0 0px 1000px #FFFFFF inset', WebkitTextFillColor: '#1A1A2E', ...style }
+            : (style ?? {});
 
         return (
             <div className="w-full space-y-1.5">
                 {label && (
-                    <label htmlFor={inputId} className="block text-sm font-medium text-text">
+                    <label
+                        htmlFor={inputId}
+                        className="block text-sm font-medium text-text"
+                        style={isLight ? { color: '#1A1A2E' } : undefined}
+                    >
                         {label}
                     </label>
                 )}
@@ -25,10 +35,12 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                         ref={ref}
                         className={cn(
                             'flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold disabled:cursor-not-allowed disabled:opacity-50 transition-colors',
+                            isLight && 'bg-white text-[#1A1A2E] border-[#E5E0D8] placeholder:text-gray-400',
                             error && 'border-red focus:ring-red',
                             props.rightElement && 'pr-10',
                             className
                         )}
+                        style={inputStyle}
                         {...props}
                     />
                     {props.rightElement && (

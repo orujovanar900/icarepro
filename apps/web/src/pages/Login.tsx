@@ -25,6 +25,7 @@ export function Login() {
     const [isLoading, setIsLoading] = React.useState(false);
     const [showPass, setShowPass] = React.useState(false);
     const [remember, setRemember] = React.useState(true);
+    const [submitError, setSubmitError] = React.useState<string | null>(null);
 
     const {
         register,
@@ -35,6 +36,7 @@ export function Login() {
     });
 
     const onSubmit = async (data: LoginFormValues) => {
+        setSubmitError(null);
         try {
             setIsLoading(true);
             const response = await api.post('/auth/login', data);
@@ -67,10 +69,7 @@ export function Login() {
                 navigate('/dashboard');
             }
         } catch (error: any) {
-            addToast({
-                type: 'error',
-                message: error.response?.data?.message || 'Giriş uğursuz oldu. Zəhmət olmasa təkrar cəhd edin.',
-            });
+            setSubmitError(error.response?.data?.message || 'Giriş uğursuz oldu. Zəhmət olmasa təkrar cəhd edin.');
         } finally {
             setIsLoading(false);
         }
@@ -99,10 +98,45 @@ export function Login() {
                             <CardTitle className="text-2xl text-center">Xoş gəlmisiniz!</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                            {submitError && (
+                                <div style={{
+                                    background: '#FEF2F2',
+                                    border: '1px solid #FECACA',
+                                    borderRadius: '8px',
+                                    padding: '12px 16px',
+                                    marginBottom: '8px',
+                                }}>
+                                    <p style={{
+                                        color: '#DC2626',
+                                        fontSize: '14px',
+                                        fontWeight: '500',
+                                        margin: 0,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px'
+                                    }}>
+                                        <span>⚠️</span>
+                                        {submitError}
+                                    </p>
+                                    {submitError.includes('mövcuddur') && (
+                                        <Link to="/login" style={{
+                                            color: '#C9A84C',
+                                            fontSize: '13px',
+                                            textDecoration: 'underline',
+                                            display: 'block',
+                                            marginTop: '6px',
+                                            marginLeft: '24px'
+                                        }}>
+                                            Daxil olun →
+                                        </Link>
+                                    )}
+                                </div>
+                            )}
                             <Input
                                 label="E-poçt"
                                 type="email"
                                 placeholder="ad@email.com"
+                                variant="light"
                                 {...register('email')}
                                 error={errors.email?.message}
                             />
@@ -110,6 +144,7 @@ export function Login() {
                                 label="Şifrə"
                                 type={showPass ? 'text' : 'password'}
                                 placeholder="••••••••"
+                                variant="light"
                                 {...register('password')}
                                 error={errors.password?.message}
                                 rightElement={

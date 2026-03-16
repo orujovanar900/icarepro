@@ -57,6 +57,7 @@ export function Register() {
     const [showPass, setShowPass] = React.useState(false);
     const [showConfirm, setShowConfirm] = React.useState(false);
     const [selectedRole, setSelectedRole] = React.useState<SelectedRole>('OWNER');
+    const [submitError, setSubmitError] = React.useState<string | null>(null);
 
     const {
         register,
@@ -72,8 +73,9 @@ export function Register() {
     const isAgentlik = selectedRole === 'AGENTLIK';
 
     const onSubmit = async (data: RegisterFormValues) => {
+        setSubmitError(null);
         if (isAgentlik && (!data.organizationName || data.organizationName.trim().length < 2)) {
-            addToast({ type: 'error', message: 'Şirkət adı ən azı 2 simvol olmalıdır.' });
+            setSubmitError('Şirkət adı ən azı 2 simvol olmalıdır.');
             return;
         }
         try {
@@ -97,10 +99,7 @@ export function Register() {
                 navigate('/dashboard');
             }
         } catch (error: any) {
-            addToast({
-                type: 'error',
-                message: error.response?.data?.error || 'Qeydiyyat uğursuz oldu. Zəhmət olmasa təkrar cəhd edin.',
-            });
+            setSubmitError(error.response?.data?.error || 'Qeydiyyat uğursuz oldu. Zəhmət olmasa təkrar cəhd edin.');
         } finally {
             setIsLoading(false);
         }
@@ -168,10 +167,46 @@ export function Register() {
                                 <div className="flex-1 h-px bg-border/40" />
                             </div>
 
+                            {submitError && (
+                                <div style={{
+                                    background: '#FEF2F2',
+                                    border: '1px solid #FECACA',
+                                    borderRadius: '8px',
+                                    padding: '12px 16px',
+                                    marginBottom: '8px',
+                                }}>
+                                    <p style={{
+                                        color: '#DC2626',
+                                        fontSize: '14px',
+                                        fontWeight: '500',
+                                        margin: 0,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px'
+                                    }}>
+                                        <span>⚠️</span>
+                                        {submitError}
+                                    </p>
+                                    {submitError.includes('mövcuddur') && (
+                                        <Link to="/login" style={{
+                                            color: '#C9A84C',
+                                            fontSize: '13px',
+                                            textDecoration: 'underline',
+                                            display: 'block',
+                                            marginTop: '6px',
+                                            marginLeft: '24px'
+                                        }}>
+                                            Daxil olun →
+                                        </Link>
+                                    )}
+                                </div>
+                            )}
+
                             <Input
                                 label="Ad Soyad"
                                 type="text"
                                 placeholder="Əli Əliyev"
+                                variant="light"
                                 {...register('name')}
                                 error={errors.name?.message}
                             />
@@ -179,6 +214,7 @@ export function Register() {
                                 label="E-poçt"
                                 type="email"
                                 placeholder="ad@email.com"
+                                variant="light"
                                 {...register('email')}
                                 error={errors.email?.message}
                             />
@@ -188,6 +224,7 @@ export function Register() {
                                     label="Şirkət / Agentlik adı"
                                     type="text"
                                     placeholder="Əliyev Daşınmaz Əmlak MMC"
+                                    variant="light"
                                     {...register('organizationName')}
                                     error={errors.organizationName?.message}
                                 />
@@ -197,6 +234,7 @@ export function Register() {
                                 label="Şifrə"
                                 type={showPass ? 'text' : 'password'}
                                 placeholder="••••••••"
+                                variant="light"
                                 {...register('password')}
                                 error={errors.password?.message}
                                 rightElement={
@@ -238,6 +276,7 @@ export function Register() {
                                 label="Şifrəni təkrarla"
                                 type={showConfirm ? 'text' : 'password'}
                                 placeholder="••••••••"
+                                variant="light"
                                 {...register('confirmPassword')}
                                 error={errors.confirmPassword?.message}
                                 rightElement={
