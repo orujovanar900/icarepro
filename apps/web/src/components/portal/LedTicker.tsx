@@ -24,7 +24,9 @@ const BG      = '#1A1A2E';
 const GOLD    = '#C9A84C';
 const WHITE   = '#FFFFFF';
 const HEIGHT  = 38;
-const SPEED_S = 20; // seconds for full animation cycle
+function getTickerDuration(content: string): number {
+    return Math.max(15, Math.min(45, content.length * 0.25));
+}
 
 const DEFAULT_TEXT = 'icarepro — Bakının birinci rəqəmsal icarə platforması · Elanınızı yerləşdirin · icarepro.az';
 const LOADING_TEXT = 'icarepro · Bakının rəqəmsal icarə platforması · ';
@@ -117,11 +119,13 @@ function TickerRow({
     slots,
     direction,
     paused,
+    duration,
     navigate,
 }: {
     slots:     TickerSlot[];
     direction: 'left' | 'right';
     paused:    boolean;
+    duration:  number;
     navigate:  ReturnType<typeof useNavigate>;
 }) {
     return (
@@ -131,7 +135,7 @@ function TickerRow({
                     display:            'flex',
                     alignItems:         'center',
                     whiteSpace:         'nowrap',
-                    animation:          `${direction === 'left' ? 'tickerLeft' : 'tickerRight'} ${SPEED_S}s linear infinite`,
+                    animation:          `${direction === 'left' ? 'tickerLeft' : 'tickerRight'} ${duration}s linear infinite`,
                     animationPlayState: paused ? 'paused' : 'running',
                     willChange:         'transform',
                 }}
@@ -150,10 +154,12 @@ function PlainTextRow({
     text,
     direction,
     paused,
+    duration,
 }: {
     text:      string;
     direction: 'left' | 'right';
     paused:    boolean;
+    duration:  number;
 }) {
     const repeated = Array.from({ length: 4 }, () => text).join(' · ') + ' · ';
     return (
@@ -164,7 +170,7 @@ function PlainTextRow({
                     alignItems:         'center',
                     whiteSpace:         'nowrap',
                     color:              GOLD,
-                    animation:          `${direction === 'left' ? 'tickerLeft' : 'tickerRight'} ${SPEED_S}s linear infinite`,
+                    animation:          `${direction === 'left' ? 'tickerLeft' : 'tickerRight'} ${duration}s linear infinite`,
                     animationPlayState: paused ? 'paused' : 'running',
                     willChange:         'transform',
                 }}
@@ -198,31 +204,37 @@ export function LedTicker({ placement }: LedTickerProps) {
 
     const slots = data ?? [];
 
+    const duration = slots.length > 0
+        ? getTickerDuration(slots.map(s => s.content).join(' · '))
+        : 25;
+
     return (
-        <div
-            onMouseEnter={() => setPaused(true)}
-            onMouseLeave={() => setPaused(false)}
-            style={{
-                background:     BG,
-                height:         HEIGHT,
-                width:          '100%',
-                overflow:       'hidden',
-                display:        'flex',
-                flexDirection:  'column',
-                justifyContent: 'center',
-                fontFamily:     'monospace',
-                fontWeight:     700,
-                fontSize:       20,
-                userSelect:     'none',
-            }}
-        >
-            {isLoading ? (
-                <PlainTextRow text={LOADING_TEXT} direction="left" paused={paused} />
-            ) : slots.length === 0 ? (
-                <PlainTextRow text={DEFAULT_TEXT} direction="left" paused={paused} />
-            ) : (
-                <TickerRow slots={slots} direction="left" paused={paused} navigate={navigate} />
-            )}
+        <div style={{ position: 'sticky', top: 0, zIndex: 50, width: '100%' }}>
+            <div
+                onMouseEnter={() => setPaused(true)}
+                onMouseLeave={() => setPaused(false)}
+                style={{
+                    background:     BG,
+                    height:         HEIGHT,
+                    width:          '100%',
+                    overflow:       'hidden',
+                    display:        'flex',
+                    flexDirection:  'column',
+                    justifyContent: 'center',
+                    fontFamily:     'monospace',
+                    fontWeight:     700,
+                    fontSize:       20,
+                    userSelect:     'none',
+                }}
+            >
+                {isLoading ? (
+                    <PlainTextRow text={LOADING_TEXT} direction="left" paused={paused} duration={duration} />
+                ) : slots.length === 0 ? (
+                    <PlainTextRow text={DEFAULT_TEXT} direction="left" paused={paused} duration={duration} />
+                ) : (
+                    <TickerRow slots={slots} direction="left" paused={paused} duration={duration} navigate={navigate} />
+                )}
+            </div>
         </div>
     );
 }

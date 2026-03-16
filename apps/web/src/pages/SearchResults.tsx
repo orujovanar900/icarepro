@@ -5,6 +5,7 @@ import { X, RefreshCw, Map as MapIcon } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { PortalNavbar } from '@/components/portal/PortalNavbar';
+import { LedTicker } from '@/components/portal/LedTicker';
 import { PortalFooter } from '@/components/portal/PortalFooter';
 import { ListingCard } from '@/components/portal/ListingCard';
 import { useListings } from '@/hooks/useListings';
@@ -274,6 +275,7 @@ export function SearchResults() {
     return (
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: C.listBg }}>
             <PortalNavbar />
+            <LedTicker placement="PORTAL_MAIN" />
 
             {/* ═══ STICKY FILTER BAR ══════════════════════════════════════════ */}
             <div

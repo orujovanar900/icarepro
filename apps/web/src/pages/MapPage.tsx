@@ -4,6 +4,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 import { PortalNavbar } from '@/components/portal/PortalNavbar';
+import { LedTicker } from '@/components/portal/LedTicker';
 import { useListings } from '@/hooks/useListings';
 import type { ListingCardData } from '@/hooks/useListings';
 
@@ -220,8 +221,9 @@ export function MapPage() {
     return (
         <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <PortalNavbar />
+            <LedTicker placement="PORTAL_MAIN" />
 
-            <div style={{ flex: 1, display: 'flex', overflow: 'hidden', height: 'calc(100vh - 64px)' }}>
+            <div style={{ flex: 1, display: 'flex', overflow: 'hidden', height: 'calc(100vh - 102px)' }}>
 
                 {/* ── Sidebar ── */}
                 <div style={{
