@@ -578,3 +578,32 @@ model ListingFavorite {
   @@index([userId])
   @@map("listing_favorites")
 }
+
+// ─────────────────────────────────────────
+// LED Ticker
+// ─────────────────────────────────────────
+
+model TickerSlot {
+  id                 String   @id @default(cuid())
+  type               String   // 'LISTING' | 'AD'
+  content            String   // display text
+  linkUrl            String?  // click destination
+  listingId          String?  // if type=LISTING
+  organizationId     String?  // if from an agency/owner
+  placement          String   @default("PORTAL_MAIN")
+  // 'PORTAL_MAIN' | 'LISTING_DETAIL'
+  isActive           Boolean  @default(true)
+  sortOrder          Int      @default(0)
+  startDate          DateTime
+  endDate            DateTime
+  dailyHours         Json     // int[] e.g. [9,10,11,14,15]
+  maxImpressions     Int      @default(0) // 0 = unlimited
+  currentImpressions Int      @default(0)
+  createdBy          String   // userId
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([placement, isActive])
+  @@index([startDate, endDate])
+  @@map("ticker_slots")
+}
