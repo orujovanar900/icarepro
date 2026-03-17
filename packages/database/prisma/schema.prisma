@@ -188,15 +188,16 @@ model Organization {
   taxVoen              String?
   isVatPayer           Boolean   @default(false)
 
-  users         User[]
-  properties    Property[]
-  tenants       Tenant[]
-  contracts     Contract[]
-  payments      Payment[]
-  expenses      Expense[]
-  auditLogs     AuditLog[]
-  meterReadings MeterReading[]
-  listings      Listing[]
+  users                User[]
+  properties           Property[]
+  tenants              Tenant[]
+  contracts            Contract[]
+  payments             Payment[]
+  expenses             Expense[]
+  auditLogs            AuditLog[]
+  meterReadings        MeterReading[]
+  listings             Listing[]
+  subscriptionHistory  SubscriptionHistory[]
 
   @@map("organizations")
 }
@@ -219,13 +220,14 @@ model User {
   avatarUrl             String?
   jwtVersion            Int       @default(1)
 
-  organization Organization? @relation(fields: [organizationId], references: [id])
-  payments     Payment[]
-  expenses     Expense[]
-  auditLogs    AuditLog[]
-  tenant       Tenant?
-  queueEntries QueueEntry[]
-  favorites    ListingFavorite[]
+  organization          Organization?        @relation(fields: [organizationId], references: [id])
+  payments              Payment[]
+  expenses              Expense[]
+  auditLogs             AuditLog[]
+  tenant                Tenant?
+  queueEntries          QueueEntry[]
+  favorites             ListingFavorite[]
+  subscriptionChanges   SubscriptionHistory[]
 
   @@map("users")
 }
@@ -414,6 +416,26 @@ model AuditLog {
   user         User          @relation(fields: [userId], references: [id], onDelete: Restrict)
 
   @@map("audit_logs")
+}
+
+model SubscriptionHistory {
+  id                String    @id @default(cuid())
+  orgId             String
+  changedByUserId   String?
+  previousPlan      String?
+  newPlan           String
+  previousStatus    String?
+  newStatus         String
+  expiresAt         DateTime?
+  note              String?
+  createdAt         DateTime  @default(now())
+
+  organization   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  changedByUser  User?        @relation(fields: [changedByUserId], references: [id])
+
+  @@index([orgId])
+  @@index([createdAt(sort: Desc)])
+  @@map("subscription_history")
 }
 
 model MeterReading {

@@ -271,6 +271,26 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.send({ success: true, data: updatedOrg })
     })
 
+    // GET /admin/organizations/:orgId/billing-history
+    fastify.get('/organizations/:orgId/billing-history', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+        const { orgId } = req.params as { orgId: string }
+
+        const org = await fastify.prisma.organization.findUnique({ where: { id: orgId } })
+        if (!org) return reply.code(404).send({ success: false, error: 'Təşkilat tapılmadı' })
+
+        const history = await fastify.prisma.subscriptionHistory.findMany({
+            where: { orgId },
+            include: {
+                changedByUser: {
+                    select: { name: true, email: true },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        })
+
+        return reply.send({ success: true, data: history })
+    })
+
     // PATCH /admin/organizations/:id/subscription
     fastify.patch('/organizations/:id/subscription', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
@@ -284,6 +304,9 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
 
         const org = await fastify.prisma.organization.findUnique({ where: { id } })
         if (!org) return reply.code(404).send({ success: false, error: 'Təşkilat tapılmadı' })
+
+        const previousPlan = org.subscriptionPlan as string
+        const previousStatus = org.subscriptionStatus as string
 
         let planExp = expiresAt ? new Date(expiresAt) : org.planExpiresAt
         if (additionalDays && planExp) {
@@ -318,19 +341,35 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
             data: updateData
         })
 
-        // Log to audit if plan changes
-        if (subscriptionPlan) {
-            await fastify.prisma.auditLog.create({
+        // Write to subscription_history and audit log in parallel
+        const newPlan = subscriptionPlan || previousPlan
+        const newStatus = status || previousStatus
+        await Promise.all([
+            fastify.prisma.subscriptionHistory.create({
                 data: {
-                    organizationId: id,
-                    userId: req.user.sub,
-                    action: 'PLAN_CHANGED',
-                    entityType: 'organization',
-                    entityId: id,
-                    metadata: { newPlan: subscriptionPlan, note: note || null } as any,
-                }
-            })
-        }
+                    orgId: id,
+                    changedByUserId: req.user.sub,
+                    previousPlan,
+                    newPlan,
+                    previousStatus,
+                    newStatus,
+                    expiresAt: planExp,
+                    note: note || null,
+                },
+            }),
+            ...(subscriptionPlan ? [
+                fastify.prisma.auditLog.create({
+                    data: {
+                        organizationId: id,
+                        userId: req.user.sub,
+                        action: 'PLAN_CHANGED',
+                        entityType: 'organization',
+                        entityId: id,
+                        metadata: { newPlan: subscriptionPlan, note: note || null } as any,
+                    },
+                }),
+            ] : []),
+        ])
 
         return reply.send({ success: true, data: updatedOrg })
     })
