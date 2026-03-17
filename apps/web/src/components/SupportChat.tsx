@@ -173,7 +173,7 @@ DİL:
     }
 
     return (
-        <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 w-[380px] max-w-[calc(100vw-2rem)] h-[500px] max-h-[calc(100vh-7rem)] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
+        <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 w-[380px] max-w-[calc(100vw-2rem)] h-[500px] max-h-[calc(100vh-7rem)] bg-[var(--color-surface)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[var(--color-border)]">
             {/* Header */}
             <div className="bg-gradient-to-r from-purple-800 to-purple-600 text-white p-4 flex justify-between items-center z-10">
                 <div className="flex flex-col">
@@ -191,13 +191,13 @@ DİL:
             </div>
 
             {/* Messages */}
-            <div className="flex-1 bg-gray-50 overflow-y-auto p-4 flex flex-col gap-4">
+            <div className="flex-1 bg-[var(--color-card)] overflow-y-auto p-4 flex flex-col gap-4">
                 {messages.map((message, index) => (
                     <div
                         key={index}
                         className={`max-w-[85%] p-3 rounded-2xl text-[14px] leading-relaxed ${message.role === 'user'
                             ? 'bg-purple-600 text-white rounded-br-sm self-end'
-                            : 'bg-white text-gray-800 border border-gray-200 rounded-bl-sm self-start shadow-sm'
+                            : 'bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] rounded-bl-sm self-start shadow-sm'
                             }`}
                     >
                         {message.content.split('\n').map((line, i) => (
@@ -209,7 +209,7 @@ DİL:
                 ))}
 
                 {isLoading && (
-                    <div className="bg-white text-gray-500 border border-gray-200 p-3 rounded-2xl rounded-bl-sm self-start shadow-sm flex gap-1 items-center">
+                    <div className="bg-[var(--color-surface)] text-[var(--color-muted)] border border-[var(--color-border)] p-3 rounded-2xl rounded-bl-sm self-start shadow-sm flex gap-1 items-center">
                         <MoreHorizontal className="w-5 h-5 animate-pulse text-purple-500" />
                     </div>
                 )}
@@ -221,7 +221,7 @@ DİL:
                             <button
                                 key={i}
                                 onClick={() => handleSend(reply)}
-                                className="text-[13px] bg-white border border-purple-200 text-purple-700 px-3 py-1.5 rounded-full hover:bg-purple-50 transition-colors text-left"
+                                className="text-[13px] bg-[var(--color-surface)] border border-purple-200 text-purple-700 px-3 py-1.5 rounded-full hover:bg-purple-500/10 transition-colors text-left"
                             >
                                 {reply}
                             </button>
@@ -232,7 +232,7 @@ DİL:
             </div>
 
             {/* Input */}
-            <div className="p-3 bg-white border-t border-gray-200">
+            <div className="p-3 bg-[var(--color-surface)] border-t border-[var(--color-border)]">
                 <form
                     onSubmit={(e) => {
                         e.preventDefault();
@@ -245,7 +245,7 @@ DİL:
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Mesajınızı yazın..."
-                        className="flex-1 bg-gray-100 rounded-full px-4 text-[14px] text-gray-900 outline-none focus:ring-2 focus:ring-purple-500/50 transition-all placeholder:text-gray-400"
+                        className="flex-1 bg-[var(--color-card)] rounded-full px-4 text-[14px] text-[var(--color-text)] outline-none focus:ring-2 focus:ring-purple-500/50 transition-all placeholder:text-[var(--color-muted)]"
                         disabled={isLoading}
                     />
                     <button

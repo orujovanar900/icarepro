@@ -17,8 +17,8 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
         return (
             <div className="flex h-full flex-col items-center justify-center p-8 text-center bg-bg text-text">
                 <h1 className="text-6xl font-bold font-heading text-red">403</h1>
-                <h2 className="mt-4 text-2xl font-semibold">Access Denied</h2>
-                <p className="mt-2 text-muted">You do not have permission to view this page.</p>
+                <h2 className="mt-4 text-2xl font-semibold">Giriş qadağandır</h2>
+                <p className="mt-2 text-muted">Bu səhifəyə giriş icazəniz yoxdur.</p>
             </div>
         );
     }

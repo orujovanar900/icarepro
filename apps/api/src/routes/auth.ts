@@ -305,7 +305,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     // ─────────────────────────────────────────
     // PATCH /auth/organization
     // ─────────────────────────────────────────
-    fastify.patch('/organization', { preHandler: [authenticate, requireRole(['OWNER'])] }, async (req, reply) => {
+    fastify.patch('/organization', { preHandler: [authenticate, requireRole(['OWNER', 'AGENTLIK'])] }, async (req, reply) => {
         const body = updateOrgSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
 
@@ -349,7 +349,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     // ─────────────────────────────────────────
     // POST /auth/change-email
     // ─────────────────────────────────────────
-    fastify.post('/change-email', { preHandler: [authenticate, requireRole(['OWNER'])] }, async (req, reply) => {
+    fastify.post('/change-email', { preHandler: [authenticate, requireRole(['OWNER', 'AGENTLIK'])] }, async (req, reply) => {
         const body = changeEmailSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
 

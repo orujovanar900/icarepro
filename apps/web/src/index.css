@@ -64,6 +64,17 @@
     transition: background-color 0.3s ease, color 0.3s ease;
   }
 
+  /* Fix browser autofill background on light forms (Login/Register) — scoped to .portal-light only */
+  .portal-light input:-webkit-autofill,
+  .portal-light input:-webkit-autofill:hover,
+  .portal-light input:-webkit-autofill:focus,
+  .portal-light input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0px 1000px #FFFFFF inset !important;
+    -webkit-text-fill-color: #1A1A2E !important;
+    border-color: #E5E0D8 !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+
   /* Fix for native date/time pickers to show a bright icon on dark background */
   input[type="date"]::-webkit-calendar-picker-indicator,
   input[type="time"]::-webkit-calendar-picker-indicator,

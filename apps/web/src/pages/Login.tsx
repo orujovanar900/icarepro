@@ -93,7 +93,7 @@ export function Login() {
 
     return (
         <div
-            className="flex min-h-screen flex-col items-center justify-center p-6 w-full"
+            className="portal-light flex min-h-screen flex-col items-center justify-center p-6 w-full"
             style={{ backgroundColor: '#F5F0E8' }}
         >
             <div className="w-full max-w-md space-y-8">

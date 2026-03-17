@@ -36,7 +36,7 @@ const profileSchema = z.object({
 })
 
 const usersRoutes: FastifyPluginAsync = async (fastify) => {
-    const ownerOnly = [authenticate, requireRole(['SUPERADMIN', 'OWNER', 'MANAGER'])]
+    const ownerOnly = [authenticate, requireRole(['SUPERADMIN', 'OWNER', 'MANAGER', 'AGENTLIK'])]
 
     const supabase = createClient(
         process.env['SUPABASE_URL'] ?? '',

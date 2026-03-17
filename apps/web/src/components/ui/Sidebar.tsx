@@ -47,7 +47,8 @@ const allNavItems = [
     { name: 'admin-orgs', path: '/admin/users', icon: Building2, label: 'Təşkilatlar', adminOnly: true, roles: ['SUPERADMIN', 'SUPPORT'] },
     { name: 'admin-listings', path: '/admin/elanlar', icon: Megaphone, label: 'Elanlar', adminOnly: true, roles: ['SUPERADMIN', 'MODERATOR'] },
     { name: 'admin-staff',   path: '/admin/staff',   icon: ShieldCheck, label: 'Platform Staff', adminOnly: true, roles: ['SUPERADMIN'] },
-    { name: 'admin-ticker', path: '/admin/ticker', icon: Radio,       label: 'LED Ticker',     adminOnly: true, roles: ['SUPERADMIN', 'CONTENT'] },
+    { name: 'admin-ticker',   path: '/admin/ticker', icon: Radio,       label: 'LED Ticker',          adminOnly: true, roles: ['SUPERADMIN', 'CONTENT'] },
+    { name: 'admin-finance',  path: '/admin/stats',  icon: TrendingUp,  label: 'Maliyyə Statistikası', adminOnly: true, roles: ['SUPERADMIN', 'FINANCE'] },
 ];
 
 export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: boolean; onClose?: () => void }) {
@@ -74,8 +75,8 @@ export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: bool
 
         const allowedByRole: Record<string, string[]> = {
             OWNER:    ['dashboard', 'contracts', 'properties', 'tenants', 'income', 'expenses', 'sanad', 'users', 'settings', 'billing', 'listings'],
-            AGENT:    ['dashboard', 'contracts', 'properties', 'tenants', 'income', 'expenses', 'sanad', 'listings'],
-            AGENTLIK: ['dashboard', 'contracts', 'properties', 'tenants', 'income', 'expenses', 'sanad', 'users', 'settings', 'listings'],
+            AGENT:    ['dashboard', 'listings'],
+            AGENTLIK: ['dashboard', 'users', 'settings', 'listings'],
             MANAGER:  ['dashboard', 'contracts', 'properties', 'tenants', 'income', 'expenses', 'sanad', 'users', 'settings', 'listings'],
             CASHIER:  ['dashboard', 'income', 'expenses'],
             ACCOUNTANT:    ['dashboard', 'contracts', 'properties', 'tenants', 'sanad'],
@@ -106,7 +107,7 @@ export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: bool
                 <div className="flex h-[72px] items-center justify-between px-6">
                     <div className="flex flex-col justify-center">
                         <Link to="/" className="text-3xl font-heading tracking-tight flex items-center gap-1.5 hover:opacity-80 transition-opacity">
-                            <span className="font-extrabold"><span className="text-gold">icare</span><span className="text-white">pro</span></span>
+                            <span className="font-extrabold"><span className="text-gold">icare</span><span style={{ color: 'var(--color-text)' }}>pro</span></span>
                         </Link>
                     </div>
                     {/* Close button for mobile */}

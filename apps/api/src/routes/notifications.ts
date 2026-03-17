@@ -17,9 +17,13 @@ const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
     // GET /notifications - Computes system notifications dynamically
     fastify.get('/', { preHandler: [authenticate] }, async (req, reply) => {
         const PLATFORM_ROLES = ['SUPERADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE', 'CONTENT']
-        if (PLATFORM_ROLES.includes(req.user.role)) {
+        const NON_ORG_ROLES = [...PLATFORM_ROLES, 'ICARECI', 'TENANT']
+        if (NON_ORG_ROLES.includes(req.user.role)) {
             return reply.send({ success: true, data: [] })
         }
+
+        // CASHIER only sees payment-related notifications, not contract expiry
+        const isCashier = req.user.role === 'CASHIER'
 
         const org = withOrg(req)
         const now = new Date()
@@ -29,8 +33,8 @@ const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
 
         const notifications: AppNotification[] = []
 
-        // 1. Contracts expiring in 30 days
-        const expiringContracts = await fastify.prisma.contract.findMany({
+        // 1. Contracts expiring in 30 days — skipped for CASHIER (payment-only role)
+        const expiringContracts = isCashier ? [] : await fastify.prisma.contract.findMany({
             where: {
                 ...org,
                 status: 'ACTIVE',
@@ -94,7 +98,7 @@ const notificationsRoutes: FastifyPluginAsync = async (fastify) => {
 
     // POST /notifications/send-reminders - Email specifically to tenants (3 days due or overdue or receipt)
     // NOTE: Requires external integration (e.g. Resend) which we'll configure
-    fastify.post('/send-reminders', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER'])] }, async (req, reply) => {
+    fastify.post('/send-reminders', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
         // Mocking emails for now, integrating with Resend via `email.ts` normally.
         // We will return a success state indicating reminders were queued.
         return reply.send({ success: true, message: 'Xatırlatmalar göndərilmə üçün növbəyə əlavə edildi' })

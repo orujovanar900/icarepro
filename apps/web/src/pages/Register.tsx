@@ -125,17 +125,20 @@ export function Register() {
 
     return (
         <div
-            className="flex min-h-screen flex-col items-center justify-center p-6 w-full"
+            className="portal-light flex min-h-screen flex-col items-center justify-center p-6 w-full"
             style={{ backgroundColor: '#F5F0E8' }}
         >
             <div className="w-full max-w-lg space-y-6">
                 <div className="text-center">
-                    <h1 className="text-5xl font-heading tracking-tight flex items-center justify-center gap-2">
+                    <Link
+                        to="/"
+                        className="text-5xl font-heading tracking-tight flex items-center justify-center gap-2 hover:opacity-80 transition-opacity"
+                    >
                         <span className="font-extrabold">
                             <span className="text-gold">icare</span>
                             <span style={{ color: '#1A1A2E' }}>pro</span>
                         </span>
-                    </h1>
+                    </Link>
                     <p className="mt-2 text-sm" style={{ color: '#6B7280' }}>
                         Yeni hesab yaradın və idarəetməyə başlayın
                     </p>
@@ -244,18 +247,18 @@ export function Register() {
 
                             {/* Password strength checklist */}
                             {hasTypedPassword && (
-                                <div className="rounded-lg border border-[#E5E0D8] bg-gray-50 px-4 py-3 space-y-1.5">
+                                <div className="rounded-lg border border-[#E5E0D8] bg-gray-50 dark:bg-gray-800 px-4 py-3 space-y-1.5">
                                     {passwordRules.map((rule) => {
                                         const passed = rule.test(passwordValue);
                                         return (
                                             <div
                                                 key={rule.label}
-                                                className={`flex items-center gap-2 text-xs transition-colors ${passed ? 'text-green-600' : 'text-gray-400'}`}
+                                                className={`flex items-center gap-2 text-xs transition-colors ${passed ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}
                                             >
-                                                <span className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center transition-all ${passed ? 'bg-green-100' : 'bg-gray-100'}`}>
+                                                <span className={`flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center transition-all ${passed ? 'bg-green-100 dark:bg-green-900/30' : 'bg-gray-100 dark:bg-gray-700'}`}>
                                                     {passed
                                                         ? <Check size={10} strokeWidth={3} />
-                                                        : <X size={10} strokeWidth={3} className="text-gray-300" />
+                                                        : <X size={10} strokeWidth={3} className="text-gray-300 dark:text-gray-600" />
                                                     }
                                                 </span>
                                                 {rule.label}

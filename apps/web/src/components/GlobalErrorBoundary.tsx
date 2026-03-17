@@ -76,7 +76,7 @@ export class GlobalErrorBoundary extends React.Component<Props, State> {
                         </div>
 
                         {!isChunkError && this.state.error && (
-                            <div className="mt-8 text-left bg-black/20 p-4 rounded-lg overflow-auto max-h-32 text-[10px] text-gray-400 font-mono">
+                            <div className="mt-8 text-left bg-black/20 p-4 rounded-lg overflow-auto max-h-32 text-[10px] text-muted font-mono">
                                 {String(this.state.error)}
                             </div>
                         )}

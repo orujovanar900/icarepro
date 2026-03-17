@@ -10,6 +10,9 @@ import { GlobalErrorBoundary } from './components/GlobalErrorBoundary';
 import { useAuthStore } from './store/auth';
 import { useToastStore } from './store/toast';
 
+const TermsPage = React.lazy(() => import('./pages/TermsPage').then(m => ({ default: m.TermsPage })));
+const AdminStats = React.lazy(() => import('./pages/admin/AdminStats').then(m => ({ default: m.AdminStats })));
+
 const Landing = React.lazy(() => import('./pages/Landing').then(m => ({ default: m.Landing })));
 const Portal = React.lazy(() => import('./pages/Portal').then(m => ({ default: m.Portal })));
 const ListingDetail = React.lazy(() => import('./pages/ListingDetail').then(m => ({ default: m.ListingDetail })));
@@ -75,6 +78,19 @@ function SubscriptionRoute() {
     return <Outlet />;
 }
 
+/**
+ * /kabinet is accessible to unauthenticated users and ICARECI.
+ * Platform staff → /admin; any other authenticated role → /dashboard.
+ */
+function KabinetRoute() {
+    const { isAuthenticated, user } = useAuthStore();
+    if (isAuthenticated && user && user.role !== 'ICARECI') {
+        const PLATFORM_STAFF = ['SUPERADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE', 'CONTENT'];
+        return <Navigate to={PLATFORM_STAFF.includes(user.role) ? '/admin' : '/dashboard'} replace />;
+    }
+    return <Outlet />;
+}
+
 export default function App() {
     return (
         <GlobalErrorBoundary>
@@ -89,7 +105,9 @@ export default function App() {
                         {/* Public portal routes */}
                         <Route path="/elan/:id" element={<ListingDetail />} />
                         <Route path="/xerite" element={<MapPage />} />
-                        <Route path="/kabinet" element={<Kabinet />} />
+                        <Route element={<KabinetRoute />}>
+                            <Route path="/kabinet" element={<Kabinet />} />
+                        </Route>
                         <Route path="/elan-elave-et" element={<CreateListing />} />
                         <Route path="/elanlar" element={<SearchResults />} />
 
@@ -102,6 +120,7 @@ export default function App() {
                         {/* Always-public auth pages (password reset links, etc.) */}
                         <Route path="/forgot-password" element={<ForgotPassword />} />
                         <Route path="/reset-password" element={<ResetPassword />} />
+                        <Route path="/terms" element={<TermsPage />} />
 
                         {/* Protected Routes directly hitting the AppLayout */}
                         <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'AGENT', 'AGENTLIK', 'MANAGER', 'CASHIER', 'ACCOUNTANT', 'ADMINISTRATOR']} />}>
@@ -138,8 +157,8 @@ export default function App() {
                                         <Route path="/expenses" element={<Expenses />} />
                                     </Route>
 
-                                    {/* OWNER & MANAGER only routes */}
-                                    <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'MANAGER']} />}>
+                                    {/* OWNER, MANAGER, AGENTLIK routes */}
+                                    <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'MANAGER', 'AGENTLIK']} />}>
                                         <Route path="/users" element={<Users />} />
                                         <Route path="/settings" element={<Settings />} />
                                         <Route path="/settings/billing" element={<Billing />} />
@@ -161,9 +180,16 @@ export default function App() {
                                 {/* SUPERADMIN only */}
                                 <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN']} />}>
                                     <Route path="/admin" element={<SuperAdminDashboard />} />
+                                    <Route path="/admin/staff" element={<AdminStaff />} />
+                                </Route>
+                                {/* SUPERADMIN + SUPPORT — read-only org browser */}
+                                <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'SUPPORT']} />}>
                                     <Route path="/admin/users" element={<AdminOrganizations />} />
                                     <Route path="/admin/organizations/:id" element={<AdminOrganizationDetail />} />
-                                    <Route path="/admin/staff" element={<AdminStaff />} />
+                                </Route>
+                                {/* SUPERADMIN + FINANCE — financial stats */}
+                                <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'FINANCE']} />}>
+                                    <Route path="/admin/stats" element={<AdminStats />} />
                                 </Route>
                                 {/* SUPERADMIN + MODERATOR */}
                                 <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'MODERATOR']} />}>
