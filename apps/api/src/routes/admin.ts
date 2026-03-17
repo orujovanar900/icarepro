@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { authenticate } from '../middleware/authenticate.js'
 import { requireRole } from '../middleware/requireRole.js'
 import { writeAuditLog } from '../utils/audit.js'
+import { logAudit } from '../utils/adminAudit.js'
 import { z } from 'zod'
 import bcrypt from 'bcrypt'
 
@@ -254,6 +255,31 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.send({ success: true, data: org })
     })
 
+    // GET /admin/audit-log
+    fastify.get('/audit-log', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+        const q = req.query as Record<string, string>
+        const page  = Math.max(1, Number(q['page']  ?? 1))
+        const limit = Math.min(100, Math.max(1, Number(q['limit'] ?? 50)))
+        const skip  = (page - 1) * limit
+
+        const where: any = {}
+        if (q['entityType']) where.entityType = q['entityType']
+        if (q['actorEmail']) where.actorEmail = { contains: q['actorEmail'], mode: 'insensitive' }
+
+        const [total, data] = await Promise.all([
+            fastify.prisma.adminAuditLog.count({ where }),
+            fastify.prisma.adminAuditLog.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limit,
+                include: { actor: { select: { name: true, email: true } } },
+            }),
+        ])
+
+        return reply.send({ success: true, data, total, page, limit })
+    })
+
     // POST /admin/organizations/:id/toggle-status
     fastify.post('/organizations/:id/toggle-status', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
@@ -266,6 +292,16 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
         const updatedOrg = await fastify.prisma.organization.update({
             where: { id },
             data: { isActive: !org.isActive }
+        })
+
+        await logAudit(fastify.prisma, {
+            actorUserId: req.user.sub,
+            action: updatedOrg.isActive ? 'org_activated' : 'org_suspended',
+            entityType: 'organization',
+            entityId: id,
+            entityLabel: org.name,
+            oldValue: { isActive: org.isActive },
+            newValue: { isActive: updatedOrg.isActive },
         })
 
         return reply.send({ success: true, data: updatedOrg })
@@ -318,19 +354,20 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
             data: updateData
         })
 
-        // Log to audit if plan changes
-        if (subscriptionPlan) {
-            await fastify.prisma.auditLog.create({
-                data: {
-                    organizationId: id,
-                    userId: req.user.sub,
-                    action: 'PLAN_CHANGED',
-                    entityType: 'organization',
-                    entityId: id,
-                    metadata: { newPlan: subscriptionPlan, note: note || null } as any,
-                }
-            })
-        }
+        await logAudit(fastify.prisma, {
+            actorUserId: req.user.sub,
+            action: 'plan_changed',
+            entityType: 'organization',
+            entityId: id,
+            entityLabel: org.name,
+            oldValue: { plan: org.subscriptionPlan, status: org.subscriptionStatus },
+            newValue: {
+                plan: subscriptionPlan ?? org.subscriptionPlan,
+                status: status ?? org.subscriptionStatus,
+                expiresAt: planExp,
+                note: note ?? null,
+            },
+        })
 
         return reply.send({ success: true, data: updatedOrg })
     })
@@ -467,16 +504,14 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
             },
         })
 
-        // Audit trail — always record who moderated what and when
-        await writeAuditLog(fastify.prisma, {
-            organizationId: listing.organizationId,
-            userId: req.user.sub,
-            action: action === 'approve' ? 'LISTING_APPROVED' : 'LISTING_REJECTED',
-            entityType: 'Listing',
+        await logAudit(fastify.prisma, {
+            actorUserId: req.user.sub,
+            action: action === 'approve' ? 'listing_approved' : 'listing_rejected',
+            entityType: 'listing',
             entityId: listing.id,
-            metadata: {
-                moderatedBy: req.user.sub,
-                newStatus,
+            entityLabel: listing.title,
+            newValue: {
+                status: newStatus,
                 ...(action === 'reject' && reason ? { reason } : {}),
             },
         })
@@ -596,13 +631,13 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
         const { sendStaffWelcome } = await import('../services/email.js')
         sendStaffWelcome(email, { name, role, tempPassword: password }).catch(() => null)
 
-        await writeAuditLog(fastify.prisma, {
-            organizationId: null,
-            userId: req.user.sub,
-            action: 'STAFF_CREATED',
-            entityType: 'User',
+        await logAudit(fastify.prisma, {
+            actorUserId: req.user.sub,
+            action: 'staff_added',
+            entityType: 'staff',
             entityId: staff.id,
-            metadata: { role, createdBy: req.user.sub },
+            entityLabel: name,
+            newValue: { email, role },
         })
 
         return reply.code(201).send({ success: true, data: staff })

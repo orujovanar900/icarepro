@@ -21,6 +21,7 @@ import {
     Store,
     Megaphone,
     Radio,
+    ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -46,8 +47,9 @@ const allNavItems = [
     { name: 'admin-dashboard', path: '/admin', icon: LayoutDashboard, label: 'Dashboard', adminOnly: true, roles: ['SUPERADMIN'] },
     { name: 'admin-orgs', path: '/admin/users', icon: Building2, label: 'Təşkilatlar', adminOnly: true, roles: ['SUPERADMIN', 'SUPPORT'] },
     { name: 'admin-listings', path: '/admin/elanlar', icon: Megaphone, label: 'Elanlar', adminOnly: true, roles: ['SUPERADMIN', 'MODERATOR'] },
-    { name: 'admin-staff',   path: '/admin/staff',   icon: ShieldCheck, label: 'Platform Staff', adminOnly: true, roles: ['SUPERADMIN'] },
-    { name: 'admin-ticker',   path: '/admin/ticker', icon: Radio,       label: 'LED Ticker',          adminOnly: true, roles: ['SUPERADMIN', 'CONTENT'] },
+    { name: 'admin-staff',     path: '/admin/staff',     icon: ShieldCheck,   label: 'Platform Staff',     adminOnly: true, roles: ['SUPERADMIN'] },
+    { name: 'admin-audit',    path: '/admin/audit-log', icon: ClipboardList, label: 'Audit Log',           adminOnly: true, roles: ['SUPERADMIN'] },
+    { name: 'admin-ticker',   path: '/admin/ticker',    icon: Radio,         label: 'LED Ticker',          adminOnly: true, roles: ['SUPERADMIN', 'CONTENT'] },
     { name: 'admin-finance',  path: '/admin/stats',  icon: TrendingUp,  label: 'Maliyyə Statistikası', adminOnly: true, roles: ['SUPERADMIN', 'FINANCE'] },
 ];
 
