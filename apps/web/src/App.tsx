@@ -53,15 +53,23 @@ const AdminListings = React.lazy(() => import('./pages/admin/AdminListings').the
 const AdminStaff = React.lazy(() => import('./pages/admin/AdminStaff').then(m => ({ default: m.AdminStaff })));
 const AdminTicker = React.lazy(() => import('./pages/admin/AdminTicker').then(m => ({ default: m.AdminTicker })));
 
+const PLATFORM_STAFF = ['SUPERADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE', 'CONTENT'];
+
 /**
  * Guards ERP routes (contracts, properties, tenants, income, expenses, users, settings).
+ * Platform staff have no organization — redirect them to /admin immediately.
  * Non-subscribers are redirected to /dashboard/elanlar with a toast message.
  */
 function SubscriptionRoute() {
     const { user } = useAuthStore();
     const addToast = useToastStore((s) => s.addToast);
+
+    if (user && PLATFORM_STAFF.includes(user.role)) {
+        return <Navigate to="/admin" replace />;
+    }
+
     const hasSubscription = user?.organization?.subscriptionStatus === 'ACTIVE';
-    // FIX 4: ref prevents double-fire in React StrictMode
+    // ref prevents double-fire in React StrictMode
     const toastFiredRef = React.useRef(false);
 
     React.useEffect(() => {
@@ -75,6 +83,18 @@ function SubscriptionRoute() {
         return <Navigate to="/dashboard/elanlar" replace />;
     }
 
+    return <Outlet />;
+}
+
+/**
+ * Guards the AppLayout (all ERP pages).
+ * Platform staff hitting any ERP route are redirected to /admin.
+ */
+function ErpRoute() {
+    const { user } = useAuthStore();
+    if (user && PLATFORM_STAFF.includes(user.role)) {
+        return <Navigate to="/admin" replace />;
+    }
     return <Outlet />;
 }
 
@@ -131,6 +151,7 @@ export default function App() {
                                 <Route path="/sanad-ustasi" element={<SanadUstasi />} />
                             </Route>
 
+                            <Route element={<ErpRoute />}>
                             <Route element={<AppLayout />}>
                                 <Route path="/profile" element={<Profile />} />
 
@@ -172,6 +193,7 @@ export default function App() {
                                 </Route>
 
                             </Route>
+                            </Route>{/* ErpRoute */}
                         </Route>
 
                         {/* Admin Layout — all platform staff roles */}
