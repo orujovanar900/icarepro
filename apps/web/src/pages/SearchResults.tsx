@@ -274,13 +274,15 @@ export function SearchResults() {
 
     return (
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: C.listBg }}>
-            <PortalNavbar />
-            <LedTicker placement="PORTAL_MAIN" />
+            <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+                <PortalNavbar />
+                <LedTicker placement="PORTAL_MAIN" />
+            </div>
 
             {/* ═══ STICKY FILTER BAR ══════════════════════════════════════════ */}
             <div
                 style={{
-                    position: 'sticky', top: 64, zIndex: 40,  /* below navbar (64px) */
+                    position: 'sticky', top: 102, zIndex: 40,  /* below navbar (64px) + ticker (38px) */
                     background: C.white,
                     borderBottom: `1px solid ${C.border}`,
                     boxShadow: '0 1px 8px rgba(0,0,0,0.05)',
@@ -557,8 +559,8 @@ export function SearchResults() {
                         width: 400,
                         flexShrink: 0,
                         position: 'sticky',
-                        top: 'calc(64px + 108px)',  /* navbar + filter bar */
-                        height: 'calc(100vh - 64px - 108px)',
+                        top: 'calc(102px + 108px)',  /* navbar + ticker + filter bar */
+                        height: 'calc(100vh - 102px - 108px)',
                         alignSelf: 'flex-start',
                         borderLeft: `1px solid ${C.border}`,
                         background: '#E8E6E0',

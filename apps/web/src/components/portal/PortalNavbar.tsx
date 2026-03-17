@@ -41,7 +41,7 @@ export function PortalNavbar() {
     const isTenant = isAuthenticated && !isOwnerSide;
 
     return (
-        <header className="sticky top-0 z-50 bg-white" style={{ borderBottom: `1px solid ${BORDER}` }}>
+        <header className="bg-white" style={{ borderBottom: `1px solid ${BORDER}` }}>
             <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between gap-6">
 
                 {/* Logo */}

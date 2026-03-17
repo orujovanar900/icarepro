@@ -177,8 +177,10 @@ export function Portal() {
 
     return (
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: C.cream }}>
-            <PortalNavbar />
-            <LedTicker placement="PORTAL_MAIN" />
+            <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+                <PortalNavbar />
+                <LedTicker placement="PORTAL_MAIN" />
+            </div>
 
             {/* Hero */}
             <HeroSection total={countData ?? 0} />

@@ -396,8 +396,10 @@ export function ListingDetail() {
     if (isLoading) {
         return (
             <div style={{ minHeight: '100vh', background: C.bg }}>
-                <PortalNavbar />
-                <LedTicker placement="LISTING_DETAIL" />
+                <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+                    <PortalNavbar />
+                    <LedTicker placement="LISTING_DETAIL" />
+                </div>
                 <SkeletonDetail />
                 <PortalFooter />
             </div>
@@ -407,8 +409,10 @@ export function ListingDetail() {
     if (isError || !listing) {
         return (
             <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column' }}>
-                <PortalNavbar />
-                <LedTicker placement="LISTING_DETAIL" />
+                <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+                    <PortalNavbar />
+                    <LedTicker placement="LISTING_DETAIL" />
+                </div>
                 <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{
                         background: C.white, borderRadius: 20, padding: '48px 40px',
@@ -455,8 +459,10 @@ export function ListingDetail() {
 
     return (
         <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column' }}>
-            <PortalNavbar />
-            <LedTicker placement="LISTING_DETAIL" />
+            <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+                <PortalNavbar />
+                <LedTicker placement="LISTING_DETAIL" />
+            </div>
 
             <main style={{ flex: 1, maxWidth: 1200, width: '100%', margin: '0 auto', padding: '20px 20px 60px' }}>
                 {/* Back button + breadcrumb */}

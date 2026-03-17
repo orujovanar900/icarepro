@@ -220,8 +220,10 @@ export function MapPage() {
 
     return (
         <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <PortalNavbar />
-            <LedTicker placement="PORTAL_MAIN" />
+            <div style={{ position: 'sticky', top: 0, zIndex: 50, flexShrink: 0 }}>
+                <PortalNavbar />
+                <LedTicker placement="PORTAL_MAIN" />
+            </div>
 
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden', height: 'calc(100vh - 102px)' }}>
 
