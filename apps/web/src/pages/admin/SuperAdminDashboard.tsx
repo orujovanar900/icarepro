@@ -10,7 +10,6 @@ import {
 import {
     PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
     BarChart, Bar, XAxis, YAxis, CartesianGrid,
-    LineChart, Line, Area, AreaChart
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -104,11 +103,9 @@ export function SuperAdminDashboard() {
         </div>
     );
 
-    const { overview, mrr, planDistribution, monthlyRegistrations, mrrTrend, health, expiringInWeek, recentActivity, topOrganizations } = data;
+    const { overview, mrr, arr, planDistribution, monthlyRegistrations, mrrTrend, health, expiringInWeek, recentActivity, topOrganizations } = data;
 
-    const mrrGrowth = mrrTrend.length >= 2
-        ? Math.round(((mrrTrend[mrrTrend.length - 1].mrr - mrrTrend[mrrTrend.length - 2].mrr) / Math.max(1, mrrTrend[mrrTrend.length - 2].mrr)) * 100)
-        : 0;
+    const mrrGrowth = mrr?.growth_percent ?? 0;
 
     const getActivityIcon = (action: string) => {
         if (action === 'PLAN_CHANGED') return <TrendingUp className="w-4 h-4 text-green-400" />;
@@ -162,18 +159,27 @@ export function SuperAdminDashboard() {
             </div>
 
             {/* ── SECTION 1: Stat Cards ── */}
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-                <StatCard title="Cəmi Təşkilatlar" value={overview.totalOrganizations} icon={Building2} color="#60a5fa" />
-                <StatCard title="Aktiv Planlar" value={overview.activePlans} icon={CheckCircle2} color="#34d399" />
-                <StatCard
-                    title="Bu ay yeni"
-                    value={`+${overview.newThisMonth}`}
-                    subtitle={`${overview.newThisMonthGrowth >= 0 ? '▲' : '▼'} ${Math.abs(overview.newThisMonthGrowth)}%`}
-                    icon={TrendingUp}
-                    color="#C9A84C"
-                />
-                <StatCard title="Cəmi İstifadəçi" value={overview.totalUsers} icon={Users} color="#a78bfa" />
-                <StatCard title="Cəmi Obyekt" value={overview.totalProperties} icon={Home} color="#2dd4bf" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="relative overflow-hidden">
+                    <CardContent className="p-5">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <p className="text-sm text-muted">Ümumi MRR</p>
+                                <p className="text-3xl font-extrabold mt-1 text-gold">{mrr.current.toLocaleString('az-AZ')} ₼</p>
+                                {mrr.growth_percent !== null && (
+                                    <span className={`inline-flex items-center text-xs font-medium mt-1 px-2 py-0.5 rounded-full ${mrr.growth_percent >= 0 ? 'bg-green-500/15 text-green-400' : 'bg-red-500/15 text-red-400'}`}>
+                                        {mrr.growth_percent >= 0 ? '▲' : '▼'} {Math.abs(mrr.growth_percent)}% ötən ay
+                                    </span>
+                                )}
+                            </div>
+                            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gold/20">
+                                <TrendingUp className="w-6 h-6 text-gold" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+                <StatCard title="İllik Gəlir (ARR)" value={`${(arr ?? 0).toLocaleString('az-AZ')} ₼`} icon={TrendingUp} color="#34d399" />
+                <StatCard title="Aktiv Təşkilatlar" value={overview.activePlans} icon={CheckCircle2} color="#60a5fa" />
                 <StatCard title="Dayandırılmış" value={overview.suspendedCount} icon={XCircle} color="#f87171" />
             </div>
 
@@ -200,8 +206,8 @@ export function SuperAdminDashboard() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-center mb-3">
-                            <p className="text-xs text-muted">Aylıq Gəlir (MRR)</p>
-                            <p className="text-3xl font-extrabold text-gold">{mrr.toLocaleString('az-AZ')} AZN</p>
+                            <p className="text-xs text-muted">Plan bölgüsü</p>
+                            <p className="text-3xl font-extrabold text-gold">{mrr.current.toLocaleString('az-AZ')} ₼</p>
                             <p className="text-xs text-muted mt-1">
                                 {mrrGrowth >= 0 ? '▲' : '▼'} {Math.abs(mrrGrowth)}% ötən aya nəzərən
                             </p>
@@ -225,12 +231,16 @@ export function SuperAdminDashboard() {
                             </PieChart>
                         </ResponsiveContainer>
                         <div className="grid grid-cols-2 gap-2 mt-2">
-                            {planDistribution.map((d: any, i: number) => (
-                                <div key={d.plan} className="flex items-center gap-2 text-xs">
-                                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                                    <span className="text-muted">{PLAN_LABELS[d.plan] || d.plan}: <span className="text-text font-bold">{d.count}</span></span>
-                                </div>
-                            ))}
+                            {planDistribution.map((d: any, i: number) => {
+                                const total = planDistribution.reduce((s: number, x: any) => s + x.count, 0);
+                                const pct = total > 0 ? Math.round((d.count / total) * 100) : 0;
+                                return (
+                                    <div key={d.plan} className="flex items-center gap-2 text-xs">
+                                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                                        <span className="text-muted truncate">{PLAN_LABELS[d.plan] || d.plan}: <span className="text-text font-bold">{d.count}</span> <span className="text-muted">({pct}%)</span></span>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </CardContent>
                 </Card>
@@ -257,43 +267,33 @@ export function SuperAdminDashboard() {
                 </Card>
             </div>
 
-            {/* ── SECTION 3: MRR Trend ── */}
+            {/* ── SECTION 3: MRR Dinamikası ── */}
             <Card>
                 <CardHeader>
                     <CardTitle className="text-base flex items-center gap-2">
                         <TrendingUp className="w-4 h-4 text-gold" />
-                        MRR Trendi (son 12 ay)
-                        <div className="group relative ml-2 flex items-center">
-                            <Info className="w-4 h-4 text-muted hover:text-text transition-colors cursor-help" />
-                            <div className="absolute left-1/2 -ml-36 bottom-full mb-2 hidden group-hover:block w-72 bg-surface border border-border rounded-lg p-3 text-sm text-white shadow-xl z-50">
-                                <p className="font-bold text-gold mb-1">MRR (Monthly Recurring Revenue)</p>
-                                <p className="text-xs text-muted leading-relaxed">
-                                    Aylıq Təkrarlanan Gəlir. Aktiv abunəliklərdən əldə edilən ümumi aylıq gəliri göstərir.<br /><br />
-                                    Hesablama: (Başlanğıc × 29) + (Biznes × 69) + (Korporativ × 149) AZN
-                                </p>
-                                <div className="absolute left-1/2 -ml-1.5 -bottom-1.5 w-3 h-3 bg-surface border-b border-r border-border transform rotate-45"></div>
-                            </div>
-                        </div>
+                        MRR Dinamikası (son 12 ay)
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <ResponsiveContainer width="100%" height={220}>
-                        <AreaChart data={mrrTrend} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                            <defs>
-                                <linearGradient id="mrrGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#C9A84C" stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor="#C9A84C" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
+                        <BarChart data={mrrTrend} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
                             <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#6b7280' }} />
                             <YAxis tick={{ fontSize: 10, fill: '#6b7280' }} />
                             <Tooltip
                                 contentStyle={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 8, color: 'var(--color-text)' }}
-                                formatter={(val: any) => [`${val} AZN`, 'MRR']}
+                                formatter={(val: any) => [`${val} ₼`, 'MRR']}
                             />
-                            <Area type="monotone" dataKey="mrr" stroke="#C9A84C" strokeWidth={2} fill="url(#mrrGradient)" name="MRR" />
-                        </AreaChart>
+                            <Bar dataKey="mrr" radius={[4, 4, 0, 0]} name="MRR">
+                                {mrrTrend.map((_: any, index: number) => (
+                                    <Cell
+                                        key={index}
+                                        fill={index === mrrTrend.length - 1 ? '#F5C842' : '#C9A84C80'}
+                                    />
+                                ))}
+                            </Bar>
+                        </BarChart>
                     </ResponsiveContainer>
                 </CardContent>
             </Card>
