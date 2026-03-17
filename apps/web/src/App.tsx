@@ -52,6 +52,7 @@ const AdminOrganizationDetail = React.lazy(() => import('./pages/admin/AdminOrga
 const AdminListings = React.lazy(() => import('./pages/admin/AdminListings').then(m => ({ default: m.AdminListings })));
 const AdminStaff = React.lazy(() => import('./pages/admin/AdminStaff').then(m => ({ default: m.AdminStaff })));
 const AdminTicker = React.lazy(() => import('./pages/admin/AdminTicker').then(m => ({ default: m.AdminTicker })));
+const AuditLogPage = React.lazy(() => import('./pages/admin/AuditLogPage').then(m => ({ default: m.AuditLogPage })));
 
 const PLATFORM_STAFF = ['SUPERADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE', 'CONTENT'];
 
@@ -220,6 +221,10 @@ export default function App() {
                                 {/* SUPERADMIN + CONTENT */}
                                 <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'CONTENT']} />}>
                                     <Route path="/admin/ticker" element={<AdminTicker />} />
+                                </Route>
+                                {/* SUPERADMIN only — audit log */}
+                                <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN']} />}>
+                                    <Route path="/admin/audit-log" element={<AuditLogPage />} />
                                 </Route>
                             </Route>
                         </Route>

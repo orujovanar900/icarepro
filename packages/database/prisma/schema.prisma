@@ -219,13 +219,14 @@ model User {
   avatarUrl             String?
   jwtVersion            Int       @default(1)
 
-  organization Organization? @relation(fields: [organizationId], references: [id])
-  payments     Payment[]
-  expenses     Expense[]
-  auditLogs    AuditLog[]
-  tenant       Tenant?
-  queueEntries QueueEntry[]
-  favorites    ListingFavorite[]
+  organization   Organization?   @relation(fields: [organizationId], references: [id])
+  payments       Payment[]
+  expenses       Expense[]
+  auditLogs      AuditLog[]
+  tenant         Tenant?
+  queueEntries   QueueEntry[]
+  favorites      ListingFavorite[]
+  adminAuditLogs AdminAuditLog[]
 
   @@map("users")
 }
@@ -609,4 +610,29 @@ model TickerSlot {
   @@index([placement, isActive])
   @@index([startDate, endDate])
   @@map("ticker_slots")
+}
+
+// ─────────────────────────────────────────
+// Admin Audit Log (SuperAdmin actions)
+// ─────────────────────────────────────────
+
+model AdminAuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  actorEmail  String?
+  action      String
+  entityType  String
+  entityId    String?
+  entityLabel String?
+  oldValue    Json?
+  newValue    Json?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  actor User? @relation(fields: [actorUserId], references: [id])
+
+  @@index([createdAt(sort: Desc)])
+  @@index([actorUserId])
+  @@index([entityType, entityId])
+  @@map("admin_audit_log")
 }

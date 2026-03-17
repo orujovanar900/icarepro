@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { Building2, Mail, Users, Home, ArrowLeft, Activity, CalendarDays, KeyRound, UserCheck, PencilLine } from 'lucide-react';
+import { Building2, Mail, Users, Home, ArrowLeft, KeyRound, UserCheck, PencilLine } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -110,7 +110,18 @@ export function AdminOrganizationDetail() {
                                     </div>
                                     <div>
                                         <p className="font-semibold text-text">{u.name}</p>
-                                        <p className="text-xs text-muted flex items-center gap-1"><Mail className="w-3 h-3" /> {u.email}</p>
+                                        <p className="text-xs text-muted flex items-center gap-1">
+                                            <Mail className="w-3 h-3" /> {u.email}
+                                            {u.role === 'OWNER' && (
+                                                <a
+                                                    href={`mailto:${u.email}?subject=İcarePro - ${encodeURIComponent(org.name)} haqqında`}
+                                                    title="E-poçt göndər"
+                                                    className="ml-1 text-gold hover:text-text transition-colors"
+                                                >
+                                                    <Mail className="w-3 h-3" />
+                                                </a>
+                                            )}
+                                        </p>
                                     </div>
                                 </div>
                                 <div className="text-right flex items-center gap-2">
