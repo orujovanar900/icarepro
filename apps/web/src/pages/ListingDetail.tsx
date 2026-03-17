@@ -396,7 +396,7 @@ export function ListingDetail() {
     if (isLoading) {
         return (
             <div style={{ minHeight: '100vh', background: C.bg }}>
-                <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+                <div style={{ position: 'sticky', top: 0, zIndex: 50, flexShrink: 0 }}>
                     <PortalNavbar />
                     <LedTicker placement="LISTING_DETAIL" />
                 </div>
@@ -409,7 +409,7 @@ export function ListingDetail() {
     if (isError || !listing) {
         return (
             <div style={{ minHeight: '100vh', background: C.bg, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+                <div style={{ position: 'sticky', top: 0, zIndex: 50, flexShrink: 0 }}>
                     <PortalNavbar />
                     <LedTicker placement="LISTING_DETAIL" />
                 </div>

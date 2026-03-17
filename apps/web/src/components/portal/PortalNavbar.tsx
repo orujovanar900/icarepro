@@ -41,6 +41,7 @@ export function PortalNavbar() {
     const isTenant = isAuthenticated && !isOwnerSide;
 
     return (
+        // Note: stickiness is owned by the parent sticky wrapper in each page
         <header className="bg-white" style={{ borderBottom: `1px solid ${BORDER}` }}>
             <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between gap-6">
 

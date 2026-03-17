@@ -136,7 +136,9 @@ function TickerRow({
                     display:            'flex',
                     alignItems:         'center',
                     whiteSpace:         'nowrap',
-                    animation:          `${direction === 'left' ? 'tickerLeft' : 'tickerRight'} ${duration}s linear infinite`,
+                    animation:          duration > 0
+                        ? `${direction === 'left' ? 'tickerLeft' : 'tickerRight'} ${duration}s linear infinite`
+                        : 'none',
                     animationPlayState: paused ? 'paused' : 'running',
                     willChange:         'transform',
                 }}
@@ -174,7 +176,9 @@ function PlainTextRow({
                     alignItems:         'center',
                     whiteSpace:         'nowrap',
                     color:              GOLD,
-                    animation:          `${direction === 'left' ? 'tickerLeft' : 'tickerRight'} ${duration}s linear infinite`,
+                    animation:          duration > 0
+                        ? `${direction === 'left' ? 'tickerLeft' : 'tickerRight'} ${duration}s linear infinite`
+                        : 'none',
                     animationPlayState: paused ? 'paused' : 'running',
                     willChange:         'transform',
                 }}
@@ -190,7 +194,7 @@ function PlainTextRow({
 
 export function LedTicker({ placement }: LedTickerProps) {
     const [paused, setPaused]     = React.useState(false);
-    const [duration, setDuration] = React.useState(20);
+    const [duration, setDuration] = React.useState(0); // 0 = not yet measured; animation starts only after measurement
     const trackRef                = React.useRef<HTMLDivElement>(null);
     const navigate                = useNavigate();
 
@@ -208,6 +212,11 @@ export function LedTicker({ placement }: LedTickerProps) {
         retry:     false,
     });
 
+    const slots = data ?? [];
+
+    // Stable key: re-measure only when slot IDs or loading state changes (not on every array reference)
+    const contentKey = slots.map(s => s.id).join(',');
+
     // Measure actual rendered width → pixels-per-second consistent speed
     React.useEffect(() => {
         if (trackRef.current) {
@@ -217,9 +226,7 @@ export function LedTicker({ placement }: LedTickerProps) {
                 setDuration(width / PIXELS_PER_SECOND);
             }
         }
-    }, [data, isLoading]);
-
-    const slots = data ?? [];
+    }, [contentKey, isLoading]);
 
     return (
         <div

@@ -177,7 +177,7 @@ export function Portal() {
 
     return (
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: C.cream }}>
-            <div style={{ position: 'sticky', top: 0, zIndex: 50 }}>
+            <div style={{ position: 'sticky', top: 0, zIndex: 50, flexShrink: 0 }}>
                 <PortalNavbar />
                 <LedTicker placement="PORTAL_MAIN" />
             </div>

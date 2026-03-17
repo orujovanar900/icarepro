@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 import { authenticate } from '../middleware/authenticate.js'
 import { requireRole } from '../middleware/requireRole.js'
 import { writeAuditLog } from '../utils/audit.js'
@@ -78,17 +79,20 @@ const tickerRoutes: FastifyPluginAsync = async (fastify) => {
             return reply.send({ success: true, data: [] })
         }
 
-        // Increment impressions + daily count per slot (fire and forget)
-        for (const slot of eligible) {
-            const slotTodayStr = slot.todayDate ? (slot.todayDate as Date).toISOString().slice(0, 10) : null
-            const isNewDay = slotTodayStr !== todayStr
-            void fastify.prisma.tickerSlot.update({
-                where: { id: slot.id },
-                data: isNewDay
-                    ? { currentImpressions: { increment: 1 }, todayCount: 1, todayDate: now }
-                    : { currentImpressions: { increment: 1 }, todayCount: { increment: 1 } },
-            }).catch(() => { /* non-critical */ })
-        }
+        // Batch increment impressions + daily count — one query regardless of slot count (fire and forget)
+        const ids = eligible.map(s => s.id)
+        void fastify.prisma.$executeRaw(
+            Prisma.sql`
+                UPDATE ticker_slots
+                SET    "currentImpressions" = "currentImpressions" + 1,
+                       "todayCount" = CASE
+                           WHEN "todayDate"::date = CURRENT_DATE THEN "todayCount" + 1
+                           ELSE 1
+                       END,
+                       "todayDate" = NOW()
+                WHERE  id = ANY(${ids}::text[])
+            `
+        ).catch(() => { /* non-critical */ })
 
         const data = eligible.map(slot => ({
             id:        slot.id,
