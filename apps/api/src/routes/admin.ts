@@ -61,7 +61,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
 
         // Plan distribution
         const planCounts: Record<string, number> = {}
-        let mrr = 0
+        let currentMrr = 0
         let activePlans = 0
         let gracePeriodCount = 0
         let suspendedCount = 0
@@ -72,7 +72,10 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
         for (const org of allOrgs) {
             const plan = org.subscriptionPlan
             planCounts[plan] = (planCounts[plan] || 0) + 1
-            mrr += PLAN_PRICES[plan] || 0
+            // MRR: only ACTIVE orgs with a paid plan
+            if (org.subscriptionStatus === 'ACTIVE' && plan !== 'FREE_TRIAL') {
+                currentMrr += PLAN_PRICES[plan] || 0
+            }
             if (org.subscriptionStatus === 'ACTIVE' && (PLAN_PRICES[plan] || 0) > 0) activePlans++
             if (org.subscriptionStatus === 'GRACE_PERIOD') gracePeriodCount++
             if (org.subscriptionStatus === 'SUSPENDED') suspendedCount++
@@ -108,7 +111,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
             })
         }
 
-        // Monthly registrations (last 12 months)
+        // Monthly registrations (last 12 months) + MRR trend
         const monthlyRegistrations: { month: string, count: number }[] = []
         const mrrTrend: { month: string, mrr: number }[] = []
         for (let i = 11; i >= 0; i--) {
@@ -117,8 +120,8 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
             const label = d.toLocaleDateString('az-AZ', { month: 'short', year: '2-digit' })
             const count = allOrgs.filter(o => o.createdAt >= d && o.createdAt <= dEnd).length
             monthlyRegistrations.push({ month: label, count })
-            // For MRR trend, compute based on orgs created before that period
-            const orgsAtMonth = allOrgs.filter(o => o.createdAt <= dEnd)
+            // MRR trend: cumulative paid-plan orgs created up to end of that month (approximation)
+            const orgsAtMonth = allOrgs.filter(o => o.createdAt <= dEnd && o.subscriptionPlan !== 'FREE_TRIAL')
             const mrrAtMonth = orgsAtMonth.reduce((acc, o) => acc + (PLAN_PRICES[o.subscriptionPlan] || 0), 0)
             mrrTrend.push({ month: label, mrr: mrrAtMonth })
         }
@@ -126,12 +129,24 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
         // New registrations growth
         const growthPct = newLastMonth === 0 ? 100 : Math.round(((newThisMonth - newLastMonth) / newLastMonth) * 100)
 
-        // Plan distribution for donut chart
-        const planDistribution = Object.entries(planCounts).map(([plan, count]) => ({
+        // MRR: previous month from trend, growth
+        const previousMrr = mrrTrend.length >= 2 ? (mrrTrend[mrrTrend.length - 2]?.mrr ?? 0) : 0
+        const mrrGrowthPct = previousMrr === 0 ? null : Math.round(((currentMrr - previousMrr) / previousMrr) * 100)
+        const arr = currentMrr * 12
+
+        // Plan distribution for donut chart — always include all 4 plans
+        const CANONICAL_PLANS = ['FREE_TRIAL', 'BASHLANQIC', 'BIZNES', 'KORPORATIV']
+        const planDistribution = CANONICAL_PLANS.map(plan => ({
             plan,
-            count,
+            count: planCounts[plan] || 0,
             price: PLAN_PRICES[plan] || 0,
         }))
+
+        const mrrShape = {
+            current: currentMrr,
+            previous: previousMrr,
+            growth_percent: mrrGrowthPct,
+        }
 
         // FINANCE role: return only financial/subscription data — no org-level operational details
         if (req.user.role === 'FINANCE') {
@@ -145,7 +160,8 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
                         newThisMonthGrowth: growthPct,
                         suspendedCount,
                     },
-                    mrr,
+                    mrr: mrrShape,
+                    arr,
                     planDistribution,
                     monthlyRegistrations,
                     mrrTrend,
@@ -172,7 +188,8 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
                     totalProperties,
                     suspendedCount,
                 },
-                mrr,
+                mrr: mrrShape,
+                arr,
                 planDistribution,
                 monthlyRegistrations,
                 mrrTrend,
