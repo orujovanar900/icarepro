@@ -121,8 +121,12 @@ export function TenantForm() {
         if (tenantType === 'fiziki') {
             if (!form['firstName']) newErrors['firstName'] = 'Ad daxil edilməlidir';
             if (!form['lastName']) newErrors['lastName'] = 'Soyad daxil edilməlidir';
+            if (!form['fin'] || form['fin'].length !== 7) newErrors['fin'] = 'FİN 7 simvol olmalıdır';
+            if (!form['voen'] || !/^\d{10}$/.test(form['voen'])) newErrors['voen'] = 'VÖEN 10 rəqəm olmalıdır';
         } else {
             if (!form['companyName']) newErrors['companyName'] = 'Şirkət adı daxil edilməlidir';
+            if (!form['directorName']) newErrors['directorName'] = 'Direktor adı daxil edilməlidir';
+            if (!form['voen'] || !/^\d{10}$/.test(form['voen'])) newErrors['voen'] = 'VÖEN 10 rəqəm olmalıdır';
         }
         // Validate phone if filled
         if (form['phone']) newErrors['phone'] = validateField('phone', form['phone']);
@@ -225,7 +229,8 @@ export function TenantForm() {
                                 <FormField label="Soyad" name="lastName" value={form.lastName || ''} onChange={handleChange} error={errors.lastName} required />
                                 <FormField label="Ata adı" name="fatherName" value={form.fatherName || ''} onChange={handleChange} />
                                 <FormField label="Doğum tarixi" name="birthDate" value={form.birthDate || ''} onChange={handleChange} type="date" />
-                                <FormField label="FİN kod" name="fin" value={form.fin || ''} onChange={handleChange} error={errors.fin} placeholder="XXXXXXX" optional="7 simvol" />
+                                <FormField label="FİN kod" name="fin" value={form.fin || ''} onChange={handleChange} error={errors.fin} placeholder="XXXXXXX" optional="7 simvol" required />
+                                <FormField label="VÖEN" name="voen" value={form.voen || ''} onChange={handleChange} error={errors.voen} placeholder="0000000000" optional="10 rəqəm" required />
                                 <FormField label="Pasport seriyası" name="passportSeries" value={form.passportSeries || ''} onChange={handleChange} error={errors.passportSeries} placeholder="AA1234567" />
                                 <FormField label="Pasportu verən orqan" name="passportIssuedBy" value={form.passportIssuedBy || ''} onChange={handleChange} />
                                 <FormField label="Pasport tarixi" name="passportIssuedAt" value={form.passportIssuedAt || ''} onChange={handleChange} type="date" />
@@ -243,8 +248,8 @@ export function TenantForm() {
                                 <div className="sm:col-span-2">
                                     <FormField label="Şirkət adı" name="companyName" value={form.companyName || ''} onChange={handleChange} error={errors.companyName} required />
                                 </div>
-                                <FormField label="VÖEN" name="voen" value={form.voen || ''} onChange={handleChange} error={errors.voen} placeholder="0000000000" optional="10 rəqəm" />
-                                <FormField label="Direktor adı" name="directorName" value={form.directorName || ''} onChange={handleChange} />
+                                <FormField label="VÖEN" name="voen" value={form.voen || ''} onChange={handleChange} error={errors.voen} placeholder="0000000000" optional="10 rəqəm" required />
+                                <FormField label="Direktor adı" name="directorName" value={form.directorName || ''} onChange={handleChange} error={errors.directorName} required />
                                 <div className="sm:col-span-2">
                                     <FormField label="Şirkət ünvanı" name="companyAddress" value={form.companyAddress || ''} onChange={handleChange} />
                                 </div>
@@ -262,7 +267,7 @@ export function TenantForm() {
                 <Card variant="default">
                     <CardHeader><CardTitle>Əlaqə Məlumatları</CardTitle></CardHeader>
                     <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <FormField label="Telefon" name="phone" value={form.phone || ''} onChange={handleChange} error={errors.phone} placeholder="+994XXXXXXXXX" required />
+                        <FormField label="Telefon" name="phone" value={form.phone || ''} onChange={handleChange} error={errors.phone} placeholder="+994XXXXXXXXX" />
                         <FormField label="Əlavə telefon" name="phone2" value={form.phone2 || ''} onChange={handleChange} error={errors.phone2} placeholder="+994XXXXXXXXX" />
                         <FormField label="Email" name="email" value={form.email || ''} onChange={handleChange} type="email" />
                         <div className="sm:col-span-2">

@@ -210,8 +210,8 @@ export function ContractForm() {
     const [newTenantFirstName, setNewTenantFirstName] = useState('');
     const [newTenantLastName, setNewTenantLastName] = useState('');
     const [newTenantPhone, setNewTenantPhone] = useState('');
-    const [newTenantIdType, setNewTenantIdType] = useState<'fin' | 'voen'>('fin');
-    const [newTenantFinOrVoen, setNewTenantFinOrVoen] = useState('');
+    const [newTenantFin, setNewTenantFin] = useState('');
+    const [newTenantVoen, setNewTenantVoen] = useState('');
     const [isSavingTenant, setIsSavingTenant] = useState(false);
 
     // ── Submit state ──────────────────────────────────────────────────────────
@@ -463,20 +463,33 @@ export function ContractForm() {
 
     // ── Inline tenant save ────────────────────────────────────────────────────
     const handleSaveNewTenant = async () => {
-        if (!newTenantFirstName.trim() || !newTenantPhone.trim()) {
-            addToast({ type: 'error', message: 'Ad və telefon tələb olunur' });
-            return;
+        if (newTenantType === 'fiziki') {
+            if (!newTenantFirstName.trim() || !newTenantVoen.trim() || newTenantFin.length !== 7) {
+                addToast({ type: 'error', message: 'Ad, FİN (7 simvol) və VÖEN tələb olunur' });
+                return;
+            }
+        } else {
+            if (!newTenantFirstName.trim() || !newTenantLastName.trim() || !newTenantVoen.trim()) {
+                addToast({ type: 'error', message: 'Şirkət adı, Direktor və VÖEN tələb olunur' });
+                return;
+            }
         }
         setIsSavingTenant(true);
         try {
             const payload: Record<string, unknown> = {
                 tenantType: newTenantType,
-                firstName: newTenantFirstName,
-                lastName: newTenantLastName,
-                phone: newTenantPhone,
+                phone: newTenantPhone || undefined,
             };
-            if (newTenantIdType === 'fin') payload['fin'] = newTenantFinOrVoen;
-            else payload['voen'] = newTenantFinOrVoen;
+            if (newTenantType === 'fiziki') {
+                payload['firstName'] = newTenantFirstName;
+                payload['lastName'] = newTenantLastName;
+                payload['fin'] = newTenantFin;
+                payload['voen'] = newTenantVoen;
+            } else {
+                payload['companyName'] = newTenantFirstName;
+                payload['directorName'] = newTenantLastName;
+                payload['voen'] = newTenantVoen;
+            }
 
             const res = await api.post('/tenants', payload);
             const created = res?.data?.data;
@@ -486,7 +499,7 @@ export function ContractForm() {
                 queryClient.invalidateQueries({ queryKey: ['tenants-for-contract-form'] });
                 setShowNewTenantForm(false);
                 setNewTenantFirstName(''); setNewTenantLastName('');
-                setNewTenantPhone(''); setNewTenantFinOrVoen('');
+                setNewTenantPhone(''); setNewTenantFin(''); setNewTenantVoen('');
             }
         } catch (err: unknown) {
             const e = err as { response?: { data?: { error?: string } } };
@@ -765,30 +778,15 @@ export function ContractForm() {
                                                 ))}
                                             </div>
                                             <div className="grid grid-cols-2 gap-3">
-                                                <Input label="Ad *" value={newTenantFirstName} onChange={e => setNewTenantFirstName(e.target.value)} />
-                                                <Input label="Soyad" value={newTenantLastName} onChange={e => setNewTenantLastName(e.target.value)} />
+                                                <Input label={newTenantType === 'fiziki' ? 'Ad *' : 'Şirkət adı *'} value={newTenantFirstName} onChange={e => setNewTenantFirstName(e.target.value)} />
+                                                <Input label={newTenantType === 'fiziki' ? 'Soyad' : 'Direktor adı *'} value={newTenantLastName} onChange={e => setNewTenantLastName(e.target.value)} />
                                             </div>
-                                            <Input label="Telefon *" value={newTenantPhone} onChange={e => setNewTenantPhone(e.target.value)} />
-                                            <div className="flex gap-2 items-end">
-                                                <div className="flex gap-1">
-                                                    {(['fin', 'voen'] as const).map(it => (
-                                                        <button
-                                                            key={it}
-                                                            type="button"
-                                                            onClick={() => setNewTenantIdType(it)}
-                                                            className={`px-3 py-2 rounded text-sm border h-10 transition-colors ${newTenantIdType === it ? 'bg-gold/10 border-gold text-gold' : 'border-border text-muted'}`}
-                                                        >
-                                                            {it.toUpperCase()}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                                <div className="flex-1">
-                                                    <Input
-                                                        placeholder={newTenantIdType === 'fin' ? 'FİN kodu' : 'VÖEN'}
-                                                        value={newTenantFinOrVoen}
-                                                        onChange={e => setNewTenantFinOrVoen(e.target.value)}
-                                                    />
-                                                </div>
+                                            <Input label="Telefon" value={newTenantPhone} onChange={e => setNewTenantPhone(e.target.value)} placeholder="Məcburi deyil" />
+                                            <div className="grid grid-cols-2 gap-3">
+                                                {newTenantType === 'fiziki' && (
+                                                    <Input label="FİN kod *" placeholder="7 simvol" value={newTenantFin} onChange={e => setNewTenantFin(e.target.value)} />
+                                                )}
+                                                <Input label="VÖEN *" placeholder="10 rəqəm" value={newTenantVoen} onChange={e => setNewTenantVoen(e.target.value)} className={newTenantType === 'huquqi' ? 'col-span-2' : ''} />
                                             </div>
                                             <div className="flex gap-2 pt-1">
                                                 <Button size="sm" variant="outline" onClick={() => setShowNewTenantForm(false)}>Ləğv et</Button>
