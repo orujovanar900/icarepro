@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { queryClient } from '../lib/queryClient';
 
 type Role = 'SUPERADMIN' | 'MODERATOR' | 'SUPPORT' | 'FINANCE' | 'CONTENT' | 'OWNER' | 'MANAGER' | 'CASHIER' | 'ACCOUNTANT' | 'ADMINISTRATOR' | 'TENANT' | 'AGENTLIK' | 'AGENT' | 'ICARECI';
 
@@ -40,6 +41,9 @@ export const useAuthStore = create<AuthState>()(
                     isAuthenticated: true,
                 }),
             logout: () => {
+                // Wipe ALL cached query data so the next logged-in user
+                // never sees data that belonged to the previous session.
+                queryClient.clear();
                 set({
                     user: null,
                     token: null,
