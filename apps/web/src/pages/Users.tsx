@@ -430,7 +430,7 @@ export function Users() {
 
                     {isEditMode ? null : (
                         <p className="text-xs text-muted mb-4 border-l-2 pl-2 border-gold/50">
-                            Qeyd: Yeni istifadəçi üçün sistem avtomatik şifrə (IcarePro2024!) təyin edəcək.
+                            Sistem istifadəçinin e-poçtuna müvəqqəti giriş şifrəsi göndərəcək.
                         </p>
                     )}
 

@@ -381,47 +381,24 @@ export function SanadUstasi() {
         setLoading(true);
 
         try {
-            const apiKey = import.meta.env["VITE_ANTHROPIC_API_KEY"];
-            if (!apiKey) {
-                throw new Error("API key is missing");
-            }
-
             const activeSystem = getSystemPrompt(userTemplate, activeDocType?.title);
 
-            const res = await fetch("https://api.anthropic.com/v1/messages", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "x-api-key": apiKey,
-                    "anthropic-version": "2023-06-01",
-                    "anthropic-dangerous-direct-browser-access": "true"
-                },
-                body: JSON.stringify({
-                    model: "claude-haiku-4-5-20251001",
-                    max_tokens: 1000,
-                    system: activeSystem + `\nMövcuD Məlumatlar: ${JSON.stringify(doc)}`,
-                    messages: newHistory
-                })
+            const res = await api.post('/ai/document', {
+                messages: newHistory,
+                systemPrompt: activeSystem + `\nMövcuD Məlumatlar: ${JSON.stringify(doc)}`,
             });
-
-            if (!res.ok) {
-                const errData = await res.text();
-                throw new Error(`API Error: ${res.status} ${errData}`);
-            }
-
-            const data = await res.json();
-            const raw = data.content?.[0]?.text || "";
+            const raw: string = res.data?.content || "";
 
             const msgMatch = raw.match(/<msg>([\s\S]*?)<\/msg>/);
             const updMatch = raw.match(/<upd>([\s\S]*?)<\/upd>/);
             const chipsMatch = raw.match(/<chips>([\s\S]*?)<\/chips>/);
 
-            const aiText = msgMatch ? msgMatch[1].trim() : raw.replace(/<upd>[\s\S]*?<\/upd>/g, '').replace(/<chips>[\s\S]*?<\/chips>/g, '');
+            const aiText = msgMatch ? (msgMatch[1] ?? '').trim() : raw.replace(/<upd>[\s\S]*?<\/upd>/g, '').replace(/<chips>[\s\S]*?<\/chips>/g, '');
             let upd = {};
 
             if (updMatch) {
                 try {
-                    upd = JSON.parse(updMatch[1]);
+                    upd = JSON.parse(updMatch[1] ?? '{}');
                 } catch (e) {
                     console.error("Failed to parse AI update json", updMatch[1]);
                 }
@@ -451,7 +428,7 @@ export function SanadUstasi() {
             let parsedChips: string[] = [];
             if (chipsMatch) {
                 try {
-                    parsedChips = JSON.parse(chipsMatch[1]);
+                    parsedChips = JSON.parse(chipsMatch[1] ?? '[]');
                 } catch (e) {
                     console.error("Failed to parse AI chips json", chipsMatch[1]);
                 }
@@ -743,28 +720,10 @@ export function SanadUstasi() {
 
             if (!textContent.trim()) throw new Error('No text extracted');
 
-            const apiKey = import.meta.env['VITE_ANTHROPIC_API_KEY'];
-            if (!apiKey) throw new Error('API key missing');
-
-            const res = await fetch('https://api.anthropic.com/v1/messages', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': apiKey,
-                    'anthropic-version': '2023-06-01',
-                    'anthropic-dangerous-direct-browser-access': 'true'
-                },
-                body: JSON.stringify({
-                    model: 'claude-haiku-4-5-20251001',
-                    max_tokens: 800,
-                    system: 'Extract from rental contract. Return ONLY valid JSON, no other text. Fields: tenantName, finOrVoen, phone, propertyAddress, monthlyRent, startDate (ISO), endDate (ISO), depositAmount. If unknown, use empty string.',
-                    messages: [{ role: 'user', content: textContent.slice(0, 8000) }]
-                })
+            const res = await api.post('/ai/scan', {
+                text: textContent.slice(0, 8000),
             });
-
-            if (!res.ok) throw new Error(`Claude API: ${res.status}`);
-            const data = await res.json();
-            const raw = data.content?.[0]?.text || '{}';
+            const raw: string = res.data?.content || '{}';
             const jsonMatch = raw.match(/\{[\s\S]*\}/);
             if (!jsonMatch) throw new Error('No JSON in response');
             setScanResult(JSON.parse(jsonMatch[0]));

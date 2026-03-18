@@ -28,7 +28,7 @@ async function main() {
     })
     console.log(`✅ Organization: ${mainOrg.name} (${mainOrg.slug})`)
 
-    const mainOwnerHash = await bcrypt.hash('anar900', BCRYPT_ROUNDS)
+    const mainOwnerHash = await bcrypt.hash(process.env['SEED_OWNER_PASSWORD'] ?? 'changeme-set-env', BCRYPT_ROUNDS)
     const mainOwner = await prisma.user.upsert({
         where: { organizationId_email: { organizationId: MAIN_ORG_ID, email: 'admin@icare.pro.az' } },
         update: { passwordHash: mainOwnerHash },
@@ -40,7 +40,7 @@ async function main() {
             role: UserRole.OWNER,
         },
     })
-    console.log(`✅ Main owner: ${mainOwner.email}`)
+    console.log(`✅ Created user: ${mainOwner.email}`)
 
     // ── Организация 2: Icare Test ──────────────────────────────────────────────
     const testOrg = await prisma.organization.upsert({
@@ -56,7 +56,7 @@ async function main() {
     })
     console.log(`✅ Organization: ${testOrg.name} (${testOrg.slug})`)
 
-    const testOwnerHash = await bcrypt.hash('Test@2026!', BCRYPT_ROUNDS)
+    const testOwnerHash = await bcrypt.hash(process.env['SEED_STAFF_PASSWORD'] ?? 'IcarePro2024!', BCRYPT_ROUNDS)
     const testOwner = await prisma.user.upsert({
         where: { organizationId_email: { organizationId: TEST_ORG_ID, email: 'owner@icare-test.az' } },
         update: { passwordHash: testOwnerHash },
@@ -68,60 +68,60 @@ async function main() {
             role: UserRole.OWNER,
         },
     })
-    console.log(`✅ Test owner: ${testOwner.email} / Test@2026!`)
+    console.log(`✅ Created user: ${testOwner.email}`)
 
-    const testManagerHash = await bcrypt.hash('IcarePro2024!', BCRYPT_ROUNDS)
+    const testStaffHash = await bcrypt.hash(process.env['SEED_STAFF_PASSWORD'] ?? 'IcarePro2024!', BCRYPT_ROUNDS)
     const testManager = await prisma.user.upsert({
         where: { organizationId_email: { organizationId: TEST_ORG_ID, email: 'manager@icare-test.az' } },
-        update: { passwordHash: testManagerHash },
+        update: { passwordHash: testStaffHash },
         create: {
             organizationId: TEST_ORG_ID,
             email: 'manager@icare-test.az',
-            passwordHash: testManagerHash,
+            passwordHash: testStaffHash,
             name: 'Aysel (Menecer)',
             role: UserRole.MANAGER,
         },
     })
-    console.log(`✅ Test manager: ${testManager.email} / IcarePro2024!`)
+    console.log(`✅ Created user: ${testManager.email}`)
 
     const testCashier = await prisma.user.upsert({
         where: { organizationId_email: { organizationId: TEST_ORG_ID, email: 'cashier@icare-test.az' } },
-        update: { passwordHash: testManagerHash },
+        update: { passwordHash: testStaffHash },
         create: {
             organizationId: TEST_ORG_ID,
             email: 'cashier@icare-test.az',
-            passwordHash: testManagerHash,
+            passwordHash: testStaffHash,
             name: 'Leyla (Kassir)',
             role: UserRole.CASHIER,
         },
     })
-    console.log(`✅ Test cashier: ${testCashier.email} / IcarePro2024!`)
+    console.log(`✅ Created user: ${testCashier.email}`)
 
     const testAccountant = await prisma.user.upsert({
         where: { organizationId_email: { organizationId: TEST_ORG_ID, email: 'accountant@icare-test.az' } },
-        update: { passwordHash: testManagerHash },
+        update: { passwordHash: testStaffHash },
         create: {
             organizationId: TEST_ORG_ID,
             email: 'accountant@icare-test.az',
-            passwordHash: testManagerHash,
+            passwordHash: testStaffHash,
             name: 'Tural (Mühasib)',
             role: UserRole.ACCOUNTANT,
         },
     })
-    console.log(`✅ Test accountant: ${testAccountant.email} / IcarePro2024!`)
+    console.log(`✅ Created user: ${testAccountant.email}`)
 
     const testAdministrator = await prisma.user.upsert({
         where: { organizationId_email: { organizationId: TEST_ORG_ID, email: 'admin@icare-test.az' } },
-        update: { passwordHash: testManagerHash },
+        update: { passwordHash: testStaffHash },
         create: {
             organizationId: TEST_ORG_ID,
             email: 'admin@icare-test.az',
-            passwordHash: testManagerHash,
+            passwordHash: testStaffHash,
             name: 'Ramil (İnzibatçı)',
             role: UserRole.ADMINISTRATOR,
         },
     })
-    console.log(`✅ Test administrator: ${testAdministrator.email} / IcarePro2024!`)
+    console.log(`✅ Created user: ${testAdministrator.email}`)
 
     // ── Properties (3 объекта) ─────────────────────────────────────────────────
     const [prop1, prop2, prop3] = await Promise.all([
@@ -333,13 +333,13 @@ async function main() {
     console.log('═══════════════════════════════════════════════════')
     console.log('🌱 Seeding complete.')
     console.log('═══════════════════════════════════════════════════')
-    console.log(`📋 LOGIN CREDENTIALS:`)
-    console.log(`   İcarə Pro (OWNER):  admin@icare.pro.az  /  anar900`)
-    console.log(`   Icare Test (OWNER): owner@icare-test.az /  Test@2026!`)
-    console.log(`   Icare Test (MANAGER): manager@icare-test.az /  IcarePro2024!`)
-    console.log(`   Icare Test (CASHIER): cashier@icare-test.az /  IcarePro2024!`)
-    console.log(`   Icare Test (ACCTG):   accountant@icare-test.az / IcarePro2024!`)
-    console.log(`   Icare Test (ADMIN):   admin@icare-test.az /    IcarePro2024!`)
+    console.log(`📋 Seeded accounts (set SEED_OWNER_PASSWORD / SEED_STAFF_PASSWORD in .env)`)
+    console.log(`   İcarə Pro (OWNER):    admin@icare.pro.az`)
+    console.log(`   Icare Test (OWNER):   owner@icare-test.az`)
+    console.log(`   Icare Test (MANAGER): manager@icare-test.az`)
+    console.log(`   Icare Test (CASHIER): cashier@icare-test.az`)
+    console.log(`   Icare Test (ACCTG):   accountant@icare-test.az`)
+    console.log(`   Icare Test (ADMIN):   admin@icare-test.az`)
     console.log('═══════════════════════════════════════════════════')
     console.log(`📦 Test org ID:  ${TEST_ORG_ID}`)
     console.log(`📄 Contracts:    K-2026-001 | K-2026-002 | K-2026-003`)

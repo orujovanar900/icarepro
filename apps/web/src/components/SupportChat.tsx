@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, MoreHorizontal } from 'lucide-react';
+import { api } from '@/lib/api';
 
 interface Message {
     role: 'user' | 'assistant';
@@ -100,35 +101,11 @@ DİL:
         setIsLoading(true);
 
         try {
-            const apiKey = import.meta.env['VITE_ANTHROPIC_API_KEY'];
-            if (!apiKey) {
-                throw new Error('API key is missing');
-            }
-
-            const response = await fetch('https://api.anthropic.com/v1/messages', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': apiKey,
-                    'anthropic-version': '2023-06-01',
-                    'anthropic-dangerous-direct-browser-access': 'true',
-                },
-                body: JSON.stringify({
-                    model: 'claude-haiku-4-5-20251001',
-                    max_tokens: 500,
-                    temperature: 0.7,
-                    system: systemPrompt,
-                    messages: newMessages.map(m => ({ role: m.role, content: m.content })),
-                }),
+            const res = await api.post('/ai/chat', {
+                messages: newMessages.map(m => ({ role: m.role, content: m.content })),
+                systemPrompt,
             });
-
-            if (!response.ok) {
-                const errText = await response.text();
-                throw new Error(`API error: ${response.status} ${errText}`);
-            }
-
-            const data = await response.json();
-            const aiResponseContent = data.content?.[0]?.text || '';
+            const aiResponseContent: string = res.data?.content || '';
 
             setMessages((prev) => [...prev, { role: 'assistant', content: aiResponseContent }]);
         } catch (error: any) {

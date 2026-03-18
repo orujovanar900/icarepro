@@ -24,6 +24,7 @@ import listingsRoutes from './routes/listings.js'
 import queueRoutes from './routes/queue.js'
 import notificationsRoutes from './routes/notifications.js'
 import tickerRoutes from './routes/ticker.js'
+import aiRoutes from './routes/ai.js'
 
 import cron from 'node-cron'
 import { generateUnpaidRecords, markOverduePayments, checkRenewalWarnings, processAutoRenewals, resetDailyTickerCounts } from './cron/billingCron.js'
@@ -64,16 +65,21 @@ export async function buildApp() {
         }),
     })
 
+    if (!process.env['JWT_SECRET']) {
+        console.error('FATAL: JWT_SECRET environment variable is not set. Exiting.')
+        process.exit(1)
+    }
+    if (!process.env['COOKIE_SECRET'] && !process.env['JWT_SECRET']) {
+        console.error('FATAL: COOKIE_SECRET environment variable is not set. Exiting.')
+        process.exit(1)
+    }
+
     await app.register(cookie, {
-        secret: process.env['COOKIE_SECRET'] ?? process.env['JWT_SECRET'] ?? 'cookie-secret',
+        secret: process.env['COOKIE_SECRET'] ?? process.env['JWT_SECRET'],
     })
 
-    const jwtSecret = process.env['JWT_SECRET'] ?? 'jwt-secret-change-me'
-    if (jwtSecret === 'jwt-secret-change-me') {
-        app.log.warn('⚠️  JWT_SECRET is using the insecure default value. Set a strong secret in .env before deploying to production.')
-    }
     await app.register(jwt, {
-        secret: jwtSecret,
+        secret: process.env['JWT_SECRET'],
         sign: { expiresIn: process.env['JWT_EXPIRES_IN'] ?? '7d' },
         cookie: { cookieName: 'token', signed: false },
     })
@@ -125,6 +131,7 @@ export async function buildApp() {
     await app.register(queueRoutes, { prefix: '/queue' })
     await app.register(notificationsRoutes, { prefix: '/notifications' })
     await app.register(tickerRoutes, { prefix: '/ticker' })
+    await app.register(aiRoutes, { prefix: '/ai' })
 
     // Billing cron — runs daily at midnight
     cron.schedule('0 0 * * *', async () => {

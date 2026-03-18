@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import bcrypt from 'bcrypt'
+import crypto from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { authenticate } from '../middleware/authenticate.js'
 import { requireRole } from '../middleware/requireRole.js'
@@ -8,7 +9,6 @@ import { sendZodError } from '../utils/zodError.js'
 import { withOrg } from '../utils/withOrg.js'
 
 const BCRYPT_ROUNDS = 12
-const TEMP_PASSWORD = 'IcarePro2024!'    // временный пароль при создании
 
 const schema = {
     body: z.object({
@@ -124,7 +124,10 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
         const body = schema.body.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
 
-        const passwordHash = await bcrypt.hash(TEMP_PASSWORD, BCRYPT_ROUNDS)
+        // Generate a unique random temporary password per user
+        // TODO: send tempPassword via Resend email before removing the server log below
+        const tempPassword = crypto.randomBytes(8).toString('base64url')
+        const passwordHash = await bcrypt.hash(tempPassword, BCRYPT_ROUNDS)
         try {
             const { email, name, role, phone } = body.data
             // Cast phone to string | undefined
@@ -140,10 +143,11 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
                 },
                 select: { id: true, email: true, name: true, role: true, isActive: true, createdAt: true, telegramChatId: true, phone: true, avatarUrl: true },
             })
+            // Log only to server console — never return plaintext password in API response
+            fastify.log.info(`[UserCreate] Temp password for ${email}: ${tempPassword}`)
             return reply.code(201).send({
                 success: true,
                 data: user,
-                meta: { tempPassword: TEMP_PASSWORD, note: 'User must change password on first login' },
             })
         } catch {
             return reply.code(409).send({ success: false, error: 'Email already in use', details: { field: 'email' } })
