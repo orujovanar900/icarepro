@@ -389,6 +389,34 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.send({ success: true, data: updatedOrg })
     })
 
+    // GET /admin/organizations/:id/billing-history
+    fastify.get('/organizations/:id/billing-history', { preHandler: [authenticate, requireRole(['SUPERADMIN', 'SUPPORT'])] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const org = await fastify.prisma.organization.findUnique({ where: { id }, select: { id: true } })
+        if (!org) return reply.code(404).send({ success: false, error: 'Təşkilat tapılmadı' })
+
+        const logs = await fastify.prisma.adminAuditLog.findMany({
+            where: { action: 'plan_changed', entityId: id },
+            orderBy: { createdAt: 'desc' },
+            take: 100,
+            include: { actor: { select: { name: true, email: true } } },
+        })
+
+        const data = logs.map(log => ({
+            id: log.id,
+            createdAt: log.createdAt,
+            previousPlan: (log.oldValue as any)?.plan ?? null,
+            previousStatus: (log.oldValue as any)?.status ?? null,
+            newPlan: (log.newValue as any)?.plan ?? null,
+            newStatus: (log.newValue as any)?.status ?? null,
+            expiresAt: (log.newValue as any)?.expiresAt ?? null,
+            note: (log.newValue as any)?.note ?? null,
+            changedByUser: log.actor ? { name: log.actor.name, email: log.actor.email ?? '' } : null,
+        }))
+
+        return reply.send({ success: true, data })
+    })
+
     // PATCH /admin/users/:userId/role
     fastify.patch('/users/:userId/role', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
         const { userId } = req.params as { userId: string }

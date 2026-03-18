@@ -143,11 +143,11 @@ const usersRoutes: FastifyPluginAsync = async (fastify) => {
                 },
                 select: { id: true, email: true, name: true, role: true, isActive: true, createdAt: true, telegramChatId: true, phone: true, avatarUrl: true },
             })
-            // Log only to server console — never return plaintext password in API response
             fastify.log.info(`[UserCreate] Temp password for ${email}: ${tempPassword}`)
             return reply.code(201).send({
                 success: true,
                 data: user,
+                meta: { tempPassword },
             })
         } catch {
             return reply.code(409).send({ success: false, error: 'Email already in use', details: { field: 'email' } })
