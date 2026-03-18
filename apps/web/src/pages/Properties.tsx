@@ -127,9 +127,13 @@ export function Properties() {
             addToast({ message: 'Bütün sahələri doldurun', type: 'error' });
             return;
         }
+        if (!form.propertyType) {
+            addToast({ message: 'Obyekt növünü seçin', type: 'error' });
+            return;
+        }
         setIsSaving(true);
         try {
-            await api.post('/properties', { ...form, building: form.address, area: Number(form.area), lat: form.lat, lng: form.lng });
+            await api.post('/properties', { ...form, type: form.propertyType, building: form.address, area: Number(form.area), lat: form.lat, lng: form.lng });
             addToast({ message: 'Obyekt əlavə edildi ✓', type: 'success' });
             setIsModalOpen(false);
             setForm({ number: '', name: '', propertyType: 'MENZEL', address: '', area: '', status: 'VACANT', lat: 40.4093, lng: 49.8671 });

@@ -43,3 +43,38 @@ export function usePlan() {
         can: (feature: FeatureGate, count = 0) => checkPlanLimit(currentPlan, feature, count)
     };
 }
+
+// ─── Portal-only gating ───────────────────────────────────────────────────────
+
+export type UserTier = 'PORTAL_ONLY' | 'BASIC' | 'PROFESSIONAL' | 'CORPORATE';
+
+export function getUserTier(plan: string | null | undefined): UserTier {
+    if (!plan || plan === 'PORTAL_ONLY' || plan === 'FREE_TRIAL') return 'PORTAL_ONLY';
+    if (plan === 'BASHLANQIC') return 'BASIC';
+    if (plan === 'BIZNES') return 'PROFESSIONAL';
+    if (plan === 'KORPORATIV') return 'CORPORATE';
+    return 'PORTAL_ONLY';
+}
+
+export function canAccessPanel(tier: UserTier): boolean {
+    return tier !== 'PORTAL_ONLY';
+}
+
+export function usePlanGate() {
+    const user = useAuthStore(state => state.user);
+    const plan = user?.organization?.subscriptionPlan ?? null;
+    const tier = getUserTier(plan);
+    const isPortalOnly = tier === 'PORTAL_ONLY';
+    const isBasic = tier === 'BASIC';
+
+    function requirePlan(minTier: UserTier, onBlocked: () => void): boolean {
+        const tiers: UserTier[] = ['PORTAL_ONLY', 'BASIC', 'PROFESSIONAL', 'CORPORATE'];
+        if (tiers.indexOf(tier) < tiers.indexOf(minTier)) {
+            onBlocked();
+            return false;
+        }
+        return true;
+    }
+
+    return { tier, isPortalOnly, isBasic, requirePlan };
+}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Shield, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Shield, Plus, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { useToastStore } from '@/store/toast';
@@ -57,6 +57,23 @@ export function Users() {
             (statusFilter === 'INACTIVE' && !u.isActive);
 
         return matchesSearch && matchesRole && matchesStatus;
+    });
+
+    // Delete confirmation state
+    const [deleteConfirmUser, setDeleteConfirmUser] = useState<{ id: string; name: string } | null>(null);
+
+    const deleteUserMutation = useMutation({
+        mutationFn: async (id: string) => {
+            await api.delete(`/users/${id}`);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+            addToast({ message: 'İstifadəçi silindi', type: 'success' });
+            setDeleteConfirmUser(null);
+        },
+        onError: () => {
+            addToast({ message: 'Xəta baş verdi', type: 'error' });
+        },
     });
 
     // Modal State
@@ -309,6 +326,17 @@ export function Users() {
                                                         >
                                                             Düzəliş Et
                                                         </Button>
+
+                                                        {user?.role === 'OWNER' && u.id !== user?.id && (
+                                                            <Button
+                                                                variant="danger"
+                                                                size="sm"
+                                                                onClick={() => setDeleteConfirmUser({ id: u.id, name: u.name })}
+                                                                title="İstifadəçini sil"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
@@ -365,6 +393,18 @@ export function Users() {
                                             >
                                                 Düzəliş Et
                                             </Button>
+
+                                            {user?.role === 'OWNER' && u.id !== user?.id && (
+                                                <Button
+                                                    variant="danger"
+                                                    size="sm"
+                                                    onClick={() => setDeleteConfirmUser({ id: u.id, name: u.name })}
+                                                    className="text-xs py-1 h-8 px-3"
+                                                    title="İstifadəçini sil"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -441,6 +481,30 @@ export function Users() {
                         </Button>
                     </div>
                 </form>
+            </Modal>
+
+            {/* Delete Confirmation Modal */}
+            <Modal
+                isOpen={!!deleteConfirmUser}
+                onClose={() => setDeleteConfirmUser(null)}
+                title="İstifadəçini sil"
+            >
+                <p className="text-sm text-muted mb-6">
+                    Bu istifadəçini silmək istədiyinizə əminsiniz? Giriş imkanı tamamilə ləğv ediləcək.
+                </p>
+                <div className="flex gap-4">
+                    <Button variant="outline" className="flex-1" onClick={() => setDeleteConfirmUser(null)}>
+                        Ləğv et
+                    </Button>
+                    <Button
+                        variant="danger"
+                        className="flex-1"
+                        onClick={() => deleteConfirmUser && deleteUserMutation.mutate(deleteConfirmUser.id)}
+                        disabled={deleteUserMutation.isPending}
+                    >
+                        {deleteUserMutation.isPending ? 'Silinir...' : 'Sil'}
+                    </Button>
+                </div>
             </Modal>
 
             {/* Upgrade Modal Gate */}

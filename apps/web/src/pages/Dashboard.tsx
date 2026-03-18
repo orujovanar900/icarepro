@@ -916,12 +916,14 @@ function DashboardContent() {
                                     { month: 'İyl', rate: 96 }, { month: 'Avq', rate: 98 }, { month: 'Sen', rate: 95 },
                                     { month: 'Okt', rate: 92 }, { month: 'Noy', rate: 89 }, { month: 'Dek', rate: 86 }
                                 ]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#192840" vertical={false} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
                                     <XAxis dataKey="month" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} />
                                     <YAxis stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} tickFormatter={(val) => `${val}%`} />
                                     <Tooltip
-                                        cursor={{ fill: '#0F1929' }}
-                                        contentStyle={{ backgroundColor: '#141E30', borderColor: '#192840', borderRadius: '8px', color: '#E8F0FE' }}
+                                        cursor={{ fill: 'var(--color-border)' }}
+                                        contentStyle={{ backgroundColor: 'var(--color-surface, #ffffff)', borderColor: 'var(--color-border)', borderRadius: '8px', color: 'var(--color-text)' }}
+                                        itemStyle={{ color: 'var(--color-text-secondary)' }}
+                                        labelStyle={{ color: 'var(--color-text)', fontWeight: 500 }}
                                         formatter={(value: any) => [`${value}%`, 'Doluluq']}
                                     />
                                     <Bar dataKey="rate" name="Doluluq" fill="#60A5FA" radius={[4, 4, 0, 0]} maxBarSize={40} minPointSize={2} stroke="#334155" strokeWidth={1} />
@@ -949,12 +951,14 @@ function DashboardContent() {
                                 `}} />
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={dashboard?.monthlyChart || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#192840" vertical={false} />
+                                        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
                                         <XAxis dataKey="month" stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val: any) => months[val - 1]?.substring(0, 3) || ''} />
                                         <YAxis stroke="#64748B" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val: any) => `${val} ₼`} />
                                         <Tooltip
-                                            cursor={{ fill: '#0F1929' }}
-                                            contentStyle={{ backgroundColor: '#141E30', borderColor: '#192840', borderRadius: '8px', color: '#E8F0FE' }}
+                                            cursor={{ fill: 'var(--color-border)' }}
+                                            contentStyle={{ backgroundColor: 'var(--color-surface, #ffffff)', borderColor: 'var(--color-border)', borderRadius: '8px', color: 'var(--color-text)' }}
+                                            itemStyle={{ color: 'var(--color-text-secondary)' }}
+                                            labelStyle={{ color: 'var(--color-text)', fontWeight: 500 }}
                                             formatter={(value: any) => [formatMoney(value), '']}
                                             labelFormatter={(label: any) => months[label - 1] || ''}
                                         />
