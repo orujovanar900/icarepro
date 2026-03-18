@@ -888,7 +888,7 @@ function DashboardContent() {
                                             </div>
                                             <div className="text-right shrink-0">
                                                 <p className="text-sm font-bold text-red">
-                                                    {formatMoney(debtor.amount)}
+                                                    {formatMoney(debtor.debtAmount)}
                                                 </p>
                                                 <ArrowRight className="w-4 h-4 text-muted mt-1 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                                             </div>
