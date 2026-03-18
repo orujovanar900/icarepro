@@ -135,8 +135,9 @@ export function Properties() {
             address: p.address || '',
             area: p.area != null ? String(p.area) : '',
             status: p.status || 'VACANT',
-            lat: p.lat ?? 40.4093,
-            lng: p.lng ?? 49.8671,
+            // Prisma returns Decimal as strings – explicitly cast to number
+            lat: p.lat != null ? Number(p.lat) : 40.4093,
+            lng: p.lng != null ? Number(p.lng) : 49.8671,
         });
         setIsModalOpen(true);
     };
