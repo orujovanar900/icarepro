@@ -14,36 +14,6 @@ import SimpleMap from '@/components/SimpleMap';
 import { useToastStore } from '@/store/toast';
 import { usePlan, FeatureGate } from '@/utils/planGates';
 import { UpgradeModal } from '@/components/UpgradeModal';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import icon from 'leaflet/dist/images/marker-icon.png';
-import iconShadow from 'leaflet/dist/images/marker-shadow.png';
-
-let DefaultIcon = L.icon({
-    iconUrl: icon,
-    shadowUrl: iconShadow,
-    iconAnchor: [12, 41]
-});
-L.Marker.prototype.options.icon = DefaultIcon;
-
-function LocationPicker({ position, setPosition, setAddress }: any) {
-    useMapEvents({
-        click(e) {
-            const { lat, lng } = e.latlng;
-            setPosition({ lat, lng });
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data && data.display_name) {
-                        setAddress(data.display_name);
-                    }
-                })
-                .catch(() => { });
-        }
-    });
-    return position.lat ? <Marker position={[position.lat, position.lng]} /> : null;
-}
 
 const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('az-AZ', {
@@ -308,27 +278,12 @@ export function Properties() {
                             placeholder="Mənzil 3A"
                         />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <Input
-                            label="Ünvan *"
-                            value={form.address}
-                            onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
-                            placeholder="Xəritədən seçin və ya daxil edin"
-                        />
-                        <div className="flex flex-col gap-1 justify-end">
-                            <label className="text-xs font-medium text-muted">Xəritədə yeri seçin</label>
-                            <div className="h-[90px] rounded-xl overflow-hidden border border-border">
-                                <MapContainer center={[form.lat, form.lng]} zoom={11} style={{ height: '100%', width: '100%' }}>
-                                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                                    <LocationPicker
-                                        position={{ lat: form.lat, lng: form.lng }}
-                                        setPosition={(pos: any) => setForm(f => ({ ...f, lat: pos.lat, lng: pos.lng }))}
-                                        setAddress={(addr: string) => setForm(f => ({ ...f, address: addr }))}
-                                    />
-                                </MapContainer>
-                            </div>
-                        </div>
-                    </div>
+                    <Input
+                        label="Ünvan *"
+                        value={form.address}
+                        onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
+                        placeholder="Məs: Neftçilər pr. 10, Bakı"
+                    />
                     <div className="grid grid-cols-2 gap-4">
                         <Input
                             label="Sahə (m²) *"
