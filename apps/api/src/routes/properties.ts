@@ -48,8 +48,15 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
                     { address: { contains: search, mode: 'insensitive' } },
                 ]
             } : {}),
-            ...(typeFilter ? { type: typeFilter } : {}),
-            ...(statusFilter ? { status: statusFilter } : {}),
+            // Type filter: OR-match legacy MENZEL when filtering MENZIL
+            ...(typeFilter ? {
+                OR: typeFilter === 'MENZIL'
+                    ? [{ type: 'MENZIL' }, { type: 'MENZEL' }]
+                    : [{ type: typeFilter }]
+            } : {}),
+            // NOTE: status is NOT filtered here — it is computed dynamically after
+            // fetch (OCCUPIED = has active contract). Status filtering is applied
+            // client-side on the computed values in the frontend.
         }
 
         let orderByCol = 'number'

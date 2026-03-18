@@ -64,7 +64,7 @@ export function Properties() {
     }, [search]);
 
     const { data: propertiesData, isLoading: propsLoading, isError: propsError, refetch } = useQuery({
-        queryKey: ['properties', debouncedSearch, page, showDeleted, statusFilter],
+        queryKey: ['properties', debouncedSearch, page, showDeleted, typeFilter],
         queryFn: async () => {
             const params = new URLSearchParams({
                 limit: String(limit),
@@ -72,10 +72,11 @@ export function Properties() {
             });
             if (debouncedSearch) params.append('search', debouncedSearch);
             if (showDeleted) params.append('deleted', 'true');
-            if (statusFilter) params.append('status', statusFilter);
+            // typeFilter goes to backend (handles MENZIL/MENZEL OR logic)
+            if (typeFilter) params.append('type', typeFilter);
+            // NOTE: statusFilter is applied client-side (status is computed from contracts server-side)
 
             const res = await api.get(`/properties?${params.toString()}`);
-            console.log('Properties API response:', res.data);
             return res.data;
         },
     });
@@ -203,9 +204,14 @@ export function Properties() {
     const isLoading = propsLoading || contractsLoading;
     const isError = propsError;
 
-    const properties = Array.isArray(propertiesData?.data) ? propertiesData.data : (propertiesData?.data?.data || []);
+    const rawProperties = Array.isArray(propertiesData?.data) ? propertiesData.data : (propertiesData?.data?.data || []);
     const totalCount = propertiesData?.meta?.total || propertiesData?.data?.meta?.total || 0;
     const totalPages = Math.ceil(totalCount / limit);
+
+    // Apply client-side statusFilter on computed statuses (OCCUPIED is dynamic from contracts)
+    const properties = statusFilter
+        ? rawProperties.filter((p: any) => p.status === statusFilter)
+        : rawProperties;
 
     const activeContracts = Array.isArray(contractsData) ? contractsData : (contractsData?.data || []);
 
