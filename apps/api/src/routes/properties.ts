@@ -12,11 +12,11 @@ const createSchema = z.object({
     name: z.string().min(1),
     building: z.string().min(1),
     address: z.string().min(1),
-    area: z.number().positive(),
+    area: z.coerce.number().positive(),
     type: z.string().optional(),
     status: z.enum(['VACANT', 'OCCUPIED', 'UNDER_REPAIR']).optional(),
-    lat: z.number().optional(),
-    lng: z.number().optional(),
+    lat: z.coerce.number().optional(),
+    lng: z.coerce.number().optional(),
 })
 
 const updateSchema = createSchema.partial()
