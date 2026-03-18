@@ -38,7 +38,7 @@ export function Properties() {
     const [upgradeFeature, setUpgradeFeature] = useState<FeatureGate | null>(null);
 
     // Add property form state
-    const [form, setForm] = useState({ number: '', name: '', propertyType: 'MENZEL', address: '', area: '', status: 'VACANT', lat: 40.4093, lng: 49.8671 });
+    const [form, setForm] = useState({ number: '', name: '', propertyType: 'MENZIL', address: '', area: '', status: 'VACANT', lat: 40.4093, lng: 49.8671 });
     const [isSaving, setIsSaving] = useState(false);
 
     // Extra filters
@@ -120,7 +120,7 @@ export function Properties() {
             await api.post('/properties', { ...form, type: form.propertyType, building: form.address, area: Number(form.area), lat: form.lat, lng: form.lng });
             addToast({ message: 'Obyekt əlavə edildi ✓', type: 'success' });
             setIsModalOpen(false);
-            setForm({ number: '', name: '', propertyType: 'MENZEL', address: '', area: '', status: 'VACANT', lat: 40.4093, lng: 49.8671 });
+            setForm({ number: '', name: '', propertyType: 'MENZIL', address: '', area: '', status: 'VACANT', lat: 40.4093, lng: 49.8671 });
             queryClient.invalidateQueries({ queryKey: ['properties'] });
         } catch (error: any) {
             addToast({ message: error.response?.data?.error || 'Xəta baş verdi', type: 'error' });
@@ -261,11 +261,13 @@ export function Properties() {
                         <label className="text-xs font-medium text-muted uppercase tracking-wide block mb-2">Növ</label>
                         <div className="flex gap-2 flex-wrap">
                             {[
-                                { v: 'MENZEL', l: '🏠 Mənzil' },
-                                { v: 'OFIS', l: '📋 Ofis' },
-                                { v: 'MAGAZA', l: '🏪 Mağaza' },
-                                { v: 'ANBAR', l: '📦 Anbar' },
-                                { v: 'DIGER', l: '📌 Digər' }
+                                { v: 'MENZIL',    l: '🏠 Mənzil' },
+                                { v: 'HEYET_EVI', l: '🏡 Həyət evi' },
+                                { v: 'OFIS',      l: '📋 Ofis' },
+                                { v: 'OBYEKT',    l: '🏗 Obyekt' },
+                                { v: 'GARAJ',     l: '🚗 Qaraj' },
+                                { v: 'TORPAQ',    l: '🌱 Torpaq' },
+                                { v: 'ANBAR',     l: '📦 Anbar' },
                             ].map(t => (
                                 <button
                                     key={t.v}
@@ -395,12 +397,14 @@ export function Properties() {
                                     value={typeFilter}
                                     onChange={e => { setTypeFilter(e.target.value); setPage(1); }}
                                     options={[
-                                        { label: 'Növ: Hamısı', value: '' },
-                                        { label: 'Mənzil', value: 'MENZEL' },
-                                        { label: 'Ofis', value: 'OFIS' },
-                                        { label: 'Mağaza', value: 'MAGAZA' },
-                                        { label: 'Anbar', value: 'ANBAR' },
-                                        { label: 'Digər', value: 'DIGER' },
+                                        { label: 'Növ: Hamısı',  value: '' },
+                                        { label: 'Mənzil',       value: 'MENZIL' },
+                                        { label: 'Həyət evi',    value: 'HEYET_EVI' },
+                                        { label: 'Ofis',         value: 'OFIS' },
+                                        { label: 'Obyekt',       value: 'OBYEKT' },
+                                        { label: 'Qaraj',        value: 'GARAJ' },
+                                        { label: 'Torpaq',       value: 'TORPAQ' },
+                                        { label: 'Anbar',        value: 'ANBAR' },
                                     ]}
                                 />
                             </div>
@@ -446,7 +450,19 @@ export function Properties() {
                             )}
                             {typeFilter && (
                                 <button onClick={() => setTypeFilter('')} className="flex items-center gap-1 bg-gold/10 text-gold border border-gold/30 px-2.5 py-1 rounded-full text-xs font-medium hover:bg-gold/20">
-                                    {typeFilter === 'MENZEL' ? 'Mənzil' : typeFilter === 'OFIS' ? 'Ofis' : typeFilter === 'MAGAZA' ? 'Mağaza' : typeFilter === 'ANBAR' ? 'Anbar' : 'Digər'} ×
+                                    {({
+                                        MENZIL: 'Mənzil',
+                                        HEYET_EVI: 'Həyət evi',
+                                        OFIS: 'Ofis',
+                                        OBYEKT: 'Obyekt',
+                                        GARAJ: 'Qaraj',
+                                        TORPAQ: 'Torpaq',
+                                        ANBAR: 'Anbar',
+                                        // backward-compat with old data
+                                        MENZEL: 'Mənzil',
+                                        MAGAZA: 'Mağaza',
+                                        DIGER: 'Digər',
+                                    } as Record<string,string>)[typeFilter] ?? typeFilter} ×
                                 </button>
                             )}
                             {sortFilter && (

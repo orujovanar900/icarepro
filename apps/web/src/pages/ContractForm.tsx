@@ -256,7 +256,7 @@ export function ContractForm() {
     });
 
     // Derive activityLocation from selected property's type (per plan: property type drives residential/commercial)
-    const RESIDENTIAL_PROPERTY_TYPES = new Set(['MENZEL', 'HEYET_EVI']);
+    const RESIDENTIAL_PROPERTY_TYPES = new Set(['MENZIL', 'MENZEL', 'HEYET_EVI']);
     const propertyForTax = propertiesData.find(p => p.id === form.propertyId) as any;
     const activityLocationFromProperty: string | null =
         form.propertyId && propertyForTax

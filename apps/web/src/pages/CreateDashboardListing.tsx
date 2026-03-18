@@ -63,8 +63,11 @@ export function CreateDashboardListing() {
 
     // Property type → listing type mapping
     const PROPERTY_TO_LISTING_TYPE: Record<string, string> = {
-        MENZEL: 'MENZIL', HEYET_EVI: 'HEYET_EVI', OFIS: 'OFIS',
+        // New unified types (self-map)
+        MENZIL: 'MENZIL', HEYET_EVI: 'HEYET_EVI', OFIS: 'OFIS',
         OBYEKT: 'OBYEKT', ANBAR: 'ANBAR', GARAJ: 'GARAJ', TORPAQ: 'TORPAQ',
+        // Backward-compat for old data in DB
+        MENZEL: 'MENZIL', MAGAZA: 'OBYEKT', DIGER: 'OBYEKT',
     };
 
     // ── All properties for the picker ─────────────────────────────────────────
