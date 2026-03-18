@@ -305,18 +305,20 @@ export function Properties() {
                         <Input
                             label="Sahə (m²) *"
                             type="number"
-                            min="1"
+                            min="0.1"
+                            step="0.01"
                             value={form.area}
                             onChange={e => setForm(f => ({ ...f, area: e.target.value }))}
-                            placeholder="75"
+                            placeholder="75.5"
                         />
                         <Select
                             label="Status"
                             value={form.status}
                             onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
                             options={[
-                                { label: 'Boş', value: 'VACANT' },
-                                { label: 'Təmirdə', value: 'UNDER_REPAIR' },
+                                { label: 'Boş',                  value: 'VACANT' },
+                                { label: 'İcarədədir (sazışlı)',   value: 'OCCUPIED' },
+                                { label: 'Təmirdə',              value: 'UNDER_REPAIR' },
                             ]}
                         />
                     </div>
