@@ -60,6 +60,7 @@ export function Settings() {
     const org = (user as any)?.organization;
     const [ownerType, setOwnerType] = useState<string | null>(org?.ownerType || null);
     const [activityLocation, setActivityLocation] = useState<string | null>(org?.activityLocation || null);
+    const [taxOfficeType, setTaxOfficeType] = useState<string | null>(org?.taxOfficeType || null);
     const [taxVoen, setTaxVoen] = useState<string>(org?.taxVoen || '');
     const [isVatPayer, setIsVatPayer] = useState<boolean>(org?.isVatPayer || false);
     const [isUpdatingTax, setIsUpdatingTax] = useState(false);
@@ -126,7 +127,10 @@ export function Settings() {
         try {
             const payload = {
                 ownerType,
-                activityLocation: ownerType === 'FERDI_SAHIBKAR' ? activityLocation : null,
+                // FERDI_VETANDAS uses activityLocation for property type (RESIDENTIAL / COMMERCIAL)
+                activityLocation: ownerType === 'FERDI_VETANDAS' ? activityLocation : null,
+                // FERDI_SAHIBKAR uses taxOfficeType for simplified/standard tax office
+                taxOfficeType: ownerType === 'FERDI_SAHIBKAR' ? taxOfficeType : null,
                 taxVoen: ownerType === 'HUQUQI_SEXS' ? taxVoen : null,
                 isVatPayer: ownerType === 'HUQUQI_SEXS' ? isVatPayer : false,
             };
@@ -160,21 +164,22 @@ export function Settings() {
         }
 
         if (org.ownerType === 'FERDI_VETANDAS') {
+            const locLabel = org.activityLocation === 'RESIDENTIAL' ? 'Yaşayış əmlakı (10%)' : org.activityLocation === 'COMMERCIAL' ? 'Qeyri-yaşayış/kommersiya (14%)' : 'Əmlak növü seçilməyib';
             return (
                 <div className="bg-surface rounded-xl p-4 border border-border mt-4">
                     <div className="font-bold flex items-center gap-2 mb-2 text-text"><CheckCircle2 className="w-5 h-5 text-green" /> Vergi rejimi: Fərdi Vətəndaş</div>
-                    <div className="text-sm text-muted">Yaşayış + fiziki kirayəçi: <span className="text-text font-medium">10%</span></div>
-                    <div className="text-sm text-muted mt-1">Digər hallar: <span className="text-text font-medium">14%</span></div>
+                    <div className="text-sm text-muted">Əmlak növü: <span className="text-text font-medium">{locLabel}</span></div>
                     <Button variant="outline" size="sm" className="mt-4" onClick={() => setIsEditingTax(true)}>Dəyişdir</Button>
                 </div>
             );
         }
 
         if (org.ownerType === 'FERDI_SAHIBKAR') {
+            const officeLabel = org.taxOfficeType === 'SIMPLIFIED' ? '2% (Sadələşdirilmiş)' : org.taxOfficeType === 'STANDARD' ? '4% (Ümumi sistem)' : (org.activityLocation === 'BAKI' ? '4% (Bakı)' : org.activityLocation === 'DIGER' ? '2% (Digər şəhər)' : 'Vergi növü seçilməyib');
             return (
                 <div className="bg-surface rounded-xl p-4 border border-border mt-4">
                     <div className="font-bold flex items-center gap-2 mb-2 text-text"><CheckCircle2 className="w-5 h-5 text-green" /> Vergi rejimi: Fərdi Sahibkar</div>
-                    <div className="text-sm text-muted">Sadələşdirilmiş: <span className="text-text font-medium">{org.activityLocation === 'BAKI' ? '4% (Bakı)' : '2% (Digər şəhər)'}</span></div>
+                    <div className="text-sm text-muted">Vergi uçotu: <span className="text-text font-medium">{officeLabel}</span></div>
                     <div className="text-sm text-muted mt-1">ÖMV tətbiq edilmir</div>
                     <Button variant="outline" size="sm" className="mt-4" onClick={() => setIsEditingTax(true)}>Dəyişdir</Button>
                 </div>
@@ -336,29 +341,44 @@ export function Settings() {
                                             </div>
 
                                             {ownerType === 'FERDI_VETANDAS' && (
-                                                <div className="bg-blue/10 border border-blue/20 rounded-lg p-3 text-sm text-blue">
-                                                    <strong>Məlumat:</strong> Yaşayış əmlakı fiziki şəxsə kirayə → 10% ÖMV. Digər hallarda → 14% ÖMV.
-                                                </div>
+                                                <>
+                                                    <div className="space-y-2 pt-2 border-t border-border">
+                                                        <label className="text-sm font-medium text-text">Əmlak növü</label>
+                                                        <div className="flex gap-4">
+                                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                                <input type="radio" name="actLoc" value="RESIDENTIAL" checked={activityLocation === 'RESIDENTIAL'} onChange={() => setActivityLocation('RESIDENTIAL')} className="accent-gold" required />
+                                                                <span className="text-sm">Yaşayış (10% ÖMV)</span>
+                                                            </label>
+                                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                                <input type="radio" name="actLoc" value="COMMERCIAL" checked={activityLocation === 'COMMERCIAL'} onChange={() => setActivityLocation('COMMERCIAL')} className="accent-gold" required />
+                                                                <span className="text-sm">Kommersiya (14% ÖMV)</span>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-blue/10 border border-blue/20 rounded-lg p-3 text-sm text-blue">
+                                                        <strong>Məlumat:</strong> Yaşayış əmlakı fiziki şəxsə kirayə → 10% ÖMV. Kommersiya/qeyri-yaşayış → 14% ÖMV.
+                                                    </div>
+                                                </>
                                             )}
 
                                             {ownerType === 'FERDI_SAHIBKAR' && (
                                                 <>
                                                     <div className="space-y-2 pt-2 border-t border-border">
-                                                        <label className="text-sm font-medium text-text">Fəaliyyət yeri</label>
+                                                        <label className="text-sm font-medium text-text">Vergi uçotu yeri</label>
                                                         <div className="flex gap-4">
                                                             <label className="flex items-center gap-2 cursor-pointer">
-                                                                <input type="radio" name="loc" value="BAKI" checked={activityLocation === 'BAKI'} onChange={() => setActivityLocation('BAKI')} className="accent-gold" required />
-                                                                <span className="text-sm">Bakı (4%)</span>
+                                                                <input type="radio" name="taxOffice" value="SIMPLIFIED" checked={taxOfficeType === 'SIMPLIFIED'} onChange={() => setTaxOfficeType('SIMPLIFIED')} className="accent-gold" required />
+                                                                <span className="text-sm">Sadələşdirilmiş vergi (2%)</span>
                                                             </label>
                                                             <label className="flex items-center gap-2 cursor-pointer">
-                                                                <input type="radio" name="loc" value="DIGER" checked={activityLocation === 'DIGER'} onChange={() => setActivityLocation('DIGER')} className="accent-gold" required />
-                                                                <span className="text-sm">Digər şəhər (2%)</span>
+                                                                <input type="radio" name="taxOffice" value="STANDARD" checked={taxOfficeType === 'STANDARD'} onChange={() => setTaxOfficeType('STANDARD')} className="accent-gold" required />
+                                                                <span className="text-sm">Ümumi vergi sistemi (4%)</span>
                                                             </label>
                                                         </div>
                                                     </div>
                                                     <div className="bg-blue/10 border border-blue/20 rounded-lg p-3 text-sm text-blue">
                                                         <strong>Sadələşdirilmiş vergi rejimi:</strong><br />
-                                                        Kirayə məbləğinin 4% (Bakı) və ya 2% (digər). Bu vergi sahibkar tərəfindən ayrıca ödənilir. Müqavilədə brutto/ÖMV göstərilmir.
+                                                        Kirayə məbləğinin 2% (sadələşdirilmiş) və ya 4% (ümumi sistem). Bu vergi sahibkar tərəfindən ayrıca ödənilir. Müqavilədə brutto/ÖMV göstərilmir.
                                                     </div>
                                                 </>
                                             )}

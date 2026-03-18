@@ -48,7 +48,8 @@ const resetPasswordSchema = z.object({
 
 const updateOrgSchema = z.object({
     ownerType: z.enum(['FERDI_VETANDAS', 'FERDI_SAHIBKAR', 'HUQUQI_SEXS']).optional(),
-    activityLocation: z.enum(['BAKI', 'DIGER']).nullable().optional(),
+    activityLocation: z.enum(['BAKI', 'DIGER', 'RESIDENTIAL', 'COMMERCIAL']).nullable().optional(),
+    taxOfficeType: z.enum(['SIMPLIFIED', 'STANDARD']).nullable().optional(),
     taxVoen: z.string().nullable().optional(),
     isVatPayer: z.boolean().optional(),
 })
@@ -118,7 +119,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
                     isActive: true,
                     jwtVersion: 1,
                 },
-                include: { organization: { select: { id: true, name: true, plan: true, subscriptionPlan: true, subscriptionStatus: true, planExpiresAt: true, isActive: true, senadUstasiUsedMonth: true, senadUstasiResetDate: true, ownerType: true, activityLocation: true, taxVoen: true, isVatPayer: true } } },
+                include: { organization: { select: { id: true, name: true, plan: true, subscriptionPlan: true, subscriptionStatus: true, planExpiresAt: true, isActive: true, senadUstasiUsedMonth: true, senadUstasiResetDate: true, ownerType: true, activityLocation: true, taxOfficeType: true, taxVoen: true, isVatPayer: true } } },
             })
             return { user, org }
         })
@@ -295,7 +296,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
             select: {
                 id: true, email: true, name: true, role: true, phone: true,
                 isActive: true, createdAt: true, telegramChatId: true, avatarUrl: true,
-                organization: { select: { id: true, name: true, plan: true, subscriptionPlan: true, subscriptionStatus: true, planExpiresAt: true, isActive: true, senadUstasiUsedMonth: true, senadUstasiResetDate: true, ownerType: true, activityLocation: true, taxVoen: true, isVatPayer: true } },
+                organization: { select: { id: true, name: true, plan: true, subscriptionPlan: true, subscriptionStatus: true, planExpiresAt: true, isActive: true, senadUstasiUsedMonth: true, senadUstasiResetDate: true, ownerType: true, activityLocation: true, taxOfficeType: true, taxVoen: true, isVatPayer: true } },
             },
         })
         if (!user) return reply.code(404).send({ success: false, error: 'User not found' })
@@ -312,7 +313,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         const org = await fastify.prisma.organization.update({
             where: { id: req.user.organizationId as string },
             data: body.data,
-            select: { id: true, name: true, plan: true, subscriptionPlan: true, subscriptionStatus: true, planExpiresAt: true, isActive: true, ownerType: true, activityLocation: true, taxVoen: true, isVatPayer: true }
+            select: { id: true, name: true, plan: true, subscriptionPlan: true, subscriptionStatus: true, planExpiresAt: true, isActive: true, ownerType: true, activityLocation: true, taxOfficeType: true, taxVoen: true, isVatPayer: true }
         })
 
         return reply.send({ success: true, data: org })

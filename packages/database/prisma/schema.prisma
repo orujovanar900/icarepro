@@ -24,6 +24,8 @@ enum OwnerType {
 enum ActivityLocation {
   BAKI
   DIGER
+  RESIDENTIAL
+  COMMERCIAL
 }
 
 enum UserRole {
@@ -185,6 +187,7 @@ model Organization {
 
   ownerType            OwnerType?
   activityLocation     ActivityLocation?
+  taxOfficeType        String?            // 'SIMPLIFIED' | 'STANDARD' — only for FERDI_SAHIBKAR
   taxVoen              String?
   isVatPayer           Boolean   @default(false)
 

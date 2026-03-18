@@ -236,7 +236,7 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // DELETE /properties/:id — soft delete
-    fastify.delete('/:id', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER'])] }, async (req, reply) => {
+    fastify.delete('/:id', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ADMINISTRATOR'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
         const exists = await fastify.prisma.property.findFirst({ where: { id, ...withOrg(req) } })
         if (!exists) return reply.code(404).send({ success: false, error: 'Property not found' })
@@ -265,15 +265,22 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // PATCH /properties/:id/restore
-    fastify.patch('/:id/restore', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER'])] }, async (req, reply) => {
+    fastify.patch('/:id/restore', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ADMINISTRATOR'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
         const exists = await fastify.prisma.property.findFirst({ where: { id, ...withOrg(req) } })
         if (!exists) return reply.code(404).send({ success: false, error: 'Property not found' })
 
         await fastify.prisma.property.update({
-            where: { id },
+            where: { id, ...withOrg(req) },
             data: { deletedAt: null }
         })
+
+        // Sync: restore linked listing to BOSHDUR (available)
+        await fastify.prisma.listing.updateMany({
+            where: { propertyId: id, organizationId: req.user.organizationId as string },
+            data: { availStatus: 'BOSHDUR' },
+        })
+
         return reply.send({ success: true })
     })
 
