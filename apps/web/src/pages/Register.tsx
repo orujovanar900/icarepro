@@ -135,7 +135,7 @@ export function Register() {
                         className="text-5xl font-heading tracking-tight flex items-center justify-center gap-2 hover:opacity-80 transition-opacity"
                     >
                         <span className="font-extrabold">
-                            <span className="text-gold">icare</span>
+                            <span className="text-gold">icarə</span>
                             <span style={{ color: '#1A1A2E' }}>pro</span>
                         </span>
                     </Link>

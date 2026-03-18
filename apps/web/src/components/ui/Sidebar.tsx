@@ -110,7 +110,7 @@ export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: bool
                 <div className="flex h-[72px] items-center justify-between px-6">
                     <div className="flex flex-col justify-center">
                         <Link to="/" className="text-3xl font-heading tracking-tight flex items-center gap-1.5 hover:opacity-80 transition-opacity">
-                            <span className="font-extrabold"><span className="text-gold">icare</span><span style={{ color: 'var(--color-text)' }}>pro</span></span>
+                            <span className="font-extrabold"><span className="text-gold">icarə</span><span style={{ color: 'var(--color-text)' }}>pro</span></span>
                         </Link>
                     </div>
                     {/* Close button for mobile */}

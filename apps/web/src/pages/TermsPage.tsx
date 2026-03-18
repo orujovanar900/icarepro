@@ -17,7 +17,7 @@ export function TermsPage() {
                         className="text-4xl font-heading tracking-tight flex items-center justify-center gap-2 hover:opacity-80 transition-opacity"
                     >
                         <span className="font-extrabold">
-                            <span className="text-gold">icare</span>
+                            <span className="text-gold">icarə</span>
                             <span style={{ color: '#1A1A2E' }}>pro</span>
                         </span>
                     </Link>
@@ -45,7 +45,7 @@ export function TermsPage() {
                             Bu sənəd hazırlanır. Tezliklə əlavə ediləcək.
                         </p>
                         <p>
-                            İcarePro xidmətindən istifadə etməklə siz bu şərtlərlə razılaşmış hesab
+                            İcarəPro xidmətindən istifadə etməklə siz bu şərtlərlə razılaşmış hesab
                             olunursunuz. Suallarınız üçün{' '}
                             <a
                                 href="mailto:support@icare.pro.az"

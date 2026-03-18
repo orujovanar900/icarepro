@@ -54,7 +54,7 @@ export function ResetPassword() {
             <div className="w-full max-w-sm">
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-extrabold font-heading">
-                        <span className="font-extrabold"><span className="text-gold">icare</span><span style={{ color: '#1A1A2E' }}>pro</span></span>
+                        <span className="font-extrabold"><span className="text-gold">icarə</span><span style={{ color: '#1A1A2E' }}>pro</span></span>
                     </h1>
                 </div>
 

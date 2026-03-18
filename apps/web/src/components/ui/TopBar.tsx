@@ -122,7 +122,7 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
                 </button>
                 <div className="flex flex-col justify-center mt-1">
                     <Link to="/" className="text-xl font-extrabold font-heading hover:opacity-80 transition-opacity leading-tight">
-                        <span className="font-extrabold"><span className="text-gold">icare</span><span className="text-white">pro</span></span>
+                        <span className="font-extrabold"><span className="text-gold">icarə</span><span className="text-[#1A1A2E] dark:text-white">pro</span></span>
                     </Link>
                 </div>
             </div>

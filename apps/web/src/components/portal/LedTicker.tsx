@@ -26,8 +26,8 @@ const WHITE            = '#FFFFFF';
 const HEIGHT           = 38;
 const PIXELS_PER_SECOND = 80; // consistent visual speed regardless of content length
 
-const DEFAULT_TEXT = 'icarepro — Bakının birinci rəqəmsal icarə platforması · Elanınızı yerləşdirin · icarepro.az';
-const LOADING_TEXT = 'icarepro · Bakının rəqəmsal icarə platforması · ';
+const DEFAULT_TEXT = 'icarəpro — Bakının birinci rəqəmsal icarə platforması · Elanınızı yerləşdirin · icarəpro.az';
+const LOADING_TEXT = 'icarəpro · Bakının rəqəmsal icarə platforması · ';
 
 // ─── CSS injection (once) ────────────────────────────────────────────────────
 
