@@ -61,21 +61,48 @@ export function CreateDashboardListing() {
     const addToast = useToastStore((s) => s.addToast);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Pre-fill from linked property
-    const { data: linkedProperty } = useQuery({
-        queryKey: ['property-for-listing', linkedPropertyId],
-        queryFn: async () => {
-            const res = await api.get(`/properties/${linkedPropertyId}`);
-            return res.data.data;
-        },
-        enabled: !!linkedPropertyId,
-    });
-
     // Property type → listing type mapping
     const PROPERTY_TO_LISTING_TYPE: Record<string, string> = {
         MENZEL: 'MENZIL', HEYET_EVI: 'HEYET_EVI', OFIS: 'OFIS',
         OBYEKT: 'OBYEKT', ANBAR: 'ANBAR', GARAJ: 'GARAJ', TORPAQ: 'TORPAQ',
     };
+
+    // ── All properties for the picker ─────────────────────────────────────────
+    const { data: allProperties = [] } = useQuery<any[]>({
+        queryKey: ['properties-for-listing-form'],
+        queryFn: async () => {
+            const res = await api.get('/properties?limit=300');
+            const d = res.data?.data;
+            return Array.isArray(d) ? d : (d?.data ?? []);
+        },
+    });
+    const [propertySearch, setPropertySearch] = useState('');
+    const [selectedPropertyId, setSelectedPropertyId] = useState<string>(linkedPropertyId ?? '');
+
+    const filteredProperties = React.useMemo(() => {
+        if (!propertySearch) return allProperties;
+        const s = propertySearch.toLowerCase();
+        return allProperties.filter(p =>
+            p.name?.toLowerCase().includes(s) ||
+            p.address?.toLowerCase().includes(s) ||
+            p.number?.toLowerCase().includes(s)
+        );
+    }, [allProperties, propertySearch]);
+
+    const selectedProperty = allProperties.find(p => p.id === selectedPropertyId) ?? null;
+
+    // Pre-fill from linked property (via URL param, loads async)
+    const { data: urlLinkedProperty } = useQuery({
+        queryKey: ['property-for-listing', linkedPropertyId],
+        queryFn: async () => {
+            const res = await api.get(`/properties/${linkedPropertyId}`);
+            return res.data.data;
+        },
+        enabled: !!linkedPropertyId && allProperties.length === 0,
+    });
+
+    // Resolve which property to auto-fill from (picker selection takes priority)
+    const propertyForAutofill = selectedProperty ?? urlLinkedProperty ?? null;
 
     // Form state
     const [type, setType] = useState('');
@@ -96,15 +123,17 @@ export function CreateDashboardListing() {
     const [photos, setPhotos] = useState<string[]>([]);
     const [uploading, setUploading] = useState(false);
 
-    // Pre-fill form from linked property when loaded
+    // Auto-fill form whenever the selected property changes
     useEffect(() => {
-        if (!linkedProperty) return;
-        const mappedType = PROPERTY_TO_LISTING_TYPE[linkedProperty.type] || '';
+        if (!propertyForAutofill) return;
+        const mappedType = PROPERTY_TO_LISTING_TYPE[propertyForAutofill.type] || '';
         if (mappedType) setType(mappedType);
-        if (linkedProperty.address) setAddress(linkedProperty.address);
-        if (linkedProperty.area) setArea(String(linkedProperty.area));
+        if (propertyForAutofill.address) setAddress(propertyForAutofill.address);
+        if (propertyForAutofill.area) setArea(String(propertyForAutofill.area));
+        if (propertyForAutofill.floor) setFloor(String(propertyForAutofill.floor));
+        if (propertyForAutofill.totalFloors) setTotalFloors(String(propertyForAutofill.totalFloors));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [linkedProperty]);
+    }, [propertyForAutofill?.id]);
 
     // Auto-generate title
     const autoTitle = React.useMemo(() => {
@@ -211,6 +240,8 @@ export function CreateDashboardListing() {
             amenities,
             photos,
         };
+        // Link to the selected property
+        if (selectedPropertyId) payload['propertyId'] = selectedPropertyId;
         if (rooms !== null) payload['rooms'] = rooms;
         if (area) payload['area'] = Number(area);
         if (floor) payload['floor'] = Number(floor);
@@ -254,13 +285,64 @@ export function CreateDashboardListing() {
                 </div>
             </div>
 
-            {/* Linked property banner */}
-            {linkedProperty && (
-                <div className="flex items-center gap-3 bg-blue/10 border border-blue/30 rounded-xl px-4 py-3 text-sm text-text">
-                    <Building className="w-4 h-4 text-blue shrink-0" />
-                    <span>Elan <strong>{linkedProperty.name}</strong> obyekti əsasında yaradılır. Növ və ünvan avtomatik dolduruldu.</span>
-                </div>
-            )}
+            {/* ── Property Picker Card ── */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <Building className="w-4 h-4 text-gold" />
+                        Mövcud obyekti seç (istəyə bağlı)
+                    </CardTitle>
+                    <p className="text-xs text-muted mt-0.5">Obyekt seçdikdə növ, ünvan və sahə avtomatik doldurulur</p>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                    {/* Search */}
+                    <input
+                        value={propertySearch}
+                        onChange={e => setPropertySearch(e.target.value)}
+                        placeholder="Obyekt axtar (ad, ünvan, nömrə)..."
+                        className="w-full px-3 py-2 rounded-md border border-border bg-bg text-text text-sm focus:outline-none focus:ring-2 focus:ring-gold"
+                    />
+                    {/* Property list */}
+                    <div className="max-h-48 overflow-y-auto space-y-1.5 rounded-lg">
+                        {/* Clear selection option */}
+                        {selectedPropertyId && (
+                            <button
+                                onClick={() => {
+                                    setSelectedPropertyId('');
+                                    setPropertySearch('');
+                                }}
+                                className="w-full text-left px-3 py-2 rounded-lg border border-dashed border-border text-xs text-muted hover:border-gold/40 transition-colors"
+                            >
+                                ✕ Seçimi ləğv et
+                            </button>
+                        )}
+                        {filteredProperties.length === 0 && (
+                            <p className="text-xs text-muted text-center py-4">Obyekt tapılmadı</p>
+                        )}
+                        {filteredProperties.map(p => (
+                            <button
+                                key={p.id}
+                                onClick={() => setSelectedPropertyId(p.id)}
+                                className={`w-full text-left px-3 py-2.5 rounded-lg border text-sm transition-all ${
+                                    selectedPropertyId === p.id
+                                        ? 'border-gold bg-gold/5 text-text'
+                                        : 'border-border text-muted hover:border-gold/30 hover:text-text'
+                                }`}
+                            >
+                                <div className="font-medium">{p.name}</div>
+                                {p.address && <div className="text-xs mt-0.5 opacity-70">{p.address}</div>}
+                            </button>
+                        ))}
+                    </div>
+                    {/* Selected property info badge */}
+                    {selectedProperty && (
+                        <div className="flex items-center gap-2 bg-gold/5 border border-gold/20 rounded-lg px-3 py-2 text-sm">
+                            <Building className="w-4 h-4 text-gold shrink-0" />
+                            <span className="text-text">Seçildi: <strong>{selectedProperty.name}</strong> — növ, ünvan, sahə avtomatik dolduruldu</span>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             {/* SECTION 1: Type */}
             <Card>
