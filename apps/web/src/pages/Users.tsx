@@ -327,7 +327,7 @@ export function Users() {
                                                             Düzəliş Et
                                                         </Button>
 
-                                                        {user?.role === 'OWNER' && u.id !== user?.id && (
+                                                        {['OWNER', 'MANAGER'].includes(user?.role || '') && u.id !== user?.id && (
                                                             <Button
                                                                 variant="danger"
                                                                 size="sm"
@@ -394,7 +394,7 @@ export function Users() {
                                                 Düzəliş Et
                                             </Button>
 
-                                            {user?.role === 'OWNER' && u.id !== user?.id && (
+                                            {['OWNER', 'MANAGER'].includes(user?.role || '') && u.id !== user?.id && (
                                                 <Button
                                                     variant="danger"
                                                     size="sm"

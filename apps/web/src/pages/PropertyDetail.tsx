@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Building, MapPin, Maximize, ArrowLeft, Calendar, User, FileText, Zap, Camera, Trash2, UploadCloud, Loader2, ChevronLeft, ChevronRight, X, ExternalLink, Download, FilePlus, Printer } from 'lucide-react';
+import { Building, MapPin, Maximize, ArrowLeft, Calendar, User, FileText, Zap, Camera, Trash2, UploadCloud, Loader2, ChevronLeft, ChevronRight, X, ExternalLink, Download, FilePlus, Printer, Store } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { useToastStore } from '@/store/toast';
 import { usePlan, FeatureGate } from '@/utils/planGates';
 import { UpgradeModal } from '@/components/UpgradeModal';
+import { useAuthStore } from '@/store/auth';
 
 const formatMoney = (amount: number) =>
     new Intl.NumberFormat('az-AZ', { style: 'currency', currency: 'AZN', maximumFractionDigits: 0 }).format(amount);
@@ -52,7 +53,9 @@ export function PropertyDetail() {
     const queryClient = useQueryClient();
     const addToast = useToastStore((state) => state.addToast);
     const { can } = usePlan();
+    const { user } = useAuthStore();
     const [upgradeFeature, setUpgradeFeature] = useState<FeatureGate | null>(null);
+    const canCreateListing = ['OWNER', 'MANAGER'].includes(user?.role || '');
 
     const [activeTab, setActiveTab] = useState<'details' | 'photos' | 'history' | 'report'>('details');
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -236,9 +239,22 @@ export function PropertyDetail() {
                     </h1>
                     <p className="text-sm text-muted mt-1">Nömrə: {property.number}</p>
                 </div>
-                <Badge variant={propertyStatusVariant[property.status] || 'aktiv'}>
-                    {propertyStatusLabel[property.status] || property.status}
-                </Badge>
+                <div className="flex items-center gap-2 shrink-0">
+                    {canCreateListing && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-gold/40 text-gold hover:bg-gold/10 gap-1.5"
+                            onClick={() => navigate(`/dashboard/elanlar/yeni?propertyId=${id}`)}
+                        >
+                            <Store className="w-4 h-4" />
+                            Elan yarat
+                        </Button>
+                    )}
+                    <Badge variant={propertyStatusVariant[property.status] || 'aktiv'}>
+                        {propertyStatusLabel[property.status] || property.status}
+                    </Badge>
+                </div>
             </div>
 
             {/* Tabs Navigation */}

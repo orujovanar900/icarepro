@@ -63,11 +63,11 @@ export function Settings() {
             );
         }
         if (org.ownerType === 'FERDI_VETANDAS') {
-            const locLabel = org.activityLocation === 'RESIDENTIAL' ? 'Yaşayış əmlakı (10%)' : org.activityLocation === 'COMMERCIAL' ? 'Qeyri-yaşayış/kommersiya (14%)' : 'Əmlak növü seçilməyib';
             return (
                 <div className="bg-surface rounded-xl p-4 border border-border">
                     <div className="font-bold flex items-center gap-2 mb-2 text-text"><CheckCircle2 className="w-5 h-5 text-green" /> Vergi rejimi: Fərdi Vətəndaş</div>
-                    <div className="text-sm text-muted">Əmlak növü: <span className="text-text font-medium">{locLabel}</span></div>
+                    <div className="text-sm text-muted">Kirayə gəlirinizə ÖMV tətbiq olunur (yaşayış: 10%, kommersiya: 14%).</div>
+                    <div className="text-xs text-muted mt-1">Əmlak növü müqavilədəki seçilmiş obyektdən avtomatik müəyyən edilir.</div>
                     <Button variant="outline" size="sm" className="mt-4" onClick={() => setIsEditingTax(true)}>Dəyişdir</Button>
                 </div>
             );
@@ -154,24 +154,10 @@ export function Settings() {
                                         </div>
 
                                         {ownerType === 'FERDI_VETANDAS' && (
-                                            <>
-                                                <div className="space-y-2 pt-2 border-t border-border">
-                                                    <label className="text-sm font-medium text-text">Əmlak növü</label>
-                                                    <div className="flex gap-4">
-                                                        <label className="flex items-center gap-2 cursor-pointer">
-                                                            <input type="radio" name="actLoc" value="RESIDENTIAL" checked={activityLocation === 'RESIDENTIAL'} onChange={() => setActivityLocation('RESIDENTIAL')} className="accent-gold" required />
-                                                            <span className="text-sm">Yaşayış (10% ÖMV)</span>
-                                                        </label>
-                                                        <label className="flex items-center gap-2 cursor-pointer">
-                                                            <input type="radio" name="actLoc" value="COMMERCIAL" checked={activityLocation === 'COMMERCIAL'} onChange={() => setActivityLocation('COMMERCIAL')} className="accent-gold" required />
-                                                            <span className="text-sm">Kommersiya (14% ÖMV)</span>
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                                <div className="bg-blue/10 border border-blue/20 rounded-lg p-3 text-sm text-blue">
-                                                    <strong>Məlumat:</strong> Yaşayış əmlakı fiziki şəxsə kirayə → 10% ÖMV. Kommersiya/qeyri-yaşayış → 14% ÖMV.
-                                                </div>
-                                            </>
+                                            <div className="bg-blue/10 border border-blue/20 rounded-lg p-3 text-sm text-blue">
+                                                <strong>Məlumat:</strong> Fərdi vətəndaş kimi kirayə gəlirinizdən ÖMV ödəyirsiniz.{' '}
+                                                Əmlak növü (yaşayış → 10%, kommersiya → 14%) müqavilə zamanı seçilən obyektin tipindən avtomatik müəyyən edilir.
+                                            </div>
                                         )}
 
                                         {ownerType === 'FERDI_SAHIBKAR' && (

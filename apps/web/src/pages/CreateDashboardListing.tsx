@@ -1,7 +1,7 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
-import { ArrowLeft, Upload, X, ImageIcon } from 'lucide-react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { ArrowLeft, Upload, X, ImageIcon, Building } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { useToastStore } from '@/store/toast';
@@ -55,9 +55,27 @@ const TYPE_LABEL_MAP: Record<string, string> = {
 /* ──────────── Component ──────────── */
 export function CreateDashboardListing() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const linkedPropertyId = searchParams.get('propertyId');
     const { user } = useAuthStore();
     const addToast = useToastStore((s) => s.addToast);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Pre-fill from linked property
+    const { data: linkedProperty } = useQuery({
+        queryKey: ['property-for-listing', linkedPropertyId],
+        queryFn: async () => {
+            const res = await api.get(`/properties/${linkedPropertyId}`);
+            return res.data.data;
+        },
+        enabled: !!linkedPropertyId,
+    });
+
+    // Property type → listing type mapping
+    const PROPERTY_TO_LISTING_TYPE: Record<string, string> = {
+        MENZEL: 'MENZIL', HEYET_EVI: 'HEYET_EVI', OFIS: 'OFIS',
+        OBYEKT: 'OBYEKT', ANBAR: 'ANBAR', GARAJ: 'GARAJ', TORPAQ: 'TORPAQ',
+    };
 
     // Form state
     const [type, setType] = useState('');
@@ -77,6 +95,16 @@ export function CreateDashboardListing() {
     const [amenities, setAmenities] = useState<string[]>([]);
     const [photos, setPhotos] = useState<string[]>([]);
     const [uploading, setUploading] = useState(false);
+
+    // Pre-fill form from linked property when loaded
+    useEffect(() => {
+        if (!linkedProperty) return;
+        const mappedType = PROPERTY_TO_LISTING_TYPE[linkedProperty.type] || '';
+        if (mappedType) setType(mappedType);
+        if (linkedProperty.address) setAddress(linkedProperty.address);
+        if (linkedProperty.area) setArea(String(linkedProperty.area));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [linkedProperty]);
 
     // Auto-generate title
     const autoTitle = React.useMemo(() => {
@@ -225,6 +253,14 @@ export function CreateDashboardListing() {
                     <p className="text-sm text-muted mt-0.5">Qaralama kimi saxlaya və ya birbaşa dərc edə bilərsiniz</p>
                 </div>
             </div>
+
+            {/* Linked property banner */}
+            {linkedProperty && (
+                <div className="flex items-center gap-3 bg-blue/10 border border-blue/30 rounded-xl px-4 py-3 text-sm text-text">
+                    <Building className="w-4 h-4 text-blue shrink-0" />
+                    <span>Elan <strong>{linkedProperty.name}</strong> obyekti əsasında yaradılır. Növ və ünvan avtomatik dolduruldu.</span>
+                </div>
+            )}
 
             {/* SECTION 1: Type */}
             <Card>

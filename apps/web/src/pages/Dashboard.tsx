@@ -725,8 +725,8 @@ function DashboardContent() {
                 </Card>
             </div>
 
-            {/* Portal Listing Stats */}
-            {(dashboard?.activeListings ?? 0) > 0 || isDashboardLoading ? (
+            {/* Portal Listing Stats — only shown when org has active listings */}
+            {!isDashboardLoading && (dashboard?.activeListings ?? 0) > 0 ? (
                 <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 mt-4">
                     <Card variant="elevated" style={{ height: '100px', border: '1px solid rgba(255, 255, 255, 0.12)' }} className="flex flex-col justify-center">
                         <CardHeader className="pb-1 flex flex-row items-center justify-between">
@@ -839,11 +839,26 @@ function DashboardContent() {
                 </Card>
 
                 {/* Debtors List next to Map */}
-                <Card variant="default" id="debtors-list" className="flex flex-col bg-card/50 h-[350px]">
+                <Card
+                    variant="default"
+                    id="debtors-list"
+                    className="flex flex-col h-[350px]"
+                    style={{
+                        border: '1px solid rgba(248,113,113,0.35)',
+                        background: 'linear-gradient(135deg, rgba(239,68,68,0.04) 0%, transparent 60%)',
+                        boxShadow: '0 0 0 1px rgba(248,113,113,0.15), 0 4px 20px rgba(239,68,68,0.08)'
+                    }}
+                >
                     <CardHeader className="shrink-0">
                         <CardTitle className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
                             <AlertCircle className="w-5 h-5 text-red" />
                             Borclular
+                            {(sortedDebtors.length > 0) && (
+                                <span className="relative flex h-2.5 w-2.5 ml-1">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red opacity-75" />
+                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red" />
+                                </span>
+                            )}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="flex-1 overflow-y-auto pr-2 custom-scrollbar" style={{ minHeight: 0 }}>

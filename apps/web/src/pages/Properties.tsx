@@ -91,6 +91,20 @@ export function Properties() {
         }
     });
 
+    const [deleteConfirmProperty, setDeleteConfirmProperty] = useState<{ id: string; name: string } | null>(null);
+
+    const deletePropertyMutation = useMutation({
+        mutationFn: (id: string) => api.delete(`/properties/${id}`),
+        onSuccess: () => {
+            addToast({ message: 'Obyekt silindi', type: 'success' });
+            queryClient.invalidateQueries({ queryKey: ['properties'] });
+            setDeleteConfirmProperty(null);
+        },
+        onError: (err: any) => {
+            addToast({ message: err.response?.data?.error || 'Silmə zamanı xəta baş verdi', type: 'error' });
+        }
+    });
+
     const handleAddProperty = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!form.number || !form.name || !form.address || !form.area) {
@@ -135,6 +149,7 @@ export function Properties() {
     const activeContracts = Array.isArray(contractsData) ? contractsData : (contractsData?.data || []);
 
     const canAddProperty = ['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'].includes(user?.role || '');
+    const canDeleteProperty = ['OWNER', 'MANAGER', 'ADMINISTRATOR'].includes(user?.role || '');
 
     const getReportPayload = () => ({
         startDate: new Date(reportStartDate || '').toISOString(),
@@ -537,12 +552,28 @@ export function Properties() {
                                                         Bərpa et
                                                     </Button>
                                                 ) : (
-                                                    <>
-                                                        <p className="text-xs text-muted">Aylıq İcarə</p>
-                                                        <p className="font-bold text-gold">
-                                                            {contract ? formatMoney(contract.monthlyRent) : '-'}
-                                                        </p>
-                                                    </>
+                                                    <div className="flex items-end justify-end gap-2">
+                                                        <div className="text-right">
+                                                            <p className="text-xs text-muted">Aylıq İcarə</p>
+                                                            <p className="font-bold text-gold">
+                                                                {contract ? formatMoney(contract.monthlyRent) : '-'}
+                                                            </p>
+                                                        </div>
+                                                        {canDeleteProperty && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="border-red/40 text-red hover:bg-red/10 p-1.5 h-auto shrink-0"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setDeleteConfirmProperty({ id: property.id, name: property.name });
+                                                                }}
+                                                                title="Obyekti sil"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
@@ -631,6 +662,31 @@ export function Properties() {
                             Göndər
                         </Button>
                     </div>
+                </div>
+            </Modal>
+
+            {/* Delete Property Confirmation Modal */}
+            <Modal
+                isOpen={!!deleteConfirmProperty}
+                onClose={() => setDeleteConfirmProperty(null)}
+                title="Obyekti sil"
+            >
+                <p className="text-sm text-muted mb-2">
+                    <strong className="text-text">{deleteConfirmProperty?.name}</strong> obyektini silmək istədiyinizə əminsiniz?
+                </p>
+                <p className="text-xs text-muted mb-6">
+                    Obyekt arxivləşdirilib gərınməz olacaq. &quot;Silinnələr&quot; səksi yaində yenidən bərpa edə bilərsiniz.
+                </p>
+                <div className="flex gap-4">
+                    <Button variant="outline" className="flex-1" onClick={() => setDeleteConfirmProperty(null)}>Ləğv et</Button>
+                    <Button
+                        variant="danger"
+                        className="flex-1"
+                        onClick={() => deleteConfirmProperty && deletePropertyMutation.mutate(deleteConfirmProperty.id)}
+                        disabled={deletePropertyMutation.isPending}
+                    >
+                        {deletePropertyMutation.isPending ? 'Silinir...' : 'Sil'}
+                    </Button>
                 </div>
             </Modal>
 
