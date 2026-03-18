@@ -346,7 +346,7 @@ export function Properties() {
                             label="Nömrə *"
                             value={form.number}
                             onChange={e => setForm(f => ({ ...f, number: e.target.value }))}
-                            placeholder="001"
+                            placeholder="məs: 1/733, A-02, 15B"
                         />
                         <Input
                             label="Ad *"

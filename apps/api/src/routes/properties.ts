@@ -34,6 +34,7 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
         const limit = Number(q['limit'] ?? 50)
         const offset = Number(q['offset'] ?? 0)
         const typeFilter = q['type']
+        const statusFilter = q['status']
 
         const deleted = q['deleted'] === 'true'
 
@@ -48,6 +49,7 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
                 ]
             } : {}),
             ...(typeFilter ? { type: typeFilter } : {}),
+            ...(statusFilter ? { status: statusFilter } : {}),
         }
 
         let orderByCol = 'number'
@@ -220,8 +222,16 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
     fastify.post('/', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
         const body = createSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
-        const property = await fastify.prisma.property.create({ data: { ...body.data, organizationId: req.user.organizationId as string } })
-        return reply.code(201).send({ success: true, data: property })
+        try {
+            const property = await fastify.prisma.property.create({ data: { ...body.data, organizationId: req.user.organizationId as string } })
+            return reply.code(201).send({ success: true, data: property })
+        } catch (err: any) {
+            if (err?.code === 'P2002') {
+                return reply.code(409).send({ success: false, error: 'Bu nömrəli obyekt artıq mövcuddur. Farklı nömrə seçin.' })
+            }
+            fastify.log.error(err)
+            return reply.code(500).send({ success: false, error: 'Server xətası' })
+        }
     })
 
     // PATCH /properties/:id
