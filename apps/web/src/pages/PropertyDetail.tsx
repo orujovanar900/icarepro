@@ -288,13 +288,7 @@ export function PropertyDetail() {
                                     <p className="font-medium text-text mt-1">{property.address || '—'}</p>
                                 </div>
                             </div>
-                            <div className="flex items-start gap-3">
-                                <Building className="w-5 h-5 text-gold mt-0.5 shrink-0" />
-                                <div>
-                                    <p className="text-xs text-muted font-medium uppercase tracking-wide">Bina</p>
-                                    <p className="font-medium text-text mt-1">{property.building || '—'}</p>
-                                </div>
-                            </div>
+
                             <div className="flex items-start gap-3">
                                 <Maximize className="w-5 h-5 text-gold mt-0.5 shrink-0" />
                                 <div>

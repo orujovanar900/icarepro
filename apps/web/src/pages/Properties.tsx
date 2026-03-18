@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Search, Building, Plus, MapPin, Maximize, ChevronLeft, ChevronRight, ArchiveRestore, Trash2 } from 'lucide-react';
+import { Search, Building, Plus, MapPin, Maximize, ChevronLeft, ChevronRight, ArchiveRestore, Trash2, Pencil } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -105,6 +105,48 @@ export function Properties() {
         }
     });
 
+    const [editingProperty, setEditingProperty] = useState<any | null>(null);
+
+    const editPropertyMutation = useMutation({
+        mutationFn: ({ id, data }: { id: string; data: any }) =>
+            api.patch(`/properties/${id}`, data),
+        onSuccess: () => {
+            addToast({ message: 'Obyekt yeniləndi ✓', type: 'success' });
+            queryClient.invalidateQueries({ queryKey: ['properties'] });
+            closeModal();
+        },
+        onError: (err: any) => {
+            addToast({ message: err.response?.data?.error || 'Xəta baş verdi', type: 'error' });
+        },
+    });
+
+    const openAddModal = () => {
+        setEditingProperty(null);
+        setForm({ number: '', name: '', propertyType: 'MENZIL', address: '', area: '', status: 'VACANT', lat: 40.4093, lng: 49.8671 });
+        setIsModalOpen(true);
+    };
+
+    const openEditModal = (p: any) => {
+        setEditingProperty(p);
+        setForm({
+            number: p.number || '',
+            name: p.name || '',
+            propertyType: p.type || 'MENZIL',
+            address: p.address || '',
+            area: p.area != null ? String(p.area) : '',
+            status: p.status || 'VACANT',
+            lat: p.lat ?? 40.4093,
+            lng: p.lng ?? 49.8671,
+        });
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setEditingProperty(null);
+        setIsModalOpen(false);
+        setForm({ number: '', name: '', propertyType: 'MENZIL', address: '', area: '', status: 'VACANT', lat: 40.4093, lng: 49.8671 });
+    };
+
     const handleAddProperty = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!form.number || !form.name || !form.address || !form.area) {
@@ -117,13 +159,31 @@ export function Properties() {
         }
         setIsSaving(true);
         try {
-            await api.post('/properties', { ...form, type: form.propertyType, building: form.address, area: Number(form.area), lat: form.lat, lng: form.lng });
-            addToast({ message: 'Obyekt əlavə edildi ✓', type: 'success' });
-            setIsModalOpen(false);
-            setForm({ number: '', name: '', propertyType: 'MENZIL', address: '', area: '', status: 'VACANT', lat: 40.4093, lng: 49.8671 });
-            queryClient.invalidateQueries({ queryKey: ['properties'] });
+            if (editingProperty) {
+                await editPropertyMutation.mutateAsync({
+                    id: editingProperty.id,
+                    data: {
+                        number: form.number,
+                        name: form.name,
+                        type: form.propertyType,
+                        address: form.address,
+                        building: form.address,
+                        area: Number(form.area),
+                        status: form.status,
+                        lat: form.lat,
+                        lng: form.lng,
+                    },
+                });
+            } else {
+                await api.post('/properties', { ...form, type: form.propertyType, building: form.address, area: Number(form.area), lat: form.lat, lng: form.lng });
+                addToast({ message: 'Obyekt əlavə edildi ✓', type: 'success' });
+                queryClient.invalidateQueries({ queryKey: ['properties'] });
+                closeModal();
+            }
         } catch (error: any) {
-            addToast({ message: error.response?.data?.error || 'Xəta baş verdi', type: 'error' });
+            if (!editingProperty) {
+                addToast({ message: error.response?.data?.error || 'Xəta baş verdi', type: 'error' });
+            }
         } finally {
             setIsSaving(false);
         }
@@ -240,11 +300,11 @@ export function Properties() {
                     </Button>
                     {canAddProperty && (
                         <Button onClick={() => {
-                            if (!can('addUnit', totalCount)) {
+                            if (!can('addUnit', properties.length)) {
                                 setUpgradeFeature('addUnit');
                                 return;
                             }
-                            setIsModalOpen(true);
+                            openAddModal();
                         }}>
                             <Plus className="w-4 h-4 mr-2" />
                             Yeni Obyekt
@@ -253,8 +313,8 @@ export function Properties() {
                 </div>
             </div>
 
-            {/* Add Property Modal */}
-            <Modal isOpen={isModalOpen} onClose={() => !isSaving && setIsModalOpen(false)} title="Yeni Obyekt">
+            {/* Add/Edit Property Modal */}
+            <Modal isOpen={isModalOpen} onClose={() => !isSaving && closeModal()} title={editingProperty ? 'Obyekti Düzəliş Et' : 'Yeni Obyekt'}>
                 <form onSubmit={handleAddProperty} className="space-y-4">
                     {/* Property type chips */}
                     <div>
@@ -577,20 +637,34 @@ export function Properties() {
                                                                 {contract ? formatMoney(contract.monthlyRent) : '-'}
                                                             </p>
                                                         </div>
-                                                        {canDeleteProperty && (
-                                                            <Button
-                                                                size="sm"
-                                                                variant="outline"
-                                                                className="border-red/40 text-red hover:bg-red/10 p-1.5 h-auto shrink-0"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setDeleteConfirmProperty({ id: property.id, name: property.name });
-                                                                }}
-                                                                title="Obyekti sil"
-                                                            >
-                                                                <Trash2 className="w-3.5 h-3.5" />
-                                                            </Button>
-                                                        )}
+                                                        {!showDeleted && (
+                                                             <Button
+                                                                 size="sm"
+                                                                 variant="outline"
+                                                                 className="border-gold/40 text-gold hover:bg-gold/10 p-1.5 h-auto shrink-0"
+                                                                 onClick={(e) => {
+                                                                     e.stopPropagation();
+                                                                     openEditModal(property);
+                                                                 }}
+                                                                 title="Obyekti düzəliş et"
+                                                             >
+                                                                 <Pencil className="w-3.5 h-3.5" />
+                                                             </Button>
+                                                         )}
+                                                         {canDeleteProperty && (
+                                                             <Button
+                                                                 size="sm"
+                                                                 variant="outline"
+                                                                 className="border-red/40 text-red hover:bg-red/10 p-1.5 h-auto shrink-0"
+                                                                 onClick={(e) => {
+                                                                     e.stopPropagation();
+                                                                     setDeleteConfirmProperty({ id: property.id, name: property.name });
+                                                                 }}
+                                                                 title="Obyekti sil"
+                                                             >
+                                                                 <Trash2 className="w-3.5 h-3.5" />
+                                                             </Button>
+                                                         )}
                                                     </div>
                                                 )}
                                             </div>
