@@ -24,6 +24,8 @@ import {
     ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { usePlanGate } from '@/utils/planGates';
+import { UpgradeModal } from '@/components/UpgradeModal';
 
 const ERP_ITEMS = [
     'dashboard', 'contracts', 'properties', 'tenants',
@@ -58,6 +60,8 @@ export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: bool
     const { user } = useAuthStore();
     const { addToast } = useToastStore();
     const navigate = useNavigate();
+    const { isPortalOnly } = usePlanGate();
+    const [showUpgradeModal, setShowUpgradeModal] = React.useState(false);
 
     const PLATFORM_STAFF_ROLES = ['SUPERADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE', 'CONTENT'];
     const hasSubscription =
@@ -149,6 +153,28 @@ export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: bool
                             );
                         }
 
+                        // Portal-only users can only access Elanlarım; all other items show UpgradeModal
+                        const isPortalGated = isPortalOnly && item.path !== '/dashboard/elanlar';
+                        if (isPortalGated) {
+                            return (
+                                <div
+                                    key={item.path + item.name}
+                                    onClick={() => setShowUpgradeModal(true)}
+                                    className={cn(
+                                        'group flex items-center rounded-md px-3 py-2 text-sm font-medium cursor-pointer',
+                                        'opacity-50 hover:opacity-70 transition-opacity',
+                                        item.isSpecial
+                                            ? 'bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] mt-2 mb-2'
+                                            : 'text-muted'
+                                    )}
+                                >
+                                    <item.icon className="mr-3 h-5 w-5 flex-shrink-0 text-muted" />
+                                    <span className="flex-1">{item.label}</span>
+                                    <Lock className="h-3.5 w-3.5 text-muted flex-shrink-0" />
+                                </div>
+                            );
+                        }
+
                         return (
                             <NavLink
                                 key={item.path + item.name}
@@ -188,6 +214,13 @@ export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: bool
                     </span>
                 </div>
             </aside>
+
+            {/* Portal-only upgrade modal */}
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                reason="portal_only"
+            />
         </>
     );
 }

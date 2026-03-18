@@ -3,12 +3,15 @@ import { X, Lock, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { FeatureGate, PlanType } from '../utils/planGates';
 
+export type UpgradeReason = 'portal_only' | 'plan_limit' | 'feature_locked';
+
 interface Props {
     isOpen: boolean;
-    feature: FeatureGate;
-    requiredPlan: PlanType;
+    feature?: FeatureGate;
+    requiredPlan?: PlanType;
     onClose: () => void;
     onUpgrade?: () => void;
+    reason?: UpgradeReason;
 }
 
 const MESSAGES: Record<FeatureGate, string> = {
@@ -39,14 +42,25 @@ const PLAN_NAMES: Record<PlanType, string> = {
     business: 'Korporativ'
 };
 
-export const UpgradeModal: React.FC<Props> = ({ isOpen, feature, requiredPlan, onClose, onUpgrade }) => {
+export const UpgradeModal: React.FC<Props> = ({ isOpen, feature, requiredPlan, onClose, onUpgrade, reason }) => {
     const navigate = useNavigate();
 
     if (!isOpen) return null;
 
-    const message = MESSAGES[feature] || 'Bu funksiya üçün planınızı yeniləyin';
-    const priceText = PRICES[requiredPlan];
-    const planName = PLAN_NAMES[requiredPlan];
+    const modalTitle =
+        reason === 'portal_only' ? 'Tam funksionallıq üçün plan seçin' :
+        reason === 'plan_limit'  ? 'Limit dolub' :
+        'Planınızı Yeniləyin';
+
+    const message =
+        reason === 'portal_only'
+            ? 'Müqavilələr, ödənişlər, hesabatlar və digər funksiyalardan istifadə etmək üçün aylıq abunə seçin.'
+            : reason === 'plan_limit'
+                ? 'Cari planınızda limit dolub. Daha çox istifadə üçün planı yüksəldin.'
+                : (feature ? (MESSAGES[feature] || 'Bu funksiya üçün planınızı yeniləyin') : 'Bu funksiyadan istifadə etmək üçün planı yüksəldin.');
+
+    const priceText = requiredPlan ? PRICES[requiredPlan] : null;
+    const planName = requiredPlan ? PLAN_NAMES[requiredPlan] : null;
 
     const handleUpgrade = () => {
         if (onUpgrade) onUpgrade();
@@ -77,12 +91,13 @@ export const UpgradeModal: React.FC<Props> = ({ isOpen, feature, requiredPlan, o
                         <Lock className="w-8 h-8 text-gold" />
                     </div>
 
-                    <h3 className="text-xl font-bold text-text mb-2">Planınızı Yeniləyin</h3>
+                    <h3 className="text-xl font-bold text-text mb-2">{modalTitle}</h3>
                     <p className="text-muted text-sm mb-8 leading-relaxed">
                         {message}
                     </p>
 
-                    {/* Plan highlight box */}
+                    {/* Plan highlight box — only shown when a specific plan is targeted */}
+                    {planName && priceText && (
                     <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 mb-8 text-left">
                         <div className="flex justify-between items-center mb-3">
                             <span className="text-sm font-semibold text-text uppercase tracking-wider">{planName} Planı</span>
@@ -107,6 +122,7 @@ export const UpgradeModal: React.FC<Props> = ({ isOpen, feature, requiredPlan, o
                             ) : null}
                         </div>
                     </div>
+                    )}
 
                     <div className="flex flex-col gap-3">
                         <button
