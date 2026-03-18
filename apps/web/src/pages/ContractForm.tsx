@@ -682,7 +682,7 @@ export function ContractForm() {
                             <label className="block text-sm font-medium text-text mb-1">Obyekt *</label>
                             {isActiveContract ? (
                                 <p className="py-2 px-3 bg-surface rounded-lg text-text border border-border text-sm">
-                                    {selectedProperty ? `${selectedProperty.name} — ${selectedProperty.address ?? ''}` : form.propertyId}
+                                    {selectedProperty ? `${selectedProperty.number} — ${selectedProperty.name}` : form.propertyId}
                                 </p>
                             ) : (
                                 <>
@@ -698,7 +698,7 @@ export function ContractForm() {
                                         options={[
                                             { label: 'Obyekt seçin...', value: '' },
                                             ...filteredProperties.map(p => ({
-                                                label: `${p.name}${p.address ? ` — ${p.address}` : ''}`,
+                                                label: `${p.number} — ${p.name}`,
                                                 value: p.id,
                                             })),
                                         ]}
