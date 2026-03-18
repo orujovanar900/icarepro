@@ -739,6 +739,49 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
 
         return reply.send({ success: true })
     })
+
+    // GET /admin/promotions — list all promotion requests (SUPERADMIN only)
+    fastify.get('/promotions', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+        const { status, type } = req.query as { status?: string; type?: string }
+
+        const where: any = {}
+        if (status && status !== 'ALL') where.status = status
+        if (type && type !== 'ALL') where.type = type
+
+        const requests = await fastify.prisma.promotionRequest.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+            include: {
+                org: { select: { id: true, name: true } },
+                user: { select: { id: true, name: true, email: true } },
+                listing: { select: { id: true, title: true } },
+            },
+        })
+
+        return reply.send({ success: true, data: requests })
+    })
+
+    // PATCH /admin/promotions/:id — approve or reject
+    fastify.patch('/promotions/:id', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const { status, adminNote } = req.body as { status: 'APPROVED' | 'REJECTED'; adminNote?: string }
+
+        if (!['APPROVED', 'REJECTED'].includes(status)) {
+            return reply.code(400).send({ success: false, error: 'Status APPROVED və ya REJECTED olmalıdır' })
+        }
+
+        const existing = await fastify.prisma.promotionRequest.findUnique({ where: { id } })
+        if (!existing) {
+            return reply.code(404).send({ success: false, error: 'Müraciət tapılmadı' })
+        }
+
+        const updated = await fastify.prisma.promotionRequest.update({
+            where: { id },
+            data: { status, adminNote: adminNote ?? null },
+        })
+
+        return reply.send({ success: true, data: updated })
+    })
 }
 
 export default adminRoutes

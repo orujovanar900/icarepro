@@ -44,6 +44,7 @@ const NotFound = React.lazy(() => import('./pages/NotFound').then(m => ({ defaul
 const Suspended = React.lazy(() => import('./pages/Suspended').then(m => ({ default: m.Suspended })));
 const DashboardElanlar = React.lazy(() => import('./pages/DashboardElanlar').then(m => ({ default: m.DashboardElanlar })));
 const CreateDashboardListing = React.lazy(() => import('./pages/CreateDashboardListing').then(m => ({ default: m.CreateDashboardListing })));
+const Promotions = React.lazy(() => import('./pages/Promotions').then(m => ({ default: m.Promotions })));
 
 // Superadmin Pages
 const AdminOrganizations = React.lazy(() => import('./pages/admin/AdminOrganizations').then(m => ({ default: m.AdminOrganizations })));
@@ -191,6 +192,7 @@ export default function App() {
                                 <Route element={<ProtectedRoute allowedRoles={['SUPERADMIN', 'OWNER', 'AGENT', 'AGENTLIK', 'MANAGER']} />}>
                                     <Route path="/dashboard/elanlar" element={<DashboardElanlar />} />
                                     <Route path="/dashboard/elanlar/yeni" element={<CreateDashboardListing />} />
+                                    <Route path="/promotions" element={<Promotions />} />
                                 </Route>
 
                             </Route>

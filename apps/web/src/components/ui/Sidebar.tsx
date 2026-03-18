@@ -43,6 +43,7 @@ const allNavItems = [
     { name: 'settings', path: '/settings', icon: Settings, label: 'Parametrlər' },
     { name: 'billing', path: '/settings/billing', icon: CreditCard, label: 'Abonəlik Planı' },
     { name: 'listings', path: '/dashboard/elanlar', icon: Store, label: 'Elanlarım' },
+    { name: 'promotions', path: '/promotions', icon: Megaphone, label: 'Reklam' },
     // SUPERADMIN items
     { name: 'admin-dashboard', path: '/admin', icon: LayoutDashboard, label: 'Dashboard', adminOnly: true, roles: ['SUPERADMIN'] },
     { name: 'admin-orgs', path: '/admin/users', icon: Building2, label: 'Təşkilatlar', adminOnly: true, roles: ['SUPERADMIN', 'SUPPORT'] },
@@ -76,10 +77,10 @@ export function Sidebar({ isMobileOpen = false, onClose }: { isMobileOpen?: bool
         }
 
         const allowedByRole: Record<string, string[]> = {
-            OWNER:    ['dashboard', 'contracts', 'properties', 'tenants', 'income', 'expenses', 'sanad', 'users', 'settings', 'billing', 'listings'],
-            AGENT:    ['dashboard', 'listings'],
-            AGENTLIK: ['dashboard', 'users', 'settings', 'listings'],
-            MANAGER:  ['dashboard', 'contracts', 'properties', 'tenants', 'income', 'expenses', 'sanad', 'users', 'settings', 'listings'],
+            OWNER:    ['dashboard', 'contracts', 'properties', 'tenants', 'income', 'expenses', 'sanad', 'users', 'settings', 'billing', 'listings', 'promotions'],
+            AGENT:    ['dashboard', 'listings', 'promotions'],
+            AGENTLIK: ['dashboard', 'users', 'settings', 'listings', 'promotions'],
+            MANAGER:  ['dashboard', 'contracts', 'properties', 'tenants', 'income', 'expenses', 'sanad', 'users', 'settings', 'listings', 'promotions'],
             CASHIER:  ['dashboard', 'income', 'expenses'],
             ACCOUNTANT:    ['dashboard', 'contracts', 'properties', 'tenants', 'sanad'],
             ADMINISTRATOR: ['dashboard', 'contracts', 'properties', 'tenants', 'sanad'],
