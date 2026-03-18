@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { calculateTaxRate, formatTaxRate } from '@/utils/taxUtils';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -243,6 +244,28 @@ export function ContractForm() {
         },
         enabled: isEdit && Boolean(id),
     });
+
+    // Fetch org tax profile to auto-populate tax rate on new contracts
+    const { data: orgData } = useQuery({
+        queryKey: ['org-settings-for-tax'],
+        queryFn: async () => {
+            const res = await api.get('/auth/me');
+            return res.data?.data?.organization ?? null;
+        },
+        staleTime: 5 * 60 * 1000,
+    });
+
+    const suggestedTaxRate = orgData ? calculateTaxRate(orgData) : null;
+
+    // Auto-populate tax rate from org profile on new contract creation
+    useEffect(() => {
+        if (isEdit) return; // Don't override existing contract values
+        if (suggestedTaxRate === null) return;
+        // Only auto-fill if the field hasn't been manually touched
+        if (form.taxRate === '') {
+            dispatch({ type: 'SET_FIELD', field: 'taxRate', value: String(Math.round(suggestedTaxRate * 100)) });
+        }
+    }, [suggestedTaxRate, isEdit]);
 
     // Pre-fill from existing contract
     useEffect(() => {
@@ -879,15 +902,26 @@ export function ContractForm() {
                         </AIField>
 
                         {/* Tax rate */}
-                        <Input
-                            label="Vergi dərəcəsi (%)"
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.1"
-                            value={form.taxRate}
-                            onChange={e => dispatch({ type: 'SET_FIELD', field: 'taxRate', value: e.target.value })}
-                        />
+                        <div>
+                            <Input
+                                label="Vergi dərəcəsi (%)"
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="1"
+                                value={form.taxRate}
+                                onChange={e => dispatch({ type: 'SET_FIELD', field: 'taxRate', value: e.target.value })}
+                            />
+                            {!isEdit && (
+                                <p className="text-xs mt-1 ml-0.5">
+                                    {suggestedTaxRate !== null ? (
+                                        <span className="text-green-400">✓ Vergi profilinizə əsasən avtomatik dolduruldu ({formatTaxRate(suggestedTaxRate)})</span>
+                                    ) : (
+                                        <span className="text-muted">Dəqiq hesablama üçün Parametrlərdə Vergi Profilinizi doldurun</span>
+                                    )}
+                                </p>
+                            )}
+                        </div>
                     </CardContent>
                 </Card>
 

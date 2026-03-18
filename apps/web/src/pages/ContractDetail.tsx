@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { formatTaxRate } from '@/utils/taxUtils';
 import { ArrowLeft, FileText, Download, Plus, Archive, RefreshCw, History, AlertCircle, ShieldCheck, Check, Edit2, FileDown, Paperclip, UploadCloud, ChevronDown, ChevronUp, Trash2, Eye, X, Loader2 } from 'lucide-react';
 import { generateContractPdf } from '@/lib/pdfGenerator';
 import { api } from '@/lib/api';
@@ -332,16 +333,15 @@ export function ContractDetail() {
     const totalPaid = contract.payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0);
     const totalDebt = Math.max(0, totalExpected - totalPaid);
 
-    // Calculate Brutto / Netto displays
+    // Calculate Brutto / Netto displays — read taxRate from DB, never re-derive from property type
     const nettoRent = Number(contract.monthlyRent);
-    const isMenzil = contract.property?.type?.toUpperCase() === 'MENZIL' || contract.property?.type?.toUpperCase() === 'MƏNZİL' || contract.property?.type?.toLowerCase() === 'mənzil';
-    const taxRate = isMenzil ? 0.10 : 0.14;
-    const taxFactor = 1 - taxRate;
-    const bruttoRent = nettoRent / taxFactor;
-    const taxAmount = bruttoRent - nettoRent;
+    const taxRate = contract.taxRate != null ? Number(contract.taxRate) / 100 : null;
+    const taxFactor = taxRate !== null ? 1 - taxRate : null;
+    const bruttoRent = taxFactor !== null ? nettoRent / taxFactor : null;
+    const taxAmount = bruttoRent !== null ? bruttoRent - nettoRent : null;
 
     const totalNetto = nettoRent * monthsElapsed;
-    const totalBrutto = bruttoRent * monthsElapsed;
+    const totalBrutto = (bruttoRent ?? nettoRent) * monthsElapsed;
 
     const lastPayment = contract.payments?.length > 0
         ? contract.payments.reduce((latest: any, p: any) => new Date(p.paymentDate) > new Date(latest.paymentDate) ? p : latest)
@@ -487,22 +487,26 @@ export function ContractDetail() {
                                                     <span className="text-sm text-text">Aylıq İcarə (Netto)</span>
                                                     <span className="text-sm font-medium text-text">{formatMoneyExact(nettoRent)}</span>
                                                 </div>
-                                                <div className="flex justify-between items-center mb-3">
-                                                    <span className="text-sm font-bold text-gold">Aylıq Brutto (÷{taxFactor.toFixed(2)})</span>
-                                                    <span className="text-sm font-bold text-gold">{formatMoneyExact(bruttoRent)}</span>
-                                                </div>
-                                                <div className="border-t border-border/60 pt-3">
-                                                    <div
-                                                        className="flex justify-between items-center cursor-help"
-                                                        title="Bu məbləğ vergi orqanına ödənilir"
-                                                    >
-                                                        <div>
-                                                            <span className="text-[13px] text-orange/80 block">ÖMV ({taxRate * 100}%)</span>
-                                                            <span className="text-[10px] text-muted block">(Vergi ödəniləcək məbləğ)</span>
+                                                {taxRate !== null && bruttoRent !== null && taxAmount !== null && (
+                                                    <>
+                                                        <div className="flex justify-between items-center mb-3">
+                                                            <span className="text-sm font-bold text-gold">Aylıq Brutto (÷{(1 - taxRate).toFixed(2)})</span>
+                                                            <span className="text-sm font-bold text-gold">{formatMoneyExact(bruttoRent)}</span>
                                                         </div>
-                                                        <span className="text-[13px] font-medium text-orange/80">{formatMoneyExact(taxAmount)}</span>
-                                                    </div>
-                                                </div>
+                                                        <div className="border-t border-border/60 pt-3">
+                                                            <div
+                                                                className="flex justify-between items-center cursor-help"
+                                                                title="Bu məbləğ vergi orqanına ödənilir"
+                                                            >
+                                                                <div>
+                                                                    <span className="text-[13px] text-orange/80 block">ÖMV ({formatTaxRate(taxRate)})</span>
+                                                                    <span className="text-[10px] text-muted block">(Vergi ödəniləcək məbləğ)</span>
+                                                                </div>
+                                                                <span className="text-[13px] font-medium text-orange/80">{formatMoneyExact(taxAmount)}</span>
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
