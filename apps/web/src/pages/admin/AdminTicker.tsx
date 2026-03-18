@@ -569,14 +569,40 @@ function ConfirmResetOverlay({
 
 // ─── AdminTicker ──────────────────────────────────────────────────────────────
 
+// ─── Promotion Request types ──────────────────────────────────────────────────
+
+interface PromotionRequestAdmin {
+    id:           string;
+    type:         'LED_TICKER' | 'FEATURED_LISTING';
+    durationDays: number;
+    customText:   string | null;
+    status:       'PENDING' | 'APPROVED' | 'REJECTED';
+    adminNote:    string | null;
+    createdAt:    string;
+    org:          { id: string; name: string };
+    user:         { id: string; name: string; email: string };
+    listing:      { id: string; title: string } | null;
+}
+
+// ─── AdminTicker ──────────────────────────────────────────────────────────────
+
 export function AdminTicker() {
     const { addToast } = useToastStore();
     const qc = useQueryClient();
+
+    // Main page tab: ticker slots vs promotion requests
+    const [mainTab, setMainTab] = React.useState<'ticker' | 'promotions'>('ticker');
+
     const [tab, setTab] = React.useState<'PORTAL_MAIN' | 'LISTING_DETAIL'>('PORTAL_MAIN');
     const [showCreate, setShowCreate] = React.useState(false);
     const [editSlot, setEditSlot]         = React.useState<TickerSlot | null>(null);
     const [deleteSlot, setDeleteSlot]     = React.useState<TickerSlot | null>(null);
     const [resetSlot, setResetSlot]       = React.useState<TickerSlot | null>(null);
+
+    // Promotion request filters
+    const [promoStatusFilter, setPromoStatusFilter] = React.useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
+    const [rejectTargetId, setRejectTargetId]       = React.useState<string | null>(null);
+    const [rejectNote, setRejectNote]               = React.useState('');
 
     const { data: allSlots = [], isLoading } = useQuery({
         queryKey: ['ticker-admin'],
@@ -584,6 +610,39 @@ export function AdminTicker() {
             const res = await api.get<{ success: boolean; data: TickerSlot[] }>('/ticker/admin');
             return res.data.data;
         },
+    });
+
+    const { data: promoData, refetch: refetchPromos } = useQuery({
+        queryKey: ['admin-promotions', promoStatusFilter],
+        queryFn: async () => {
+            const params = new URLSearchParams();
+            if (promoStatusFilter !== 'ALL') params.set('status', promoStatusFilter);
+            const res = await api.get(`/admin/promotions?${params}`);
+            return res.data;
+        },
+        enabled: mainTab === 'promotions',
+    });
+    const promoRequests: PromotionRequestAdmin[] = promoData?.data || [];
+
+    const approvePromoMutation = useMutation({
+        mutationFn: (id: string) => api.patch(`/admin/promotions/${id}`, { status: 'APPROVED' }),
+        onSuccess: () => {
+            addToast({ type: 'success', message: 'Müraciət təsdiqləndi' });
+            void refetchPromos();
+        },
+        onError: () => addToast({ type: 'error', message: 'Xəta baş verdi' }),
+    });
+
+    const rejectPromoMutation = useMutation({
+        mutationFn: ({ id, adminNote }: { id: string; adminNote: string }) =>
+            api.patch(`/admin/promotions/${id}`, { status: 'REJECTED', adminNote }),
+        onSuccess: () => {
+            addToast({ type: 'success', message: 'Müraciət rədd edildi' });
+            setRejectTargetId(null);
+            setRejectNote('');
+            void refetchPromos();
+        },
+        onError: () => addToast({ type: 'error', message: 'Xəta baş verdi' }),
     });
 
     const refetch = () => { void qc.invalidateQueries({ queryKey: ['ticker-admin'] }); };
@@ -646,24 +705,218 @@ export function AdminTicker() {
     return (
         <div style={{ padding: '24px 28px', maxWidth: 1200, margin: '0 auto' }}>
             {/* ── Header ─────────────────────────────────────────────────── */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                 <div>
-                    <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-text)', margin: 0 }}>📡 LED Ticker İdarəsi</h1>
+                    <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-text)', margin: 0 }}>📡 Reklam İdarəsi</h1>
                     <p style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 4 }}>
-                        Portal tickerı üçün slotları idarə edin
+                        LED Ticker slotları və reklam müraciətləri
                     </p>
                 </div>
-                <button
-                    onClick={() => setShowCreate(true)}
-                    style={{
-                        background: GOLD, color: '#0A0B0F', border: 'none',
-                        padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 700,
-                        cursor: 'pointer',
-                    }}
-                >
-                    + Yeni slot əlavə et
-                </button>
+                {mainTab === 'ticker' && (
+                    <button
+                        onClick={() => setShowCreate(true)}
+                        style={{
+                            background: GOLD, color: '#0A0B0F', border: 'none',
+                            padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 700,
+                            cursor: 'pointer',
+                        }}
+                    >
+                        + Yeni slot əlavə et
+                    </button>
+                )}
             </div>
+
+            {/* ── Main tab switcher ───────────────────────────────────────── */}
+            <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '2px solid var(--color-border)' }}>
+                {[
+                    { key: 'ticker',     label: '📡 LED Ticker Slotları' },
+                    { key: 'promotions', label: '📣 Reklam Müraciətləri', badge: promoRequests.filter(p => p.status === 'PENDING').length },
+                ].map(t => (
+                    <button
+                        key={t.key}
+                        onClick={() => setMainTab(t.key as any)}
+                        style={{
+                            padding: '10px 22px', border: 'none', cursor: 'pointer',
+                            fontSize: 13, fontWeight: 700, background: 'none',
+                            color: mainTab === t.key ? GOLD : 'var(--color-muted)',
+                            borderBottom: mainTab === t.key ? `2px solid ${GOLD}` : '2px solid transparent',
+                            marginBottom: -2,
+                        }}
+                    >
+                        {t.label}
+                        {t.badge ? (
+                            <span style={{
+                                marginLeft: 7, fontSize: 11, fontWeight: 700,
+                                background: 'rgba(239,68,68,0.15)', color: '#DC2626',
+                                padding: '1px 7px', borderRadius: 10,
+                            }}>{t.badge}</span>
+                        ) : null}
+                    </button>
+                ))}
+            </div>
+
+            {/* ── Promotions panel ───────────────────────────────────────── */}
+            {mainTab === 'promotions' && (
+                <div>
+                    {/* Filter bar */}
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                        {(['ALL', 'PENDING', 'APPROVED', 'REJECTED'] as const).map(s => (
+                            <button
+                                key={s}
+                                onClick={() => setPromoStatusFilter(s)}
+                                style={{
+                                    padding: '6px 14px', borderRadius: 8, border: '1px solid var(--color-border)',
+                                    background: promoStatusFilter === s ? GOLD : 'var(--color-surface)',
+                                    color: promoStatusFilter === s ? '#0A0B0F' : 'var(--color-muted)',
+                                    fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                }}
+                            >
+                                {s === 'ALL' ? 'Hamısı' : s === 'PENDING' ? 'Gözləyir' : s === 'APPROVED' ? 'Təsdiqləndi' : 'Rədd edildi'}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Table */}
+                    <div style={{ background: 'var(--color-surface)', borderRadius: 14, border: '1px solid var(--color-border)', overflow: 'hidden' }}>
+                        {promoRequests.length === 0 ? (
+                            <div style={{ padding: 60, textAlign: 'center', color: 'var(--color-muted)', fontSize: 14 }}>
+                                Müraciət tapılmadı
+                            </div>
+                        ) : (
+                            <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                        <tr>
+                                            {['Tarix', 'Şirkət', 'İstifadəçi', 'Növ', 'Müddət', 'Status', 'Əməliyyat'].map(h => (
+                                                <th key={h} style={{
+                                                    padding: '10px 12px', fontSize: 11, fontWeight: 700,
+                                                    color: 'var(--color-muted)', textAlign: 'left', textTransform: 'uppercase',
+                                                    letterSpacing: '0.04em', borderBottom: '1px solid var(--color-border)',
+                                                    background: 'var(--color-card)', whiteSpace: 'nowrap',
+                                                }}>{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {promoRequests.map(r => (
+                                            <tr key={r.id}
+                                                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-card)')}
+                                                onMouseLeave={e => (e.currentTarget.style.background = '')}
+                                            >
+                                                <td style={{ padding: '10px 12px', fontSize: 12, color: 'var(--color-muted)', borderBottom: '1px solid var(--color-border)', whiteSpace: 'nowrap' }}>
+                                                    {fmtDate(r.createdAt)}
+                                                </td>
+                                                <td style={{ padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'var(--color-text)', borderBottom: '1px solid var(--color-border)' }}>
+                                                    {r.org.name}
+                                                </td>
+                                                <td style={{ padding: '10px 12px', fontSize: 12, color: 'var(--color-muted)', borderBottom: '1px solid var(--color-border)' }}>
+                                                    <div>{r.user.name}</div>
+                                                    <div style={{ fontSize: 11 }}>{r.user.email}</div>
+                                                </td>
+                                                <td style={{ padding: '10px 12px', fontSize: 13, color: 'var(--color-text)', borderBottom: '1px solid var(--color-border)' }}>
+                                                    <div style={{ fontWeight: 600 }}>
+                                                        {r.type === 'LED_TICKER' ? '📡 LED Ticker' : '⭐ Öncülləşdirilmiş'}
+                                                    </div>
+                                                    {r.customText && <div style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 2 }}>{r.customText}</div>}
+                                                    {r.listing && <div style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 2 }}>Elan: {r.listing.title}</div>}
+                                                </td>
+                                                <td style={{ padding: '10px 12px', fontSize: 13, color: 'var(--color-text)', borderBottom: '1px solid var(--color-border)', whiteSpace: 'nowrap' }}>
+                                                    {r.durationDays} gün
+                                                </td>
+                                                <td style={{ padding: '10px 12px', borderBottom: '1px solid var(--color-border)' }}>
+                                                    <span style={{
+                                                        fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 5,
+                                                        background: r.status === 'APPROVED' ? 'rgba(34,197,94,0.12)' : r.status === 'REJECTED' ? 'rgba(239,68,68,0.12)' : 'rgba(251,191,36,0.15)',
+                                                        color: r.status === 'APPROVED' ? '#16A34A' : r.status === 'REJECTED' ? '#DC2626' : '#D97706',
+                                                    }}>
+                                                        {r.status === 'APPROVED' ? '✓ Təsdiqləndi' : r.status === 'REJECTED' ? '✕ Rədd edildi' : '⏳ Gözləyir'}
+                                                    </span>
+                                                    {r.adminNote && <div style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 4 }}>{r.adminNote}</div>}
+                                                </td>
+                                                <td style={{ padding: '10px 12px', borderBottom: '1px solid var(--color-border)' }}>
+                                                    {r.status === 'PENDING' && (
+                                                        <div style={{ display: 'flex', gap: 6 }}>
+                                                            <button
+                                                                onClick={() => approvePromoMutation.mutate(r.id)}
+                                                                disabled={approvePromoMutation.isPending}
+                                                                style={{
+                                                                    padding: '5px 12px', borderRadius: 7, border: 'none',
+                                                                    background: 'rgba(34,197,94,0.15)', color: '#16A34A',
+                                                                    fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                                                }}
+                                                            >Təsdiqlə</button>
+                                                            <button
+                                                                onClick={() => { setRejectTargetId(r.id); setRejectNote(''); }}
+                                                                style={{
+                                                                    padding: '5px 12px', borderRadius: 7, border: 'none',
+                                                                    background: 'rgba(239,68,68,0.10)', color: '#DC2626',
+                                                                    fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                                                }}
+                                                            >Rədd et</button>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Reject reason modal */}
+                    {rejectTargetId && (
+                        <div style={{
+                            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+                            backdropFilter: 'blur(4px)', zIndex: 9999,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+                        }}>
+                            <div style={{
+                                background: 'var(--color-surface)', borderRadius: 14, padding: '28px',
+                                maxWidth: 400, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                            }}>
+                                <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text)', marginBottom: 12 }}>
+                                    Rədd etmə səbəbi
+                                </h3>
+                                <textarea
+                                    value={rejectNote}
+                                    onChange={e => setRejectNote(e.target.value)}
+                                    placeholder="İstifadəçiyə göndəriləcək qeyd (istəyə bağlı)..."
+                                    rows={3}
+                                    style={{
+                                        width: '100%', borderRadius: 8, border: '1px solid var(--color-border)',
+                                        background: 'var(--color-background)', color: 'var(--color-text)',
+                                        padding: '10px 12px', fontSize: 13, resize: 'vertical',
+                                        outline: 'none', boxSizing: 'border-box',
+                                    }}
+                                />
+                                <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+                                    <button
+                                        onClick={() => setRejectTargetId(null)}
+                                        style={{
+                                            flex: 1, padding: '10px', borderRadius: 9,
+                                            border: '1px solid var(--color-border)',
+                                            background: 'var(--color-surface)', fontSize: 13, cursor: 'pointer', color: 'var(--color-text)',
+                                        }}
+                                    >Ləğv et</button>
+                                    <button
+                                        onClick={() => rejectPromoMutation.mutate({ id: rejectTargetId, adminNote: rejectNote })}
+                                        disabled={rejectPromoMutation.isPending}
+                                        style={{
+                                            flex: 1, padding: '10px', borderRadius: 9, border: 'none',
+                                            background: '#DC2626', color: '#fff',
+                                            fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                                        }}
+                                    >{rejectPromoMutation.isPending ? 'Göndərilir...' : 'Rədd et'}</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* ── Ticker panel (only when mainTab === 'ticker') ────────────── */}
+            {mainTab === 'ticker' && <>
 
             {/* ── Stats ──────────────────────────────────────────────────── */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 28 }}>
@@ -848,6 +1101,7 @@ export function AdminTicker() {
                     onCancel={() => setResetSlot(null)}
                 />
             )}
+            </>}
         </div>
     );
 }

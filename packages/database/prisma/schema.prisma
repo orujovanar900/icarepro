@@ -200,6 +200,7 @@ model Organization {
   auditLogs     AuditLog[]
   meterReadings MeterReading[]
   listings      Listing[]
+  promotionRequests PromotionRequest[]
 
   @@map("organizations")
 }
@@ -230,6 +231,7 @@ model User {
   queueEntries   QueueEntry[]
   favorites      ListingFavorite[]
   adminAuditLogs AdminAuditLog[]
+  promotionRequests PromotionRequest[]
 
   @@map("users")
 }
@@ -515,6 +517,7 @@ model Listing {
   queueEntries  QueueEntry[]
   reports       ListingReport[]
   favorites     ListingFavorite[]
+  promotionRequests PromotionRequest[]
 
   @@index([status])
   @@index([status, deletedAt]) // composite: eliminates full scans on public marketplace queries
@@ -638,4 +641,30 @@ model AdminAuditLog {
   @@index([actorUserId])
   @@index([entityType, entityId])
   @@map("admin_audit_log")
+}
+
+// ─────────────────────────────────────────
+// Promotion / Reklam Requests
+// ─────────────────────────────────────────
+
+model PromotionRequest {
+  id           String   @id @default(cuid())
+  orgId        String
+  userId       String
+  type         String   // 'LED_TICKER' | 'FEATURED_LISTING'
+  listingId    String?
+  durationDays Int
+  customText   String?
+  status       String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  adminNote    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  org     Organization @relation(fields: [orgId], references: [id])
+  user    User         @relation(fields: [userId], references: [id])
+  listing Listing?     @relation(fields: [listingId], references: [id])
+
+  @@index([orgId])
+  @@index([status])
+  @@map("promotion_requests")
 }
