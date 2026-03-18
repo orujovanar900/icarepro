@@ -282,6 +282,25 @@ export function PropertyDetail() {
                     <Card variant="elevated">
                         <CardContent className="p-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
                             <div className="flex items-start gap-3">
+                                <Building className="w-5 h-5 text-gold mt-0.5 shrink-0" />
+                                <div>
+                                    <p className="text-xs text-muted font-medium uppercase tracking-wide">Növ</p>
+                                    <p className="font-medium text-text mt-1">
+                                        {({
+                                            MENZIL: '🏠 Mənzil', MENZEL: '🏠 Mənzil',
+                                            HEYET_EVI: '🏡 Həyət evi',
+                                            OFIS: '📋 Ofis',
+                                            OBYEKT: '🏗️ Obyekt',
+                                            GARAJ: '🚗 Qaraj',
+                                            TORPAQ: '🌱 Torpaq',
+                                            ANBAR: '📦 Anbar',
+                                            MAGAZA: '🏪 Mağaza', DIGER: '📌 Digər',
+                                        } as Record<string,string>)[property.type] ?? property.type}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-start gap-3">
                                 <MapPin className="w-5 h-5 text-gold mt-0.5 shrink-0" />
                                 <div>
                                     <p className="text-xs text-muted font-medium uppercase tracking-wide">Ünvan</p>

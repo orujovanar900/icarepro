@@ -583,6 +583,18 @@ export function Properties() {
                                             <h3 className="font-bold text-lg text-text leading-tight group-hover:text-gold transition-colors">
                                                 {property.name}
                                             </h3>
+                                            <p className="text-xs text-muted mt-0.5">
+                                                {({
+                                                    MENZIL: '🏠 Mənzil', MENZEL: '🏠 Mənzil',
+                                                    HEYET_EVI: '🏡 Həyət evi',
+                                                    OFIS: '📋 Ofis',
+                                                    OBYEKT: '🏗️ Obyekt',
+                                                    GARAJ: '🚗 Qaraj',
+                                                    TORPAQ: '🌱 Torpaq',
+                                                    ANBAR: '📦 Anbar',
+                                                    MAGAZA: '🏪 Mağaza', DIGER: '📌 Digər',
+                                                } as Record<string,string>)[property.type] ?? property.type}
+                                            </p>
                                             <p className="text-sm text-muted mt-1">Nömrə: {property.number}</p>
                                         </div>
                                         <div className="flex flex-col items-end gap-1">
