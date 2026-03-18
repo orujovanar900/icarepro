@@ -46,6 +46,9 @@ export function Users() {
 
     // Apply Client-Side Filters for SuperAdmin (or Owner if they want it)
     const filteredUsers = users.filter((u: any) => {
+        // Hide soft-deleted (deactivated via delete button) users
+        if (u.isActive === false && statusFilter === 'ALL') return false;
+
         const matchesSearch = search === '' ||
             u.name.toLowerCase().includes(search.toLowerCase()) ||
             u.email.toLowerCase().includes(search.toLowerCase());

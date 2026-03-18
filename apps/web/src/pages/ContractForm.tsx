@@ -266,21 +266,23 @@ export function ContractForm() {
     // Override org activityLocation with property-derived value when a property is selected
     const orgForTax = orgData ? {
         ...orgData,
-        // Use property-derived value for FERDI_VETANDAS; for others it doesn't matter
         activityLocation: activityLocationFromProperty ?? orgData.activityLocation,
     } : null;
 
-    const suggestedTaxRate = orgForTax ? calculateTaxRate(orgForTax) : null;
+    // Memoize suggestedTaxRate so the useEffect can depend on the resolved value
+    const suggestedTaxRate = useMemo(
+        () => orgForTax ? calculateTaxRate(orgForTax) : null,
+        // Re-compute whenever property resolves (propertiesData), org loads, or property selection changes
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [form.propertyId, orgData, propertiesData.length]
+    );
 
-    // Auto-populate tax rate from org profile + property type whenever property or org data changes
+    // Auto-populate tax rate from org profile + property type whenever suggestedTaxRate changes
     useEffect(() => {
         if (isEdit) return;
         if (suggestedTaxRate === null) return;
-        // Auto-fill when field is empty or when property changed (always override on property change)
         dispatch({ type: 'SET_FIELD', field: 'taxRate', value: String(Math.round(suggestedTaxRate * 100)) });
-    // Only re-run when property selection or org data changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [form.propertyId, orgData, isEdit]);
+    }, [suggestedTaxRate, isEdit]);
 
     // Pre-fill from existing contract
     useEffect(() => {
