@@ -528,7 +528,7 @@ export function ContractDetail() {
                                             <div>
                                                 <h3 className="text-[11px] font-semibold text-muted uppercase tracking-[0.5px]">Növbəti Ödəniş</h3>
                                                 <p className="text-base font-bold text-text mt-1">
-                                                    {contract.paymentMode === 'FIXED_DAY' ? new Date(new Date().getFullYear(), new Date().getMonth() + 1, contract.paymentDay || new Date(contract.startDate).getDate()).toLocaleDateString('az-AZ') : new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).toLocaleDateString('az-AZ')} tarixinədək
+                                                    {contract.paymentMode === 'FIXED_DAY' ? formatDate(new Date(new Date().getFullYear(), new Date().getMonth() + 1, contract.paymentDay || new Date(contract.startDate).getDate())) : formatDate(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1))} tarixinədək
                                                 </p>
                                             </div>
                                             <div>
