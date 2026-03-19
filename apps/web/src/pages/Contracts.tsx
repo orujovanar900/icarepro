@@ -211,9 +211,9 @@ export function Contracts() {
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
-                                                    <p className="font-medium text-text group-hover:text-gold transition-colors">{contract.property.name}</p>
+                                                    <p className="font-medium text-text group-hover:text-gold transition-colors">{contract.property?.name ?? 'Naməlum'}</p>
                                                     <p className="text-xs text-muted flex items-center gap-1 mt-1">
-                                                        {contract.tenant.fullName} • N: {contract.number}
+                                                        {contract.tenant?.fullName ?? 'Naməlum'} • N: {contract.number}
                                                     </p>
                                                 </TableCell>
                                                 <TableCell>
@@ -275,8 +275,8 @@ export function Contracts() {
                                                     </Badge>
                                                 )}
                                             </div>
-                                            <p className="font-bold text-text truncate">{contract.tenant.fullName}</p>
-                                            <p className="text-sm text-muted truncate mb-3">{contract.property.name}</p>
+                                            <p className="font-bold text-text truncate">{contract.tenant?.fullName ?? 'Naməlum'}</p>
+                                            <p className="text-sm text-muted truncate mb-3">{contract.property?.name ?? 'Naməlum'}</p>
 
                                             <div className="flex items-center justify-between text-sm">
                                                 <div>

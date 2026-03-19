@@ -178,15 +178,18 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
 
         // Calculate computed debt, expectedPaymentDate, and daysOverdue
         const contractsWithDebt = contracts.map((c: any) => {
-            const tenantFullName = c.tenant.tenantType === 'fiziki'
-                ? `${c.tenant.firstName || ''} ${c.tenant.lastName || ''}`.trim()
-                : c.tenant.companyName || ''
+            const tenantFullName = c.tenant
+                ? (c.tenant.tenantType === 'fiziki'
+                    ? `${c.tenant.firstName || ''} ${c.tenant.lastName || ''}`.trim()
+                    : c.tenant.companyName || '')
+                : 'Naməlum';
 
-            const tenantWithFullName = { ...c.tenant, fullName: tenantFullName }
+            const tenantWithFullName = c.tenant ? { ...c.tenant, fullName: tenantFullName } : { id: '', fullName: 'Naməlum' };
 
-            if (c.status !== 'ACTIVE') return {
+            if (c.status !== 'ACTIVE' || !c.property) return {
                 ...c,
                 tenant: tenantWithFullName,
+                property: c.property || { id: '', name: 'Naməlum', number: '-' },
                 debt: 0,
                 daysOverdue: 0
             }
@@ -195,7 +198,7 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
 
             const now = new Date()
             const totalExpected = calculateContractDebtAndExpected(c, now)
-            const debt = Math.max(0, totalExpected - totalPaid)
+            const debt = isNaN(totalExpected) ? 0 : Math.max(0, totalExpected - totalPaid)
 
             let daysOverdue = 0
             if (debt > 0) {
@@ -211,7 +214,8 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
             return {
                 ...c,
                 tenant: tenantWithFullName,
-                debt,
+                property: c.property || { id: '', name: 'Naməlum', number: '-' },
+                debt: Number(debt.toFixed(2)),
                 daysOverdue
             }
         })

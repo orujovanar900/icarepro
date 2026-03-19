@@ -119,8 +119,33 @@ const tenantsRoutes: FastifyPluginAsync = async (fastify) => {
     fastify.post('/', { preHandler: [authenticate, requireRole(['OWNER', 'MANAGER', 'ACCOUNTANT', 'ADMINISTRATOR'])] }, async (req, reply) => {
         const body = createSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
-        const tenant = await fastify.prisma.tenant.create({ data: { ...body.data, organizationId: req.user.organizationId } as any })
-        return reply.code(201).send({ success: true, data: tenant })
+
+        try {
+            const data = { ...body.data } as any;
+
+            // Prisma DateTime? doesn't like empty strings. Convert to null or remove.
+            if (data.passportIssuedAt === '') delete data.passportIssuedAt;
+            if (data.birthDate === '') delete data.birthDate;
+
+            const tenant = await fastify.prisma.tenant.create({
+                data: {
+                    ...data,
+                    organizationId: req.user.organizationId
+                }
+            })
+            return reply.code(201).send({ success: true, data: tenant })
+        } catch (err: any) {
+            // Handle Prisma unique constraint error
+            if (err.code === 'P2002') {
+                const target = err.meta?.target as string[];
+                let msg = 'Bu məlumat artıq istifadə olunub';
+                if (target?.includes('voen')) msg = 'Bu VÖEN artıq istifadə olunub';
+                if (target?.includes('fin')) msg = 'Bu FİN artıq istifadə olunub';
+
+                return reply.code(400).send({ success: false, error: msg });
+            }
+            throw err; // Global handler will catch rest
+        }
     })
 
     // PATCH /tenants/:id
