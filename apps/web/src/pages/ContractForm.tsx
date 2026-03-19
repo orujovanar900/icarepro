@@ -468,6 +468,10 @@ export function ContractForm() {
             addToast({ type: 'error', message: 'Ad tələb olunur' });
             return;
         }
+        if (!newTenantVoen.trim() || !/^\d{10}$/.test(newTenantVoen)) {
+            addToast({ type: 'error', message: 'VÖEN daxil edilməlidir (10 rəqəm)' });
+            return;
+        }
         if (newTenantType === 'huquqi' && !newTenantLastName.trim()) {
             addToast({ type: 'error', message: 'Direktor adı tələb olunur' });
             return;
@@ -785,7 +789,7 @@ export function ContractForm() {
                                                 {newTenantType === 'fiziki' && (
                                                     <Input label="FİN kod" placeholder="7 simvol" value={newTenantFin} onChange={e => setNewTenantFin(e.target.value)} />
                                                 )}
-                                                <Input label="VÖEN" placeholder="10 rəqəm" value={newTenantVoen} onChange={e => setNewTenantVoen(e.target.value)} className={newTenantType === 'huquqi' ? 'col-span-2' : ''} />
+                                                <Input label="VÖEN *" placeholder="10 rəqəm" value={newTenantVoen} onChange={e => setNewTenantVoen(e.target.value)} className={newTenantType === 'huquqi' ? 'col-span-2' : ''} />
                                                 {newTenantType === 'fiziki' && (
                                                     <Input label="Pasport" placeholder="AA1234567 və ya AZE12345678" value={newTenantPassport} onChange={e => setNewTenantPassport(e.target.value)} className="col-span-1 sm:col-span-2" />
                                                 )}

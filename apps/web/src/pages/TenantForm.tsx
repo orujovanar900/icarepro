@@ -121,8 +121,10 @@ export function TenantForm() {
         if (tenantType === 'fiziki') {
             if (!form['firstName']) newErrors['firstName'] = 'Ad daxil edilməlidir';
             if (!form['lastName']) newErrors['lastName'] = 'Soyad daxil edilməlidir';
+            if (!form['voen'] || !/^\d{10}$/.test(form['voen'])) newErrors['voen'] = 'VÖEN 10 rəqəm olmalıdır';
         } else {
             if (!form['companyName']) newErrors['companyName'] = 'Şirkət adı daxil edilməlidir';
+            if (!form['voen'] || !/^\d{10}$/.test(form['voen'])) newErrors['voen'] = 'VÖEN 10 rəqəm olmalıdır';
         }
         // Validate phone if filled
         if (form['phone']) newErrors['phone'] = validateField('phone', form['phone']);
@@ -226,7 +228,7 @@ export function TenantForm() {
                                 <FormField label="Ata adı" name="fatherName" value={form.fatherName || ''} onChange={handleChange} />
                                 <FormField label="Doğum tarixi" name="birthDate" value={form.birthDate || ''} onChange={handleChange} type="date" />
                                 <FormField label="FİN kod" name="fin" value={form.fin || ''} onChange={handleChange} error={errors.fin} placeholder="XXXXXXX" optional="7 simvol" />
-                                <FormField label="VÖEN" name="voen" value={form.voen || ''} onChange={handleChange} error={errors.voen} placeholder="0000000000" optional="10 rəqəm" />
+                                <FormField label="VÖEN" name="voen" value={form.voen || ''} onChange={handleChange} error={errors.voen} placeholder="0000000000" optional="10 rəqəm" required />
                                 <FormField label="Pasport seriyası" name="passportSeries" value={form.passportSeries || ''} onChange={handleChange} error={errors.passportSeries} placeholder="AA1234567 və ya AZE12345678" />
                                 <FormField label="Pasportu verən orqan" name="passportIssuedBy" value={form.passportIssuedBy || ''} onChange={handleChange} />
                                 <FormField label="Pasport tarixi" name="passportIssuedAt" value={form.passportIssuedAt || ''} onChange={handleChange} type="date" />
@@ -244,7 +246,7 @@ export function TenantForm() {
                                 <div className="sm:col-span-2">
                                     <FormField label="Şirkət adı" name="companyName" value={form.companyName || ''} onChange={handleChange} error={errors.companyName} required />
                                 </div>
-                                <FormField label="VÖEN" name="voen" value={form.voen || ''} onChange={handleChange} error={errors.voen} placeholder="0000000000" optional="10 rəqəm" />
+                                <FormField label="VÖEN" name="voen" value={form.voen || ''} onChange={handleChange} error={errors.voen} placeholder="0000000000" optional="10 rəqəm" required />
                                 <FormField label="Direktor adı" name="directorName" value={form.directorName || ''} onChange={handleChange} error={errors.directorName} />
                                 <div className="sm:col-span-2">
                                     <FormField label="Şirkət ünvanı" name="companyAddress" value={form.companyAddress || ''} onChange={handleChange} />
