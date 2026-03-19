@@ -463,8 +463,10 @@ export function ContractDetail() {
                                             <h3 className="text-[11px] font-semibold text-muted uppercase tracking-[0.5px]">Kirayəçi</h3>
                                             <p className="text-base font-bold text-text mt-1">{contract.tenant.fullName}</p>
                                             <div className="mt-2 space-y-1">
-                                                <p className="text-sm font-medium text-text">Tel: {contract.tenant.phone?.replace(/(\d{3})(\d{2})(\d{3})(\d{2})(\d{2})/, '+$1 $2 $3 $4 $5') || contract.tenant.phone}</p>
-                                                <p className="text-sm text-muted">VÖEN: {contract.tenant.taxId || '-'}</p>
+                                                <p className="text-sm font-medium text-text">Tel: {contract.tenant.phone?.replace(/(\d{3})(\d{2})(\d{3})(\d{2})(\d{2})/, '+$1 $2 $3 $4 $5') || contract.tenant.phone || '-'}</p>
+                                                <p className="text-sm text-muted">VÖEN: {contract.tenant.voen || '-'}</p>
+                                                {contract.tenant.fin && <p className="text-sm text-muted">FİN: {contract.tenant.fin}</p>}
+                                                {contract.tenant.passportSeries && <p className="text-sm text-muted">Pasport: {contract.tenant.passportSeries}</p>}
                                             </div>
                                         </div>
                                         <div>

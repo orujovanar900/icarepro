@@ -280,10 +280,18 @@ export function ContractForm() {
 
     // Auto-populate tax rate from org profile + property type whenever suggestedTaxRate changes
     useEffect(() => {
-        if (isEdit) return;
+        // Wait for contract data to load before deciding to autofill
+        if (isEdit && isLoadingContract) return;
+        // Do not overwrite if the existing contract already has a tax rate saved
+        if (isEdit && existingContract && existingContract.taxRate != null) return;
         if (suggestedTaxRate === null) return;
+
+        // Prevent overwriting if user already manually typed a value
+        if (form.taxRate && form.taxRate !== '') return;
+
         dispatch({ type: 'SET_FIELD', field: 'taxRate', value: String(Math.round(suggestedTaxRate * 100)) });
-    }, [suggestedTaxRate, isEdit]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [suggestedTaxRate, isEdit, existingContract, isLoadingContract]);
 
     // Pre-fill from existing contract
     useEffect(() => {
