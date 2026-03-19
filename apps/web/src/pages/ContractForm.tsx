@@ -842,23 +842,14 @@ export function ContractForm() {
                     <CardContent className="space-y-4">
 
                         {/* Start date */}
-                        {isActiveContract ? (
-                            <div>
-                                <label className="block text-sm font-medium text-text mb-1">Başlama tarixi</label>
-                                <p className="py-2 px-3 bg-surface rounded-lg text-text border border-border text-sm">
-                                    {form.startDate ? formatDate(form.startDate) : '—'}
-                                </p>
-                            </div>
-                        ) : (
-                            <AIField filled={aiFilledFields.has('startDate')}>
-                                <Input
-                                    label="Başlama tarixi *"
-                                    type="date"
-                                    value={form.startDate}
-                                    onChange={e => dispatch({ type: 'SET_FIELD', field: 'startDate', value: e.target.value })}
-                                />
-                            </AIField>
-                        )}
+                        <AIField filled={aiFilledFields.has('startDate')}>
+                            <Input
+                                label="Başlama tarixi *"
+                                type="date"
+                                value={form.startDate}
+                                onChange={e => dispatch({ type: 'SET_FIELD', field: 'startDate', value: e.target.value })}
+                            />
+                        </AIField>
 
                         {/* End date */}
                         <AIField filled={aiFilledFields.has('endDate')}>
