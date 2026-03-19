@@ -709,31 +709,25 @@ export function ContractForm() {
                         {/* Property */}
                         <AIField filled={aiFilledFields.has('propertyId')}>
                             <label className="block text-sm font-medium text-text mb-1">Obyekt *</label>
-                            {isActiveContract ? (
-                                <p className="py-2 px-3 bg-surface rounded-lg text-text border border-border text-sm">
-                                    {selectedProperty ? `${selectedProperty.number} — ${selectedProperty.name}` : form.propertyId}
-                                </p>
-                            ) : (
-                                <>
-                                    <Input
-                                        placeholder="Axtar obyekt..."
-                                        value={propertySearch}
-                                        onChange={e => setPropertySearch(e.target.value)}
-                                        className="mb-2"
-                                    />
-                                    <Select
-                                        value={form.propertyId}
-                                        onChange={e => dispatch({ type: 'SET_FIELD', field: 'propertyId', value: e.target.value })}
-                                        options={[
-                                            { label: 'Obyekt seçin...', value: '' },
-                                            ...filteredProperties.map(p => ({
-                                                label: `${p.number} — ${p.name}`,
-                                                value: p.id,
-                                            })),
-                                        ]}
-                                    />
-                                </>
-                            )}
+                            <>
+                                <Input
+                                    placeholder="Axtar obyekt..."
+                                    value={propertySearch}
+                                    onChange={e => setPropertySearch(e.target.value)}
+                                    className="mb-2"
+                                />
+                                <Select
+                                    value={form.propertyId}
+                                    onChange={e => dispatch({ type: 'SET_FIELD', field: 'propertyId', value: e.target.value })}
+                                    options={[
+                                        { label: 'Obyekt seçin...', value: '' },
+                                        ...filteredProperties.map(p => ({
+                                            label: `${p.number} — ${p.name}`,
+                                            value: p.id,
+                                        })),
+                                    ]}
+                                />
+                            </>
                             {isPropertyOccupied && (
                                 <p className="mt-1 text-xs text-yellow-600 flex items-center gap-1">
                                     <AlertCircle className="w-3 h-3" />
@@ -745,78 +739,72 @@ export function ContractForm() {
                         {/* Tenant */}
                         <AIField filled={aiFilledFields.has('tenantId')}>
                             <label className="block text-sm font-medium text-text mb-1">İcarəçi *</label>
-                            {isActiveContract ? (
-                                <p className="py-2 px-3 bg-surface rounded-lg text-text border border-border text-sm">
-                                    {tenantDisplayName}
-                                </p>
-                            ) : (
-                                <>
-                                    <Input
-                                        placeholder="Axtar icarəçi..."
-                                        value={tenantSearch}
-                                        onChange={e => setTenantSearch(e.target.value)}
-                                        className="mb-2"
-                                    />
-                                    <Select
-                                        value={form.tenantId}
-                                        onChange={e => dispatch({ type: 'SET_FIELD', field: 'tenantId', value: e.target.value })}
-                                        options={[
-                                            { label: 'İcarəçi seçin...', value: '' },
-                                            ...filteredTenants.map(t => ({
-                                                label: t.tenantType === 'fiziki'
-                                                    ? `${t.firstName ?? ''} ${t.lastName ?? ''}`.trim() + (t.fin ? ` (${t.fin})` : '')
-                                                    : (t.companyName ?? '') + (t.voen ? ` (${t.voen})` : ''),
-                                                value: t.id,
-                                            })),
-                                        ]}
-                                    />
-                                    <button
-                                        type="button"
-                                        className="mt-2 flex items-center gap-1 text-sm text-gold hover:underline"
-                                        onClick={() => setShowNewTenantForm(v => !v)}
-                                    >
-                                        <Plus className="w-3 h-3" />
-                                        Yeni icarəçi əlavə et
-                                    </button>
-                                    {showNewTenantForm && (
-                                        <div className="mt-3 p-4 bg-surface border border-border rounded-lg space-y-3">
-                                            <p className="text-sm font-medium text-text">Yeni icarəçi</p>
-                                            <div className="flex gap-2">
-                                                {(['fiziki', 'huquqi'] as const).map(tt => (
-                                                    <button
-                                                        key={tt}
-                                                        type="button"
-                                                        onClick={() => setNewTenantType(tt)}
-                                                        className={`px-3 py-1 rounded text-sm border transition-colors ${newTenantType === tt ? 'bg-gold/10 border-gold text-gold' : 'border-border text-muted'}`}
-                                                    >
-                                                        {tt === 'fiziki' ? 'Fiziki' : 'Hüquqi'}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <Input label={newTenantType === 'fiziki' ? 'Ad *' : 'Şirkət adı *'} value={newTenantFirstName} onChange={e => setNewTenantFirstName(e.target.value)} />
-                                                <Input label={newTenantType === 'fiziki' ? 'Soyad' : 'Direktor adı *'} value={newTenantLastName} onChange={e => setNewTenantLastName(e.target.value)} />
-                                            </div>
-                                            <Input label="Telefon" value={newTenantPhone} onChange={e => setNewTenantPhone(e.target.value)} placeholder="Məcburi deyil" />
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                {newTenantType === 'fiziki' && (
-                                                    <Input label="FİN kod" placeholder="7 simvol" value={newTenantFin} onChange={e => setNewTenantFin(e.target.value)} />
-                                                )}
-                                                <Input label="VÖEN *" placeholder="10 rəqəm" value={newTenantVoen} onChange={e => setNewTenantVoen(e.target.value)} className={newTenantType === 'huquqi' ? 'col-span-2' : ''} />
-                                                {newTenantType === 'fiziki' && (
-                                                    <Input label="Pasport" placeholder="AA1234567 və ya AZE12345678" value={newTenantPassport} onChange={e => setNewTenantPassport(e.target.value)} className="col-span-1 sm:col-span-2" />
-                                                )}
-                                            </div>
-                                            <div className="flex gap-2 pt-1">
-                                                <Button size="sm" variant="outline" onClick={() => setShowNewTenantForm(false)}>Ləğv et</Button>
-                                                <Button size="sm" onClick={handleSaveNewTenant} disabled={isSavingTenant}>
-                                                    {isSavingTenant ? 'Saxlanır...' : 'Saxla'}
-                                                </Button>
-                                            </div>
+                            <>
+                                <Input
+                                    placeholder="Axtar icarəçi..."
+                                    value={tenantSearch}
+                                    onChange={e => setTenantSearch(e.target.value)}
+                                    className="mb-2"
+                                />
+                                <Select
+                                    value={form.tenantId}
+                                    onChange={e => dispatch({ type: 'SET_FIELD', field: 'tenantId', value: e.target.value })}
+                                    options={[
+                                        { label: 'İcarəçi seçin...', value: '' },
+                                        ...filteredTenants.map(t => ({
+                                            label: t.tenantType === 'fiziki'
+                                                ? `${t.firstName ?? ''} ${t.lastName ?? ''}`.trim() + (t.fin ? ` (${t.fin})` : '')
+                                                : (t.companyName ?? '') + (t.voen ? ` (${t.voen})` : ''),
+                                            value: t.id,
+                                        })),
+                                    ]}
+                                />
+                                <button
+                                    type="button"
+                                    className="mt-2 flex items-center gap-1 text-sm text-gold hover:underline"
+                                    onClick={() => setShowNewTenantForm(v => !v)}
+                                >
+                                    <Plus className="w-3 h-3" />
+                                    Yeni icarəçi əlavə et
+                                </button>
+                                {showNewTenantForm && (
+                                    <div className="mt-3 p-4 bg-surface border border-border rounded-lg space-y-3">
+                                        <p className="text-sm font-medium text-text">Yeni icarəçi</p>
+                                        <div className="flex gap-2">
+                                            {(['fiziki', 'huquqi'] as const).map(tt => (
+                                                <button
+                                                    key={tt}
+                                                    type="button"
+                                                    onClick={() => setNewTenantType(tt)}
+                                                    className={`px-3 py-1 rounded text-sm border transition-colors ${newTenantType === tt ? 'bg-gold/10 border-gold text-gold' : 'border-border text-muted'}`}
+                                                >
+                                                    {tt === 'fiziki' ? 'Fiziki' : 'Hüquqi'}
+                                                </button>
+                                            ))}
                                         </div>
-                                    )}
-                                </>
-                            )}
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <Input label={newTenantType === 'fiziki' ? 'Ad *' : 'Şirkət adı *'} value={newTenantFirstName} onChange={e => setNewTenantFirstName(e.target.value)} />
+                                            <Input label={newTenantType === 'fiziki' ? 'Soyad' : 'Direktor adı *'} value={newTenantLastName} onChange={e => setNewTenantLastName(e.target.value)} />
+                                        </div>
+                                        <Input label="Telefon" value={newTenantPhone} onChange={e => setNewTenantPhone(e.target.value)} placeholder="Məcburi deyil" />
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {newTenantType === 'fiziki' && (
+                                                <Input label="FİN kod" placeholder="7 simvol" value={newTenantFin} onChange={e => setNewTenantFin(e.target.value)} />
+                                            )}
+                                            <Input label="VÖEN *" placeholder="10 rəqəm" value={newTenantVoen} onChange={e => setNewTenantVoen(e.target.value)} className={newTenantType === 'huquqi' ? 'col-span-2' : ''} />
+                                            {newTenantType === 'fiziki' && (
+                                                <Input label="Pasport" placeholder="AA1234567 və ya AZE12345678" value={newTenantPassport} onChange={e => setNewTenantPassport(e.target.value)} className="col-span-1 sm:col-span-2" />
+                                            )}
+                                        </div>
+                                        <div className="flex gap-2 pt-1">
+                                            <Button size="sm" variant="outline" onClick={() => setShowNewTenantForm(false)}>Ləğv et</Button>
+                                            <Button size="sm" onClick={handleSaveNewTenant} disabled={isSavingTenant}>
+                                                {isSavingTenant ? 'Saxlanır...' : 'Saxla'}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         </AIField>
 
                         {/* Contract number */}
@@ -829,32 +817,22 @@ export function ContractForm() {
                         </AIField>
 
                         {/* Rental type */}
-                        {isActiveContract ? (
-                            <div>
-                                <label className="block text-sm font-medium text-text mb-1">İcarə növü</label>
-                                <p className="py-2 px-3 bg-surface rounded-lg text-text border border-border text-sm">
-                                    {RENTAL_TYPE_LABELS[form.rentalType] ?? form.rentalType}
-                                    {form.subType && ` > ${form.subType}`}
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                <Select
-                                    label="İcarə növü *"
-                                    value={form.rentalType}
-                                    onChange={e => dispatch({ type: 'SET_FIELD', field: 'rentalType', value: e.target.value })}
-                                    options={Object.entries(RENTAL_TYPE_LABELS).map(([v, l]) => ({ label: l, value: v }))}
+                        <div className="space-y-4">
+                            <Select
+                                label="İcarə növü *"
+                                value={form.rentalType}
+                                onChange={e => dispatch({ type: 'SET_FIELD', field: 'rentalType', value: e.target.value })}
+                                options={Object.entries(RENTAL_TYPE_LABELS).map(([v, l]) => ({ label: l, value: v }))}
+                            />
+                            {form.rentalType === 'COMMERCIAL' && (
+                                <Input
+                                    label="Təyinat (məs: Oyuncaq mağazası, Ofis) *"
+                                    placeholder="Mağaza, Kafe, Anbar və s."
+                                    value={form.subType}
+                                    onChange={e => dispatch({ type: 'SET_FIELD', field: 'subType', value: e.target.value })}
                                 />
-                                {form.rentalType === 'COMMERCIAL' && (
-                                    <Input
-                                        label="Təyinat (məs: Oyuncaq mağazası, Ofis) *"
-                                        placeholder="Mağaza, Kafe, Anbar və s."
-                                        value={form.subType}
-                                        onChange={e => dispatch({ type: 'SET_FIELD', field: 'subType', value: e.target.value })}
-                                    />
-                                )}
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </CardContent>
                 </Card>
 

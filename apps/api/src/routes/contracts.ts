@@ -383,16 +383,6 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
         const old = await fastify.prisma.contract.findFirst({ where: { id, ...withOrg(req) } })
         if (!old) return reply.code(404).send({ success: false, error: 'Contract not found' })
 
-        // Block immutable fields for ACTIVE contracts (check raw body before Zod strips them)
-        if (old.status === 'ACTIVE') {
-            const rawBody = req.body as Record<string, unknown>
-            const immutableFields = ['propertyId', 'tenantId', 'startDate', 'rentalType'].filter(
-                f => f in rawBody && rawBody[f] !== undefined
-            )
-            if (immutableFields.length > 0) {
-                return reply.code(400).send({ success: false, error: 'Bu sahələr aktiv müqavilədə dəyişdirilə bilməz' })
-            }
-        }
 
         const body = updateSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
