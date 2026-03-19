@@ -78,7 +78,11 @@ const createSchema = z.object({
 const updateSchema = z.object({
     number: z.string().min(1).optional(),
     monthlyRent: z.number().positive().optional(),
+    propertyId: z.string().optional(),
+    tenantId: z.string().optional(),
+    startDate: z.string().date().optional(),
     endDate: z.string().date().optional(),
+    rentalType: z.enum(['RESIDENTIAL_LONG', 'COMMERCIAL', 'RESIDENTIAL_SHORT', 'PARKING', 'SUBLEASE']).optional(),
     taxRate: z.number().min(0).max(100).optional(),
     depositAmount: z.number().min(0).optional(),
     isDepositReturned: z.boolean().optional(),
@@ -387,7 +391,7 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
         const body = updateSchema.safeParse(req.body)
         if (!body.success) return sendZodError(reply, body.error)
 
-        const { endDate, monthlyRent, effectiveFrom, fixedPaymentDay, ...rest } = body.data
+        const { endDate, startDate, monthlyRent, effectiveFrom, fixedPaymentDay, ...rest } = body.data
         const priceChanged = monthlyRent !== undefined && Number(monthlyRent) !== Number(old.monthlyRent)
 
         // require effectiveFrom when price changes
@@ -397,6 +401,7 @@ const contractsRoutes: FastifyPluginAsync = async (fastify) => {
 
         const data: Record<string, unknown> = { ...rest }
         if (monthlyRent !== undefined) data['monthlyRent'] = monthlyRent
+        if (startDate !== undefined) data['startDate'] = new Date(startDate)
         if (endDate !== undefined) data['endDate'] = new Date(endDate)
         // Sync paymentMode with fixedPaymentDay when provided
         if (fixedPaymentDay !== undefined) {

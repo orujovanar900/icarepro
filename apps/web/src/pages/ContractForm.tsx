@@ -585,7 +585,11 @@ export function ContractForm() {
             const { monthlyRent: _rent, ...baseWithoutRent } = base;
             const payload: Record<string, unknown> = {
                 ...baseWithoutRent,
+                propertyId: form.propertyId,
+                tenantId: form.tenantId,
+                startDate: form.startDate,
                 endDate: form.endDate,
+                rentalType: form.rentalType,
                 ...(priceChanged
                     ? {
                         monthlyRent: Number(form.monthlyRent),
