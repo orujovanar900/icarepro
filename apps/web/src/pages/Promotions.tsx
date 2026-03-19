@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
 import { Badge } from '@/components/ui/Badge';
+import { formatDate } from '@/utils/dateUtils';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -53,7 +54,7 @@ function StatusBadge({ status }: { status: PromoStatus }) {
 }
 
 function fmtDate(str: string) {
-    return new Date(str).toLocaleDateString('az-AZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return formatDate(str);
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────

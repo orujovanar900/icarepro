@@ -10,6 +10,7 @@ import * as mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist";
 import { usePlan, FeatureGate, PlanType } from '@/utils/planGates';
 import { UpgradeModal } from '@/components/UpgradeModal';
+import { formatDate } from '@/utils/dateUtils';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
@@ -312,7 +313,7 @@ export function SanadUstasi() {
                 area: data.property?.area || "",
                 rent: data.monthlyRent || "",
                 deposit: data.depositAmount || "",
-                period: `${new Date(data.startDate).toLocaleDateString()} - ${new Date(data.endDate).toLocaleDateString()}`
+                period: `${formatDate(data.startDate)} - ${formatDate(data.endDate)}`
             };
             initialMsg = `Müqavilə məlumatları yükləndi! 📝\n\nBu müqavilə üçün hansı sənədi hazırlayım?`;
             initialChips = ["Müqavilə", "Qəbul-Təhvil Aktı", "Borc Bildirişi", "Qəbz"];

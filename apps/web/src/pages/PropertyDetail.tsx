@@ -11,6 +11,7 @@ import { useToastStore } from '@/store/toast';
 import { usePlan, FeatureGate } from '@/utils/planGates';
 import { UpgradeModal } from '@/components/UpgradeModal';
 import { useAuthStore } from '@/store/auth';
+import { formatDate } from '@/utils/dateUtils';
 
 const formatMoney = (amount: number) =>
     new Intl.NumberFormat('az-AZ', { style: 'currency', currency: 'AZN', maximumFractionDigits: 0 }).format(amount);
@@ -346,8 +347,8 @@ export function PropertyDetail() {
                                     <div>
                                         <p className="text-xs text-muted">Müddət</p>
                                         <p className="font-semibold text-text mt-1 text-sm">
-                                            {new Date(activeContract.startDate).toLocaleDateString('az-AZ')} —{' '}
-                                            {new Date(activeContract.endDate).toLocaleDateString('az-AZ')}
+                                            {formatDate(activeContract.startDate)} —{' '}
+                                            {formatDate(activeContract.endDate)}
                                         </p>
                                     </div>
                                 </div>
@@ -376,7 +377,7 @@ export function PropertyDetail() {
                                                 {meterTypeLabel[mr.meterType] || mr.meterType}
                                             </p>
                                             <p className="text-xs text-muted">
-                                                {new Date(mr.readingDate).toLocaleDateString('az-AZ')}
+                                                {formatDate(mr.readingDate)}
                                             </p>
                                         </div>
                                         <div className="text-right">
@@ -607,7 +608,7 @@ export function PropertyDetail() {
                                         {statusLabel[c.status] || c.status}
                                     </Badge>
                                     <p className="text-sm text-muted hidden md:block">
-                                        {new Date(c.startDate).toLocaleDateString('az-AZ')} — {new Date(c.endDate).toLocaleDateString('az-AZ')}
+                                        {formatDate(c.startDate)} — {formatDate(c.endDate)}
                                     </p>
                                 </div>
                             </div>

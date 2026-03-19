@@ -15,6 +15,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
 import { usePlan, FeatureGate } from '@/utils/planGates';
 import { UpgradeModal } from '@/components/UpgradeModal';
+import { formatDate } from '@/utils/dateUtils';
 
 const rentalTypeLabel: Record<string, string> = {
     RESIDENTIAL_LONG: 'Yaşayış (uzunmüddətli)',
@@ -422,7 +423,7 @@ export function Income() {
                                     <TableBody>
                                         {payments.map((payment: any) => (
                                             <TableRow key={payment.id} className="hover:bg-surface transition-colors">
-                                                <TableCell>{new Date(payment.paymentDate).toLocaleDateString('az-AZ')}</TableCell>
+                                                <TableCell>{formatDate(payment.paymentDate)}</TableCell>
                                                 <TableCell>
                                                     <p className="font-medium text-text">{payment.contract.tenant.fullName}</p>
                                                     <p className="text-xs text-muted">{payment.contract.property?.name}</p>
@@ -494,7 +495,7 @@ export function Income() {
                                                     <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shrink-0 ${payment.paymentType === 'CASH' ? 'bg-green/10 text-green border border-green/20' : payment.paymentType === 'BANK' ? 'bg-blue/10 text-blue border border-blue/20' : 'bg-purple-500/10 text-purple-500 border border-purple-500/20'}`}>
                                                         {payment.paymentType}
                                                     </span>
-                                                    <span className="text-xs text-muted truncate">{new Date(payment.paymentDate).toLocaleDateString('az-AZ')}</span>
+                                                    <span className="text-xs text-muted truncate">{formatDate(payment.paymentDate)}</span>
                                                 </div>
                                                 <div className="text-right shrink-0 ml-2">
                                                     <span className="font-bold text-green block">+{formatMoney(Number(payment.amount))}</span>

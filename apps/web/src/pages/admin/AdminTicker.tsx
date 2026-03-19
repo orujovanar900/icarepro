@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useToastStore } from '@/store/toast';
+import { formatDate } from '@/utils/dateUtils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,7 +49,7 @@ const TABS = [
 
 function fmtDate(str: string) {
     const d = new Date(str);
-    return d.toLocaleDateString('az-AZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    return formatDate(d);
 }
 
 function fmtDateTimeLocal(str?: string) {

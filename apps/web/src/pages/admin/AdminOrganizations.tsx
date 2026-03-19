@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/Select';
 import { useToastStore } from '@/store/toast';
 import { Link } from 'react-router-dom';
 import { PlanModal } from '@/components/admin/PlanModal';
+import { formatDate } from '@/utils/dateUtils';
 
 export function AdminOrganizations() {
     const queryClient = useQueryClient();
@@ -271,7 +272,7 @@ export function AdminOrganizations() {
                                     </td>
                                     <td className="p-4 text-muted">{org.ownerEmail}</td>
                                     <td className="p-4 font-medium text-text">{org.propertiesCount}</td>
-                                    <td className="p-4 text-muted">{new Date(org.createdAt).toLocaleDateString('az-AZ')}</td>
+                                    <td className="p-4 text-muted">{formatDate(org.createdAt)}</td>
                                     <td className="p-4">
                                         <Badge className="bg-surface border-border text-muted">
                                             {org.subscriptionPlan || org.plan}

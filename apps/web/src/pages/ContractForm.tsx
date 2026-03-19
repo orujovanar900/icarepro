@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { calculateTaxRate, formatTaxRate } from '@/utils/taxUtils';
+import { formatDate } from '@/utils/dateUtils';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -852,7 +853,7 @@ export function ContractForm() {
                             <div>
                                 <label className="block text-sm font-medium text-text mb-1">Başlama tarixi</label>
                                 <p className="py-2 px-3 bg-surface rounded-lg text-text border border-border text-sm">
-                                    {form.startDate ? new Date(form.startDate).toLocaleDateString('az-AZ') : '—'}
+                                    {form.startDate ? formatDate(form.startDate) : '—'}
                                 </p>
                             </div>
                         ) : (

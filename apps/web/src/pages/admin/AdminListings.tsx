@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
+import { formatDate } from '@/utils/dateUtils';
 
 /* ──────────── Types ──────────── */
 type ListingStatus = 'PENDING' | 'ACTIVE' | 'REJECTED' | 'ALL';
@@ -229,7 +230,7 @@ export function AdminListings() {
                                                 <td className="p-4 text-muted">{listing.district ?? '—'}</td>
                                                 <td className="p-4 text-muted">{listing.queueCount ?? 0} nəfər</td>
                                                 <td className="p-4 text-muted text-xs">
-                                                    {new Date(listing.createdAt).toLocaleDateString('az-AZ')}
+                                                    {formatDate(listing.createdAt)}
                                                 </td>
                                                 <td className="p-4">
                                                     <ListingStatusBadge status={listing.status} />
@@ -316,7 +317,7 @@ export function AdminListings() {
                                                     {report.reason ?? '—'}
                                                 </td>
                                                 <td className="p-4 text-muted text-xs">
-                                                    {new Date(report.createdAt).toLocaleDateString('az-AZ')}
+                                                    {formatDate(report.createdAt)}
                                                 </td>
                                                 <td className="p-4">
                                                     <div className="flex items-center justify-end gap-1">

@@ -1,3 +1,4 @@
+import { formatDate } from '@/utils/dateUtils';
 import * as React from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
@@ -407,7 +408,7 @@ export function AdminStaff() {
                             <div>
                                 <p style={{ margin: 0, fontWeight: 600, color: 'var(--color-text)', fontSize: 14 }}>{member.name}</p>
                                 <p style={{ margin: 0, fontSize: 12, color: 'var(--color-muted)' }}>
-                                    {new Date(member.createdAt).toLocaleDateString('az-AZ')}
+                                    {formatDate(member.createdAt)}
                                 </p>
                             </div>
                             <span style={{ color: 'var(--color-text)', fontSize: 14 }}>{member.email}</span>

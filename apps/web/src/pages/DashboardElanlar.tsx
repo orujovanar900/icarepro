@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
+import { formatDate } from '@/utils/dateUtils';
 
 const STATUS_LABELS: Record<string, string> = {
     DRAFT: 'Qaralama',
@@ -337,7 +338,7 @@ export function DashboardElanlar() {
                                                 {listing.queueCount ?? 0} nəfər
                                             </td>
                                             <td className="p-4 text-muted text-xs">
-                                                {new Date(listing.createdAt).toLocaleDateString('az-AZ')}
+                                                {formatDate(listing.createdAt)}
                                             </td>
                                             <td className="p-4">
                                                 <div className="flex items-center justify-end gap-1 flex-wrap">

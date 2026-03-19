@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { CreditCard, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import { formatDate } from '@/utils/dateUtils';
 
 export function Billing() {
     const { user } = useAuthStore();
@@ -51,7 +52,7 @@ export function Billing() {
                         <div className="flex items-center justify-between">
                             <span className="text-muted">Yenilənmə tarixi:</span>
                             <span className="text-text font-medium">
-                                {expiresAt ? new Date(expiresAt).toLocaleDateString('az-AZ') : 'Limitsiz'}
+                                {expiresAt ? formatDate(expiresAt) : 'Limitsiz'}
                             </span>
                         </div>
 

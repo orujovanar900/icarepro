@@ -15,6 +15,7 @@ import { Modal } from '@/components/ui/Modal';
 import { useToastStore } from '@/store/toast';
 import { useAuthStore } from '@/store/auth';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { formatDate } from '@/utils/dateUtils';
 
 const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('az-AZ', {
@@ -124,7 +125,7 @@ export function ContractDetail() {
 
     const autoDocTitle = (type: string) => {
         const meta = getDocTypeMeta(type);
-        return `${meta?.label?.replace(/^[^ ]+ /, '') ?? type} - ${new Date().toLocaleDateString('az-AZ')}`;
+        return `${meta?.label?.replace(/^[^ ]+ /, '') ?? type} - ${formatDate(new Date())}`;
     };
 
     const handleUploadContractDoc = async (e: React.FormEvent) => {
@@ -480,7 +481,7 @@ export function ContractDetail() {
                                         <div>
                                             <h3 className="text-[11px] font-semibold text-muted uppercase tracking-[0.5px]">Müddət</h3>
                                             <p className="text-base font-bold text-text mt-1">
-                                                {new Date(contract.startDate).toLocaleDateString('az-AZ')} — {new Date(contract.endDate).toLocaleDateString('az-AZ')}
+                                                {formatDate(contract.startDate)} — {formatDate(contract.endDate)}
                                             </p>
                                         </div>
                                         <div>
@@ -532,7 +533,7 @@ export function ContractDetail() {
                                             </div>
                                             <div>
                                                 <h3 className="text-[11px] font-semibold text-muted uppercase tracking-[0.5px]">Son Ödəniş</h3>
-                                                <p className="text-base font-bold text-text mt-1">{lastPayment ? new Date(lastPayment.paymentDate).toLocaleDateString('az-AZ') : '-'}</p>
+                                                <p className="text-base font-bold text-text mt-1">{lastPayment ? formatDate(lastPayment.paymentDate) : '-'}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -593,7 +594,7 @@ export function ContractDetail() {
                                             <TableBody>
                                                 {contract.payments.map((p: any) => (
                                                     <TableRow key={p.id}>
-                                                        <TableCell>{new Date(p.paymentDate).toLocaleDateString('az-AZ')}</TableCell>
+                                                        <TableCell>{formatDate(p.paymentDate)}</TableCell>
                                                         <TableCell>{months[p.periodMonth - 1]} {p.periodYear}</TableCell>
                                                         <TableCell>{p.paymentType}</TableCell>
                                                         <TableCell className="max-w-[150px] truncate">{p.note || '-'}</TableCell>
@@ -638,7 +639,7 @@ export function ContractDetail() {
                                                         label="Sənəd adı (avtomatik doldurulur)"
                                                         value={docTitle}
                                                         onChange={e => setDocTitle(e.target.value)}
-                                                        placeholder={`${getDocTypeMeta(docType)?.label?.replace(/^[^ ]+ /, '') ?? docType} - ${new Date().toLocaleDateString('az-AZ')}`}
+                                                        placeholder={`${getDocTypeMeta(docType)?.label?.replace(/^[^ ]+ /, '') ?? docType} - ${formatDate(new Date())}`}
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
@@ -720,7 +721,7 @@ export function ContractDetail() {
                                                                     </div>
                                                                     <div className="flex-1 min-w-0">
                                                                         <p className="text-sm font-medium text-text truncate">{doc.title}</p>
-                                                                        <p className="text-xs text-muted">{doc.fileName} · {(doc.fileSize / 1024).toFixed(0)} KB · {new Date(doc.uploadedAt).toLocaleDateString('az-AZ')}</p>
+                                                                        <p className="text-xs text-muted">{doc.fileName} · {(doc.fileSize / 1024).toFixed(0)} KB · {formatDate(doc.uploadedAt)}</p>
                                                                         {doc.notes && <p className="text-xs text-muted italic mt-0.5">{doc.notes}</p>}
                                                                     </div>
                                                                     <div className="flex items-center gap-1 shrink-0">
@@ -1135,7 +1136,7 @@ function AuditLogTab({ contractId }: { contractId: string }) {
                             )}
                             {log.metadata?.newEndDate && (
                                 <p className="text-xs text-muted mt-0.5">
-                                    Yeni bitmə tarixi: {new Date(log.metadata.newEndDate).toLocaleDateString('az-AZ')}
+                                    Yeni bitmə tarixi: {formatDate(log.metadata.newEndDate)}
                                 </p>
                             )}
                         </div>

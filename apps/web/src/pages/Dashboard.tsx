@@ -23,6 +23,7 @@ import { Modal } from '@/components/ui/Modal';
 import { useAuthStore } from '@/store/auth';
 import { useToastStore } from '@/store/toast';
 import SimpleMap from '@/components/SimpleMap';
+import { formatDate } from '@/utils/dateUtils';
 
 const rentalTypeLabel: Record<string, string> = {
     RESIDENTIAL_LONG: 'Yaşayış (uzunmüddətli)',
@@ -1015,7 +1016,7 @@ function DashboardContent() {
                             <TableBody>
                                 {recentPayments?.map((payment: any) => (
                                     <TableRow key={payment.id}>
-                                        <TableCell>{new Date(payment.paymentDate).toLocaleDateString('az-AZ')}</TableCell>
+                                        <TableCell>{formatDate(payment.paymentDate)}</TableCell>
                                         <TableCell className="font-medium text-text">{payment.contract.tenant.fullName}</TableCell>
                                         <TableCell className="text-muted">{payment.contract.number}</TableCell>
                                         <TableCell>

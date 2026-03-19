@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { useToastStore } from '@/store/toast';
+import { formatDate } from '@/utils/dateUtils';
 
 const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('az-AZ', {
@@ -219,8 +220,8 @@ export function Contracts() {
                                                     <span className="font-bold text-green block">{formatMoney(contract.monthlyRent)}/ay</span>
                                                 </TableCell>
                                                 <TableCell className="text-sm text-muted">
-                                                    {new Date(contract.startDate).toLocaleDateString('az-AZ')} - <br />
-                                                    {new Date(contract.endDate).toLocaleDateString('az-AZ')}
+                                                    {formatDate(contract.startDate)} - <br />
+                                                    {formatDate(contract.endDate)}
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     {contract.debt > 0 ? (

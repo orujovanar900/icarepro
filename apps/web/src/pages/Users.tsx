@@ -14,6 +14,7 @@ import { Modal } from '@/components/ui/Modal';
 import { usePlan, FeatureGate } from '@/utils/planGates';
 import { UpgradeModal } from '@/components/UpgradeModal';
 import { translateRole } from '@/utils/roles';
+import { formatDate } from '@/utils/dateUtils';
 
 export function Users() {
     const { user } = useAuthStore();
@@ -301,7 +302,7 @@ export function Users() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="text-sm text-muted">
-                                                    {new Date(u.createdAt).toLocaleDateString('az-AZ')}
+                                                    {formatDate(u.createdAt)}
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex items-center justify-end gap-3">
@@ -356,7 +357,7 @@ export function Users() {
                                             <div>
                                                 <span className="font-bold text-text">{u.name}</span>
                                                 <p className="text-xs text-muted mb-1">{u.email}</p>
-                                                <span className="text-xs text-muted">Yaradılıb: {new Date(u.createdAt).toLocaleDateString('az-AZ')}</span>
+                                                <span className="text-xs text-muted">Yaradılıb: {formatDate(u.createdAt)}</span>
                                             </div>
                                             <div className="flex flex-col items-end gap-2">
                                                 <div className="flex items-center gap-2">

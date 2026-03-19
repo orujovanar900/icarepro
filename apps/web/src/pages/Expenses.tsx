@@ -15,6 +15,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Trash2 } from 'lucide-react';
 import { usePlan, FeatureGate } from '@/utils/planGates';
 import { UpgradeModal } from '@/components/UpgradeModal';
+import { formatDate } from '@/utils/dateUtils';
 
 const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('az-AZ', {
@@ -325,7 +326,7 @@ export function Expenses() {
                                     <TableBody>
                                         {expenses.map((expense: any) => (
                                             <TableRow key={expense.id} className="hover:bg-surface transition-colors">
-                                                <TableCell>{new Date(expense.date).toLocaleDateString('az-AZ')}</TableCell>
+                                                <TableCell>{formatDate(expense.date)}</TableCell>
                                                 <TableCell>
                                                     <span className="px-2 py-1 flex items-center w-fit justify-center rounded text-xs tracking-wider font-medium bg-red/10 text-red border border-red/20">
                                                         {expense.category}
@@ -366,7 +367,7 @@ export function Expenses() {
                                                     <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shrink-0 bg-red/10 text-red border border-red/20">
                                                         {expense.category}
                                                     </span>
-                                                    <span className="text-xs text-muted truncate">{new Date(expense.date).toLocaleDateString('az-AZ')}</span>
+                                                    <span className="text-xs text-muted truncate">{formatDate(expense.date)}</span>
                                                 </div>
                                                 <span className="font-bold text-red shrink-0 ml-2">-{formatMoney(expense.amount)}</span>
                                             </div>

@@ -12,9 +12,10 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/store/auth';
 import { useToastStore } from '@/store/toast';
+import { formatDate } from '@/utils/dateUtils';
 
 const fmt = (n: number) => new Intl.NumberFormat('az-AZ', { style: 'currency', currency: 'AZN', maximumFractionDigits: 0 }).format(n);
-const fmtDate = (d: string) => d ? new Date(d).toLocaleDateString('az-AZ') : '—';
+const fmtDate = (d: string) => d ? formatDate(d) : '—';
 const contractStatus: Record<string, { label: string; variant: any }> = {
     ACTIVE: { label: 'Aktiv', variant: 'aktiv' },
     ARCHIVED: { label: 'Arxiv', variant: 'arxiv' },
