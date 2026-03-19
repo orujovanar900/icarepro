@@ -212,6 +212,7 @@ export function ContractForm() {
     const [newTenantPhone, setNewTenantPhone] = useState('');
     const [newTenantFin, setNewTenantFin] = useState('');
     const [newTenantVoen, setNewTenantVoen] = useState('');
+    const [newTenantPassport, setNewTenantPassport] = useState('');
     const [isSavingTenant, setIsSavingTenant] = useState(false);
 
     // ── Submit state ──────────────────────────────────────────────────────────
@@ -463,16 +464,13 @@ export function ContractForm() {
 
     // ── Inline tenant save ────────────────────────────────────────────────────
     const handleSaveNewTenant = async () => {
-        if (newTenantType === 'fiziki') {
-            if (!newTenantFirstName.trim() || !newTenantVoen.trim() || newTenantFin.length !== 7) {
-                addToast({ type: 'error', message: 'Ad, FİN (7 simvol) və VÖEN tələb olunur' });
-                return;
-            }
-        } else {
-            if (!newTenantFirstName.trim() || !newTenantLastName.trim() || !newTenantVoen.trim()) {
-                addToast({ type: 'error', message: 'Şirkət adı, Direktor və VÖEN tələb olunur' });
-                return;
-            }
+        if (!newTenantFirstName.trim()) {
+            addToast({ type: 'error', message: 'Ad tələb olunur' });
+            return;
+        }
+        if (newTenantType === 'huquqi' && !newTenantLastName.trim()) {
+            addToast({ type: 'error', message: 'Direktor adı tələb olunur' });
+            return;
         }
         setIsSavingTenant(true);
         try {
@@ -483,12 +481,13 @@ export function ContractForm() {
             if (newTenantType === 'fiziki') {
                 payload['firstName'] = newTenantFirstName;
                 payload['lastName'] = newTenantLastName;
-                payload['fin'] = newTenantFin;
-                payload['voen'] = newTenantVoen;
+                payload['fin'] = newTenantFin || undefined;
+                payload['voen'] = newTenantVoen || undefined;
+                payload['passportSeries'] = newTenantPassport || undefined;
             } else {
                 payload['companyName'] = newTenantFirstName;
                 payload['directorName'] = newTenantLastName;
-                payload['voen'] = newTenantVoen;
+                payload['voen'] = newTenantVoen || undefined;
             }
 
             const res = await api.post('/tenants', payload);
@@ -499,7 +498,7 @@ export function ContractForm() {
                 queryClient.invalidateQueries({ queryKey: ['tenants-for-contract-form'] });
                 setShowNewTenantForm(false);
                 setNewTenantFirstName(''); setNewTenantLastName('');
-                setNewTenantPhone(''); setNewTenantFin(''); setNewTenantVoen('');
+                setNewTenantPhone(''); setNewTenantFin(''); setNewTenantVoen(''); setNewTenantPassport('');
             }
         } catch (err: unknown) {
             const e = err as { response?: { data?: { error?: string } } };
@@ -782,11 +781,14 @@ export function ContractForm() {
                                                 <Input label={newTenantType === 'fiziki' ? 'Soyad' : 'Direktor adı *'} value={newTenantLastName} onChange={e => setNewTenantLastName(e.target.value)} />
                                             </div>
                                             <Input label="Telefon" value={newTenantPhone} onChange={e => setNewTenantPhone(e.target.value)} placeholder="Məcburi deyil" />
-                                            <div className="grid grid-cols-2 gap-3">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                 {newTenantType === 'fiziki' && (
-                                                    <Input label="FİN kod *" placeholder="7 simvol" value={newTenantFin} onChange={e => setNewTenantFin(e.target.value)} />
+                                                    <Input label="FİN kod" placeholder="7 simvol" value={newTenantFin} onChange={e => setNewTenantFin(e.target.value)} />
                                                 )}
-                                                <Input label="VÖEN *" placeholder="10 rəqəm" value={newTenantVoen} onChange={e => setNewTenantVoen(e.target.value)} className={newTenantType === 'huquqi' ? 'col-span-2' : ''} />
+                                                <Input label="VÖEN" placeholder="10 rəqəm" value={newTenantVoen} onChange={e => setNewTenantVoen(e.target.value)} className={newTenantType === 'huquqi' ? 'col-span-2' : ''} />
+                                                {newTenantType === 'fiziki' && (
+                                                    <Input label="Pasport" placeholder="AA1234567 və ya AZE12345678" value={newTenantPassport} onChange={e => setNewTenantPassport(e.target.value)} className="col-span-1 sm:col-span-2" />
+                                                )}
                                             </div>
                                             <div className="flex gap-2 pt-1">
                                                 <Button size="sm" variant="outline" onClick={() => setShowNewTenantForm(false)}>Ləğv et</Button>
