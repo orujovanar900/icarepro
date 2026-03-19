@@ -34,6 +34,14 @@ const formatMoneyExact = (amount: number) => {
     }).format(amount);
 };
 
+const RENTAL_TYPE_LABELS: Record<string, string> = {
+    RESIDENTIAL_LONG: 'Uzunmüddətli yaşayış',
+    COMMERCIAL: 'Kommersiya',
+    SUBLEASE: 'Subkirayə',
+    RESIDENTIAL_SHORT: 'Qısamüddətli yaşayış',
+    PARKING: 'Dayanacaq',
+};
+
 export function ContractDetail() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -471,8 +479,31 @@ export function ContractDetail() {
                                             </div>
                                         </div>
                                         <div>
-                                            <h3 className="text-[11px] font-semibold text-muted uppercase tracking-[0.5px]">Obyekt</h3>
-                                            <p className="text-base font-bold text-text mt-1">{contract.property.name}</p>
+                                            <h3 className="text-[11px] font-semibold text-muted uppercase tracking-[0.5px] border-b border-border/50 pb-1 mb-2">Obyekt Məlumatları</h3>
+                                            <div className="space-y-2">
+                                                <p className="text-base font-bold text-text">{contract.property.name}</p>
+                                                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                                                    <div>
+                                                        <p className="text-[10px] text-muted uppercase font-medium">Nömrə</p>
+                                                        <p className="text-sm font-semibold">{contract.property.number}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] text-muted uppercase font-medium">Sahə</p>
+                                                        <p className="text-sm font-semibold">{Number(contract.property.area)} m²</p>
+                                                    </div>
+                                                    <div className="col-span-2">
+                                                        <p className="text-[10px] text-muted uppercase font-medium">Ünvan</p>
+                                                        <p className="text-sm font-medium text-text/80">{contract.property.address}</p>
+                                                    </div>
+                                                    <div className="col-span-2">
+                                                        <p className="text-[10px] text-muted uppercase font-medium">Təyinat</p>
+                                                        <p className="text-sm font-semibold text-gold">
+                                                            {RENTAL_TYPE_LABELS[contract.rentalType] ?? contract.rentalType}
+                                                            {contract.subType ? ` > ${contract.subType}` : ''}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 

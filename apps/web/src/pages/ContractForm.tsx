@@ -87,6 +87,7 @@ interface FormState {
     autoRenewal: boolean
     renewalNoticeDays: string
     renewalType: 'SAME_PERIOD' | 'MONTHLY'
+    subType: string
 }
 
 type FormAction =
@@ -113,6 +114,7 @@ const initialFormState: FormState = {
     autoRenewal: false,
     renewalNoticeDays: '',
     renewalType: 'SAME_PERIOD',
+    subType: '',
 }
 
 function formReducer(state: FormState, action: FormAction): FormState {
@@ -323,6 +325,7 @@ export function ContractForm() {
                 autoRenewal: existingContract.autoRenewal ?? false,
                 renewalNoticeDays: String(existingContract.renewalNoticeDays ?? ''),
                 renewalType: existingContract.renewalType ?? 'SAME_PERIOD',
+                subType: existingContract.subType ?? '',
             },
         });
     }, [existingContract, isEdit]);
@@ -535,6 +538,7 @@ export function ContractForm() {
         autoRenewal: form.autoRenewal,
         renewalNoticeDays: form.autoRenewal && form.renewalNoticeDays ? Number(form.renewalNoticeDays) : undefined,
         renewalType: form.autoRenewal ? form.renewalType : undefined,
+        subType: form.subType || undefined,
     });
 
     const validate = () => {
@@ -830,15 +834,26 @@ export function ContractForm() {
                                 <label className="block text-sm font-medium text-text mb-1">İcarə növü</label>
                                 <p className="py-2 px-3 bg-surface rounded-lg text-text border border-border text-sm">
                                     {RENTAL_TYPE_LABELS[form.rentalType] ?? form.rentalType}
+                                    {form.subType && ` > ${form.subType}`}
                                 </p>
                             </div>
                         ) : (
-                            <Select
-                                label="İcarə növü *"
-                                value={form.rentalType}
-                                onChange={e => dispatch({ type: 'SET_FIELD', field: 'rentalType', value: e.target.value })}
-                                options={Object.entries(RENTAL_TYPE_LABELS).map(([v, l]) => ({ label: l, value: v }))}
-                            />
+                            <div className="space-y-4">
+                                <Select
+                                    label="İcarə növü *"
+                                    value={form.rentalType}
+                                    onChange={e => dispatch({ type: 'SET_FIELD', field: 'rentalType', value: e.target.value })}
+                                    options={Object.entries(RENTAL_TYPE_LABELS).map(([v, l]) => ({ label: l, value: v }))}
+                                />
+                                {form.rentalType === 'COMMERCIAL' && (
+                                    <Input
+                                        label="Təyinat (məs: Oyuncaq mağazası, Ofis) *"
+                                        placeholder="Mağaza, Kafe, Anbar və s."
+                                        value={form.subType}
+                                        onChange={e => dispatch({ type: 'SET_FIELD', field: 'subType', value: e.target.value })}
+                                    />
+                                )}
+                            </div>
                         )}
                     </CardContent>
                 </Card>

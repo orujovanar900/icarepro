@@ -331,6 +331,7 @@ model Contract {
 
   // Дополнительные поля по типу аренды
   taxRate          Decimal? @db.Decimal(5, 2) // % НДС (информационно)
+  subType          String?  // Например: 'Oyuncaq mağazası'
   depositAmount    Decimal? @db.Decimal(12, 2) // залог
   baseRent         Decimal? @db.Decimal(12, 2) // Тип 2: базовая аренда
   revenuePercent   Decimal? @db.Decimal(5, 2) // Тип 2: % от выручки
