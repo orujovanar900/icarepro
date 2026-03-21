@@ -687,7 +687,7 @@ function DashboardContent() {
                     {!can('forecast') && (
                         <div className="absolute inset-x-0" style={{ top: -10, bottom: -10, backdropFilter: 'blur(5px)', background: 'rgba(13,17,23,0.4)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
                             <div className="bg-gold/20 p-2 rounded-full mb-1"><Lock className="w-4 h-4 text-gold" /></div>
-                            <span className="text-[10px] font-bold text-gold uppercase tracking-wider bg-[#0A0B0F] px-2 py-0.5 rounded">Tələb olunur: Başlanğıc</span>
+                            <span className="text-[10px] font-bold text-gold uppercase tracking-wider bg-[#0A0B0F] px-2 py-0.5 rounded">Tələb olunur: Bürünc</span>
                         </div>
                     )}
                     <CardHeader className="pb-2 flex flex-row items-center justify-between">
@@ -708,7 +708,7 @@ function DashboardContent() {
                     {!can('forecast') && (
                         <div className="absolute inset-x-0" style={{ top: -10, bottom: -10, backdropFilter: 'blur(5px)', background: 'rgba(13,17,23,0.4)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
                             <div className="bg-gold/20 p-2 rounded-full mb-1"><Lock className="w-4 h-4 text-gold" /></div>
-                            <span className="text-[10px] font-bold text-gold uppercase tracking-wider bg-[#0A0B0F] px-2 py-0.5 rounded">Tələb olunur: Başlanğıc</span>
+                            <span className="text-[10px] font-bold text-gold uppercase tracking-wider bg-[#0A0B0F] px-2 py-0.5 rounded">Tələb olunur: Bürünc</span>
                         </div>
                     )}
                     <CardHeader className="pb-2 flex flex-row items-center justify-between">

@@ -594,7 +594,7 @@ export function Landing() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20, marginBottom: 64 }}>
                         {[
                             {
-                                name: 'PULSUZ', sub: 'Free', price: 0, annualPrice: 0, promo: null,
+                                name: 'FREE', sub: 'Free', price: 0, annualPrice: 0, promo: null,
                                 popular: false, enterprise: false,
                                 units: 1, users: 1,
                                 feats: [
@@ -614,11 +614,11 @@ export function Landing() {
                                 ],
                             },
                             {
-                                name: 'BAŞLANĞIC', sub: null, price: 29, annualPrice: 19, promo: 15,
+                                name: 'BRONZE', sub: null, price: 29, annualPrice: 19, promo: 15,
                                 popular: false, enterprise: false,
                                 units: 5, users: 2,
                                 feats: [
-                                    { ok: true, t: 'Pulsuz-dakı hər şey' },
+                                    { ok: true, t: 'Free-dəki hər şey' },
                                     { ok: true, t: 'Obyekt fotoları' },
                                     { ok: true, t: 'PDF ixracı' },
                                     { ok: true, t: 'Excel ixracı + aylıq hesabatlar' },
@@ -629,22 +629,22 @@ export function Landing() {
                                 ],
                             },
                             {
-                                name: 'BİZNES', sub: null, price: 69, annualPrice: 49, promo: 35,
+                                name: 'SILVER', sub: null, price: 69, annualPrice: 49, promo: 35,
                                 popular: true, enterprise: false,
                                 units: 20, users: 5,
                                 feats: [
-                                    { ok: true, t: 'Başlanğıc-dakı hər şey' },
+                                    { ok: true, t: 'Bronze-dakı hər şey' },
                                     { ok: true, t: 'Sənəd Ustası AI (30 sorğu/ay)' },
                                     { ok: true, t: 'Dolulıq analitikası' },
                                     { ok: true, t: 'Portfolio analizi' },
                                 ],
                             },
                             {
-                                name: 'KORPORATİV', sub: null, price: 149, annualPrice: 119, promo: 75,
+                                name: 'GOLD', sub: null, price: 149, annualPrice: 119, promo: 75,
                                 popular: false, enterprise: false,
                                 units: 50, users: 10,
                                 feats: [
-                                    { ok: true, t: 'Professional-dakı hər şey' },
+                                    { ok: true, t: 'Gümüş-dəki hər şey' },
                                     { ok: true, t: 'Sənəd Ustası AI (limitsiz)' },
                                     { ok: true, t: 'Xüsusi hesabat qurucu' },
                                     { ok: true, t: 'Prioritet dəstək' },
@@ -672,7 +672,6 @@ export function Landing() {
                                     {/* Name row */}
                                     <div style={{ marginBottom: 8 }}>
                                         <div style={{ fontSize: 11, color: C.muted, letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 700, marginBottom: 4 }}>{plan.name}</div>
-                                        {plan.sub && <div style={{ fontSize: 12, color: C.muted }}>{plan.sub}</div>}
                                     </div>
 
                                     {/* Price */}
@@ -769,7 +768,7 @@ export function Landing() {
                             <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.6, maxWidth: 400 }}>50-dən çox obyekt, limitsiz istifadəçi, xüsusi inteqrasiyalar və şəxsi menecer ilə fərdi şərtlərlə əməkdaşlıq.</p>
                         </div>
                         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', flex: '1 1 300px' }}>
-                            {['Biznes-dəki hər şey', 'Xüsusi inteqrasiyalar', 'Şəxsi menecer', 'SLA zəmanəti'].map(f => (
+                            {['Gold-dakı hər şey', 'Xüsusi inteqrasiyalar', 'Şəxsi menecer', 'SLA zəmanəti'].map(f => (
                                 <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.text, flex: '1 1 calc(50% - 12px)', minWidth: 160 }}>
                                     <CheckCircle2 size={14} color={C.green} /> {f}
                                 </div>
@@ -794,8 +793,8 @@ export function Landing() {
                                 <thead>
                                     <tr style={{ borderBottom: `1px solid rgba(255,255,255,.08)` }}>
                                         <th style={{ textAlign: 'left', padding: '12px 16px', color: C.muted, fontWeight: 600, width: '34%' }}>Xüsusiyyət</th>
-                                        {['Pulsuz', 'Başlanğıc', 'Prof.', 'Biznes', 'Enterprise'].map(h => (
-                                            <th key={h} style={{ textAlign: 'center', padding: '12px 8px', color: h === 'Prof.' ? C.gold : C.muted, fontWeight: h === 'Prof.' ? 700 : 600, fontSize: 12 }}>{h}</th>
+                                        {['Pulsuz', 'Bürünc', 'Gümüş', 'Qızıl', 'İndividual'].map(h => (
+                                            <th key={h} style={{ textAlign: 'center', padding: '12px 8px', color: h === 'Gümüş' ? '#F5C842' : '#94A3B8', fontWeight: h === 'Gümüş' ? 700 : 600, fontSize: 12 }}>{h}</th>
                                         ))}
                                     </tr>
                                 </thead>

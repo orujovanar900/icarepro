@@ -197,7 +197,7 @@ export function SuperAdminDashboard() {
                                     <p className="font-bold text-gold mb-1">MRR (Monthly Recurring Revenue)</p>
                                     <p className="text-xs text-muted leading-relaxed">
                                         Aylıq Təkrarlanan Gəlir. Aktiv abunəliklərdən əldə edilən ümumi aylıq gəliri göstərir.<br /><br />
-                                        Hesablama: (Başlanğıc × 29) + (Biznes × 69) + (Korporativ × 149) AZN
+                                        Hesablama: (Bürünc × 29) + (Gümüş × 69) + (Qızıl × 149) AZN
                                     </p>
                                     <div className="absolute right-1.5 -bottom-1.5 w-3 h-3 bg-surface border-b border-r border-border transform rotate-45"></div>
                                 </div>

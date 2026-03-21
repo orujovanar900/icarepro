@@ -6,11 +6,11 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 
 export const PLAN_LABELS: Record<string, string> = {
-    FREE_TRIAL: 'Pulsuz Sınaq',
-    BASHLANQIC: 'Başlanğıc',
-    BIZNES: 'Biznes',
-    KORPORATIV: 'Korporativ',
-    PROFESSIONAL: 'Professional',
+    FREE_TRIAL: 'Pulsuz',
+    BASHLANQIC: 'Bürünc',
+    BIZNES: 'Gümüş',
+    KORPORATIV: 'Qızıl',
+    PROFESSIONAL: 'Gümüş',
 };
 
 export function PlanModal({ org, onClose }: { org: any; onClose: () => void }) {
@@ -41,9 +41,9 @@ export function PlanModal({ org, onClose }: { org: any; onClose: () => void }) {
 
     const plans = [
         { value: 'FREE_TRIAL', label: 'Pulsuz (14 gün sınaq)', price: '0 AZN' },
-        { value: 'BASHLANQIC', label: 'Başlanğıc', price: '29 AZN/ay' },
-        { value: 'BIZNES', label: 'Biznes', price: '69 AZN/ay' },
-        { value: 'KORPORATIV', label: 'Korporativ', price: '149 AZN/ay' },
+        { value: 'BASHLANQIC', label: 'Bürünc', price: '29 AZN/ay' },
+        { value: 'BIZNES', label: 'Gümüş', price: '69 AZN/ay' },
+        { value: 'KORPORATIV', label: 'Qızıl', price: '149 AZN/ay' },
     ];
 
     return (

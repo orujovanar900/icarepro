@@ -58,14 +58,14 @@ export function AdminOrganizations() {
         const matchesSearch = o.name.toLowerCase().includes(search.toLowerCase()) ||
             o.ownerEmail.toLowerCase().includes(search.toLowerCase());
 
-        // Plan Filter (Assuming Hamısı | Başlanğıc (PRO) | Biznes | Korporativ | Pulsuz (FREE/FREE_TRIAL))
+        // Plan Filter (Assuming Hamısı | Bürünc | Gümüş | Qızıl | Pulsuz (FREE/FREE_TRIAL))
         let matchesPlan = true;
         if (planFilter !== 'Hamısı') {
             matchesPlan =
                 (planFilter === 'Pulsuz' && (o.subscriptionPlan === 'FREE_TRIAL' || o.subscriptionPlan === 'FREE')) ||
-                (planFilter === 'Başlanğıc' && o.subscriptionPlan === 'BASHLANQIC') ||
-                (planFilter === 'Biznes' && o.subscriptionPlan === 'BIZNES') ||
-                (planFilter === 'Korporativ' && o.subscriptionPlan === 'KORPORATIV') ||
+                (planFilter === 'Bürünc' && o.subscriptionPlan === 'BASHLANQIC') ||
+                (planFilter === 'Gümüş' && o.subscriptionPlan === 'BIZNES') ||
+                (planFilter === 'Qızıl' && o.subscriptionPlan === 'KORPORATIV') ||
                 (planFilter === o.plan); // Fallback to old plan ENUM if needed
         }
 
@@ -173,9 +173,9 @@ export function AdminOrganizations() {
                             options={[
                                 { label: 'Bütün Planlar', value: 'Hamısı' },
                                 { label: 'Pulsuz', value: 'Pulsuz' },
-                                { label: 'Başlanğıc', value: 'Başlanğıc' },
-                                { label: 'Biznes', value: 'Biznes' },
-                                { label: 'Korporativ', value: 'Korporativ' },
+                                { label: 'Bürünc', value: 'Bürünc' },
+                                { label: 'Gümüş', value: 'Gümüş' },
+                                { label: 'Qızıl', value: 'Qızıl' },
                             ]}
                         />
                         <Select

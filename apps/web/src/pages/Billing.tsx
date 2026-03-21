@@ -18,9 +18,9 @@ export function Billing() {
     // Actual role checks are on backend.
     const planLabels: Record<string, string> = {
         FREE_TRIAL: 'Pulsuz',
-        BASHLANQIC: 'Başlanğıc',
-        BIZNES: 'Biznes',
-        KORPORATIV: 'Korporativ',
+        BASHLANQIC: 'Bürünc',
+        BIZNES: 'Gümüş',
+        KORPORATIV: 'Qızıl',
     };
 
     return (
@@ -108,9 +108,9 @@ export function Billing() {
             {/* Plan seçimi modalı */}
             <Modal isOpen={isUpgradeModalOpen} onClose={() => setIsUpgradeModalOpen(false)} title="Plan Seçimi">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
-                    {/* Başlanğıc */}
+                    {/* Bronze */}
                     <div className="border border-border bg-surface p-5 rounded-xl flex flex-col relative transition-transform hover:scale-[1.02]">
-                        <h3 className="font-bold text-lg text-text">Başlanğıc</h3>
+                        <h3 className="font-bold text-lg text-text">Bürünc</h3>
                         <div className="mt-2 mb-4">
                             <span className="text-3xl font-extrabold text-text">29₼</span>
                             <span className="text-muted text-sm"> / ay</span>
@@ -120,13 +120,13 @@ export function Billing() {
                             <li className="flex gap-2">✔ Standard hesabatlar</li>
                             <li className="flex gap-2">✔ E-poçt dəstəyi</li>
                         </ul>
-                        <a href="mailto:support@icarepro.az?subject=Başlanğıc Planı&body=Salam, mən Başlanğıc planına keçmək istəyirəm." className="block text-center w-full py-2 bg-surface-hover hover:bg-border text-text rounded-md transition-colors text-sm font-medium">Seç</a>
+                        <a href="mailto:support@icarepro.az?subject=Bürünc Planı&body=Salam, mən Bürünc planına keçmək istəyirəm." className="block text-center w-full py-2 bg-surface-hover hover:bg-border text-text rounded-md transition-colors text-sm font-medium">Seç</a>
                     </div>
 
-                    {/* Biznes */}
+                    {/* Silver */}
                     <div className="border border-gold bg-gold/5 p-5 rounded-xl flex flex-col relative transition-transform hover:scale-[1.02] shadow-lg shadow-gold/10">
                         <div className="absolute top-0 right-0 bg-gold text-background text-[10px] font-bold px-2 py-0.5 rounded-bl-lg rounded-tr-xl">TÖVSİYƏ EDİLİR</div>
-                        <h3 className="font-bold text-lg text-gold">Biznes</h3>
+                        <h3 className="font-bold text-lg text-gold">Gümüş</h3>
                         <div className="mt-2 mb-4">
                             <span className="text-3xl font-extrabold text-text">69₼</span>
                             <span className="text-muted text-sm"> / ay</span>
@@ -137,12 +137,12 @@ export function Billing() {
                             <li className="flex gap-2">✔ Sənəd Ustası (30/ay)</li>
                             <li className="flex gap-2">✔ Whatsapp dəstəyi</li>
                         </ul>
-                        <a href="mailto:support@icarepro.az?subject=Biznes Planı&body=Salam, mən Biznes planına keçmək istəyirəm." className="block text-center w-full py-2 bg-gold hover:bg-gold/90 text-background rounded-md transition-colors text-sm font-bold shadow-md shadow-gold/20">Seç</a>
+                        <a href="mailto:support@icarepro.az?subject=Gümüş Planı&body=Salam, mən Gümüş planına keçmək istəyirəm." className="block text-center w-full py-2 bg-gold hover:bg-gold/90 text-background rounded-md transition-colors text-sm font-bold shadow-md shadow-gold/20">Seç</a>
                     </div>
 
-                    {/* Korporativ */}
+                    {/* Gold */}
                     <div className="border border-border bg-surface p-5 rounded-xl flex flex-col relative transition-transform hover:scale-[1.02]">
-                        <h3 className="font-bold text-lg text-text">Korporativ</h3>
+                        <h3 className="font-bold text-lg text-text">Qızıl</h3>
                         <div className="mt-2 mb-4">
                             <span className="text-3xl font-extrabold text-text">149₼</span>
                             <span className="text-muted text-sm"> / ay</span>
@@ -153,7 +153,7 @@ export function Billing() {
                             <li className="flex gap-2">✔ 24/7 VIP dəstək</li>
                             <li className="flex gap-2">✔ Xüsusi funksiyalar</li>
                         </ul>
-                        <a href="mailto:support@icarepro.az?subject=Korporativ Planı&body=Salam, mən Korporativ planına keçmək istəyirəm." className="block text-center w-full py-2 bg-surface-hover hover:bg-border text-text rounded-md transition-colors text-sm font-medium">Seç</a>
+                        <a href="mailto:support@icarepro.az?subject=Qızıl Planı&body=Salam, mən Qızıl planına keçmək istəyirəm." className="block text-center w-full py-2 bg-surface-hover hover:bg-border text-text rounded-md transition-colors text-sm font-medium">Seç</a>
                     </div>
                 </div>
             </Modal>

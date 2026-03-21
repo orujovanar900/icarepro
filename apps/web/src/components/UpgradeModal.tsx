@@ -15,15 +15,15 @@ interface Props {
 }
 
 const MESSAGES: Record<FeatureGate, string> = {
-    senadUstasi: 'Sənəd Ustası AI Biznes planından istifadə olunur',
+    senadUstasi: 'Sənəd Ustası AI Gümüş planından istifadə olunur',
     senadLimit: 'Bu ay Sənəd Ustası limitiniz doldu (30/30)',
     addUnit: 'Maksimum obyekt limitinə çatdınız',
     addUser: 'İstifadəçi limitinə çatdınız',
-    pdfExport: 'PDF ixrac Başlanğıc planından mövcuddur',
-    excelExport: 'Excel ixrac Başlanğıc planından mövcuddur',
-    reports: 'Hesabatlar Başlanğıc planından mövcuddur',
-    forecast: 'Gəlir proqnozu Başlanğıc planından açılır',
-    photos: 'Şəkil yükləmə Başlanğıc planından mövcuddur',
+    pdfExport: 'PDF ixrac Bürünc planından mövcuddur',
+    excelExport: 'Excel ixrac Bürünc planından mövcuddur',
+    reports: 'Hesabatlar Bürünc planından mövcuddur',
+    forecast: 'Gəlir proqnozu Bürünc planından açılır',
+    photos: 'Şəkil yükləmə Bürünc planından mövcuddur',
     maxUnits: 'Limit',
     maxUsers: 'Limit',
 };
@@ -37,9 +37,9 @@ const PRICES: Record<PlanType, string> = {
 
 const PLAN_NAMES: Record<PlanType, string> = {
     free: 'Pulsuz',
-    starter: 'Başlanğıc',
-    pro: 'Biznes',
-    business: 'Korporativ'
+    starter: 'Bürünc',
+    pro: 'Gümüş',
+    business: 'Qızıl'
 };
 
 export const UpgradeModal: React.FC<Props> = ({ isOpen, feature, requiredPlan, onClose, onUpgrade, reason }) => {

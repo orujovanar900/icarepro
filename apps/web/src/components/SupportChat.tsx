@@ -45,11 +45,11 @@ Sayt: icarepro.pages.dev
 - Email bildirişlər
 
 ABUNƏ PLANLAR:
-- Başlanğıc: 29 AZN/ay - 10 obyektə qədər
-- Üstün: 69 AZN/ay - 50 obyektə qədər  
-- Peşəkar: 149 AZN/ay - limitsiz obyekt
-- Fərdi 
-- Bütün planlarda 14 günlük pulsuz sınaq dövrü var
+- Bürünc: 29 AZN/ay - 5 obyektə qədər
+- Gümüş: 69 AZN/ay - 20 obyektə qədər  
+- Qızıl: 149 AZN/ay - 50 obyektə qədər
+- İndividual 
+- Bütün planlarda 14 günlük Pulsuz sınaq dövrü var
 
 DƏSTƏK:
 - Email: support@icare.pro.az
