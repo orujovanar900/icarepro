@@ -594,7 +594,7 @@ export function Landing() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20, marginBottom: 64 }}>
                         {[
                             {
-                                name: 'FREE', sub: 'Free', price: 0, annualPrice: 0, promo: null,
+                                name: 'Pulsuz', sub: 'Free', price: 0, annualPrice: 0, promo: null,
                                 popular: false, enterprise: false,
                                 units: 1, users: 1,
                                 feats: [
@@ -614,11 +614,11 @@ export function Landing() {
                                 ],
                             },
                             {
-                                name: 'BRONZE', sub: null, price: 29, annualPrice: 19, promo: 15,
+                                name: 'Bürünc', sub: null, price: 29, annualPrice: 19, promo: 15,
                                 popular: false, enterprise: false,
                                 units: 5, users: 2,
                                 feats: [
-                                    { ok: true, t: 'Free-dəki hər şey' },
+                                    { ok: true, t: 'Pulsuz-dakı hər şey' },
                                     { ok: true, t: 'Obyekt fotoları' },
                                     { ok: true, t: 'PDF ixracı' },
                                     { ok: true, t: 'Excel ixracı + aylıq hesabatlar' },
@@ -629,18 +629,18 @@ export function Landing() {
                                 ],
                             },
                             {
-                                name: 'SILVER', sub: null, price: 69, annualPrice: 49, promo: 35,
+                                name: 'Gümüş', sub: null, price: 69, annualPrice: 49, promo: 35,
                                 popular: true, enterprise: false,
                                 units: 20, users: 5,
                                 feats: [
-                                    { ok: true, t: 'Bronze-dakı hər şey' },
+                                    { ok: true, t: 'Bürünc-dəki hər şey' },
                                     { ok: true, t: 'Sənəd Ustası AI (30 sorğu/ay)' },
                                     { ok: true, t: 'Dolulıq analitikası' },
                                     { ok: true, t: 'Portfolio analizi' },
                                 ],
                             },
                             {
-                                name: 'GOLD', sub: null, price: 149, annualPrice: 119, promo: 75,
+                                name: 'Qızıl', sub: null, price: 149, annualPrice: 119, promo: 75,
                                 popular: false, enterprise: false,
                                 units: 50, users: 10,
                                 feats: [
