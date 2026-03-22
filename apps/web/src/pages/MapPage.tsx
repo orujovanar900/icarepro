@@ -196,7 +196,7 @@ export function MapPage() {
                 </div>
 
                 {/* ── Map ── */}
-                <div style={{ flex: 1, position: 'relative' }}>
+                <div style={{ flex: 1, position: 'relative', height: '100%', minHeight: 0 }}>
                     <APIProvider
                         apiKey={import.meta.env['VITE_GOOGLE_MAPS_API_KEY'] as string}
                         libraries={['visualization']}

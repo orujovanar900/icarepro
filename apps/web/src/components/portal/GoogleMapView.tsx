@@ -372,13 +372,13 @@ export function GoogleMapView({ listings, onQueueClick }: GoogleMapViewProps) {
     console.log('Maps key:', import.meta.env['VITE_GOOGLE_MAPS_API_KEY']);
 
     return (
-        <div style={{ position: 'relative', height: '100%', width: '100%' }}>
+        <div style={{ position: 'absolute', inset: 0 }}>
             <Map
                 defaultCenter={BAKU_CENTER}
                 defaultZoom={12}
                 gestureHandling="greedy"
                 disableDefaultUI={false}
-                style={{ height: '100%', width: '100%' }}
+                style={{ width: '100%', height: '100%' }}
             >
                 <InnerMap
                     listings={listings}
