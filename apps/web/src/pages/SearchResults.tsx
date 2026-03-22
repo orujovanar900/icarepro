@@ -15,6 +15,11 @@ const GoogleMapView = React.lazy(() =>
     import('@/components/portal/GoogleMapView').then(m => ({ default: m.GoogleMapView }))
 );
 
+// ─── Google Maps ──────────────────────────────────────────────────────────────
+
+const MAPS_API_KEY = import.meta.env['VITE_GOOGLE_MAPS_API_KEY'] as string;
+const MAPS_LIBRARIES: ('visualization')[] = ['visualization'];
+
 // ─── Palette ──────────────────────────────────────────────────────────────────
 
 const C = {
@@ -417,35 +422,35 @@ export function SearchResults() {
                     )}
                 </div>
 
-                {/* Right: sticky map panel */}
-                {mapVisible && (
-                    <div style={{
-                        width: 400,
-                        flexShrink: 0,
-                        position: 'sticky',
-                        top: 'calc(102px + 108px)',
-                        height: 'calc(100vh - 102px - 108px)',
-                        alignSelf: 'flex-start',
-                        borderLeft: `1px solid ${C.border}`,
-                        background: '#E8E6E0',
-                    }}>
-                        <APIProvider
-                            apiKey={import.meta.env['VITE_GOOGLE_MAPS_API_KEY'] as string}
-                            libraries={['visualization']}
-                        >
-                            <React.Suspense fallback={
-                                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.muted, fontSize: 13 }}>
-                                    Xəritə yüklənir...
-                                </div>
-                            }>
-                                <GoogleMapView
-                                    listings={mapListings ?? []}
-                                    onQueueClick={l => setQueueListingId(l.id)}
-                                />
-                            </React.Suspense>
-                        </APIProvider>
-                    </div>
-                )}
+                {/* Right: sticky map panel — APIProvider stays mounted to avoid re-init */}
+                <div style={{
+                    width: mapVisible ? 400 : 0,
+                    flexShrink: 0,
+                    position: 'sticky',
+                    top: 'calc(102px + 108px)',
+                    height: 'calc(100vh - 102px - 108px)',
+                    alignSelf: 'flex-start',
+                    borderLeft: mapVisible ? `1px solid ${C.border}` : 'none',
+                    background: '#E8E6E0',
+                    overflow: 'hidden',
+                    transition: 'width 0.2s ease',
+                }}>
+                    <APIProvider
+                        apiKey={MAPS_API_KEY}
+                        libraries={MAPS_LIBRARIES}
+                    >
+                        <React.Suspense fallback={
+                            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.muted, fontSize: 13 }}>
+                                Xəritə yüklənir...
+                            </div>
+                        }>
+                            <GoogleMapView
+                                listings={mapListings ?? []}
+                                onQueueClick={l => setQueueListingId(l.id)}
+                            />
+                        </React.Suspense>
+                    </APIProvider>
+                </div>
             </div>
 
             <PortalFooter />

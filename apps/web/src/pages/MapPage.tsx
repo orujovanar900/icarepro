@@ -11,6 +11,11 @@ const GoogleMapView = React.lazy(() =>
     import('@/components/portal/GoogleMapView').then(m => ({ default: m.GoogleMapView }))
 );
 
+// ─── Google Maps ──────────────────────────────────────────────────────────────
+
+const MAPS_API_KEY = import.meta.env['VITE_GOOGLE_MAPS_API_KEY'] as string;
+const MAPS_LIBRARIES: ('visualization')[] = ['visualization'];
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const C = {
@@ -198,8 +203,8 @@ export function MapPage() {
                 {/* ── Map ── */}
                 <div style={{ flex: 1, position: 'relative', height: '100%', minHeight: 0 }}>
                     <APIProvider
-                        apiKey={import.meta.env['VITE_GOOGLE_MAPS_API_KEY'] as string}
-                        libraries={['visualization']}
+                        apiKey={MAPS_API_KEY}
+                        libraries={MAPS_LIBRARIES}
                     >
                         <React.Suspense fallback={
                             <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.muted, fontSize: 13 }}>

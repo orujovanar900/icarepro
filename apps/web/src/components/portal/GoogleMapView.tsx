@@ -360,16 +360,8 @@ function InnerMap({ listings, onQueueClick, heatmapOn }: InnerMapProps) {
 
 // ─── Main exported component ─────────────────────────────────────────────────
 
-const MAP_STYLES: google.maps.MapTypeStyle[] = [
-    { featureType: 'poi', elementType: 'all', stylers: [{ visibility: 'off' }] },
-    { featureType: 'transit', elementType: 'all', stylers: [{ visibility: 'off' }] },
-    { featureType: 'road', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-];
-
 export function GoogleMapView({ listings, onQueueClick }: GoogleMapViewProps) {
     const [heatmapOn, setHeatmapOn] = React.useState(false);
-
-    console.log('Maps key:', import.meta.env['VITE_GOOGLE_MAPS_API_KEY']);
 
     return (
         <div style={{ position: 'absolute', inset: 0 }}>
