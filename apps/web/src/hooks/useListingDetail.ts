@@ -32,6 +32,7 @@ export interface ListingDetail {
     createdAt: string;
     queueCount: number;
     highestOffer?: number;
+    basePrice: number; // ADDED
     heatLevel: 'AZ' | 'ORTA' | 'YUKSEK';
 }
 

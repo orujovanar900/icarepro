@@ -140,7 +140,7 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
         select: {
           id: true, title: true, type: true, district: true, address: true,
           floor: true, totalFloors: true, area: true, rooms: true,
-          // basePrice intentionally omitted — private landlord floor price, never public
+          basePrice: true,
           availStatus: true, contractEndDate: true, expectedFreeDate: true,
           publisherType: true, publisherName: true,
           isVip: true, isPushed: true, isPanorama: true,
@@ -161,26 +161,19 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
 
     // Batch queue stats
     const listingIds = listings.map(l => l.id)
-    const [queueCounts, highestOffers] = await Promise.all([
+    const [queueCounts] = await Promise.all([
       fastify.prisma.queueEntry.groupBy({
         by: ['listingId'],
         where: { listingId: { in: listingIds }, status: 'ACTIVE' },
         _count: { id: true },
       }),
-      fastify.prisma.queueEntry.groupBy({
-        by: ['listingId'],
-        where: { listingId: { in: listingIds }, status: 'ACTIVE' },
-        _max: { priceOffer: true },
-      }),
     ])
 
     const countMap = new Map(queueCounts.map(r => [r.listingId, r._count.id]))
-    const offerMap = new Map(highestOffers.map(r => [r.listingId, r._max.priceOffer]))
 
     const data = listings.map(l => ({
       ...l,
       queueCount: countMap.get(l.id) ?? 0,
-      highestOffer: offerMap.get(l.id) ?? null,
       heatLevel: computeHeatLevel(countMap.get(l.id) ?? 0),
     }))
 
@@ -211,6 +204,10 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
 
   // GET /listings/:id
   fastify.get('/:id', async (req, reply) => {
+    try { await req.jwtVerify() } catch { /* anonymous allowed */ }
+    const rawUser = req.user as any
+    const authenticatedOrgId = rawUser?.organizationId as string | undefined
+
     const { id } = req.params as { id: string }
 
     const listing = await fastify.prisma.listing.findFirst({
@@ -218,6 +215,7 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
       select: {
         id: true, title: true, description: true, type: true, district: true,
         address: true, floor: true, totalFloors: true, area: true, rooms: true,
+        basePrice: true, organizationId: true,
         availStatus: true, contractEndDate: true, expectedFreeDate: true,
         publisherType: true, publisherName: true,
         isVip: true, isPushed: true, isPanorama: true,
@@ -227,22 +225,29 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
 
     if (!listing) return reply.code(404).send({ success: false, error: 'Elan tapılmadı' })
 
+    const isOwner = authenticatedOrgId === listing.organizationId
+
     const [queueCount, highestOfferAgg] = await Promise.all([
       fastify.prisma.queueEntry.count({ where: { listingId: id, status: 'ACTIVE' } }),
-      fastify.prisma.queueEntry.aggregate({
+      isOwner ? fastify.prisma.queueEntry.aggregate({
         where: { listingId: id, status: 'ACTIVE' },
         _max: { priceOffer: true },
-      }),
+      }) : Promise.resolve(null),
     ])
+
+    const returnData: any = {
+      ...listing,
+      queueCount,
+      heatLevel: computeHeatLevel(queueCount),
+    }
+
+    if (isOwner) {
+      returnData.highestOffer = highestOfferAgg?._max?.priceOffer ?? null
+    }
 
     return reply.send({
       success: true,
-      data: {
-        ...listing,
-        queueCount,
-        highestOffer: highestOfferAgg._max.priceOffer ?? null,
-        heatLevel: computeHeatLevel(queueCount),
-      },
+      data: returnData,
     })
   })
 
@@ -256,19 +261,14 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
     })
     if (!exists) return reply.code(404).send({ success: false, error: 'Elan tapılmadı' })
 
-    const [queueCount, agg] = await Promise.all([
-      fastify.prisma.queueEntry.count({ where: { listingId: id, status: 'ACTIVE' } }),
-      fastify.prisma.queueEntry.aggregate({
-        where: { listingId: id, status: 'ACTIVE' },
-        _max: { priceOffer: true },
-      }),
+    const [queueCount] = await Promise.all([
+      fastify.prisma.queueEntry.count({ where: { listingId: id, status: 'ACTIVE' } })
     ])
 
     return reply.send({
       success: true,
       data: {
         queueCount,
-        highestOffer: agg._max.priceOffer ?? null,
         heatLevel: computeHeatLevel(queueCount),
       },
     })

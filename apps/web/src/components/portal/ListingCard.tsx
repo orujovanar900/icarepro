@@ -172,12 +172,6 @@ export const ListingCard = React.memo(function ListingCard({ listing, index = 0 
                         <p className="text-[11px]" style={{ color: C.muted }}>Başlanğıc qiymət</p>
                         <p className="text-base font-bold" style={{ color: C.gold }}>{listing.basePrice ? `${listing.basePrice.toLocaleString()} AZN/ay` : '—'}</p>
                     </div>
-                    {listing.highestOffer && (
-                        <div className="text-right">
-                            <p className="text-[11px]" style={{ color: C.muted }}>Ən yüksək təklif</p>
-                            <p className="text-base font-bold" style={{ color: C.orange }}>{listing.highestOffer.toLocaleString()} AZN</p>
-                        </div>
-                    )}
                 </div>
 
                 {/* Free date row */}

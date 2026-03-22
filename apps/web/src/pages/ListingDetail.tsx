@@ -443,7 +443,7 @@ export function ListingDetail() {
     const avail = AVAIL_LABELS[listing.availStatus] ?? { label: listing.availStatus, color: C.muted, bg: '#F3F4F6' };
     const heat = HEAT_COLORS[listing.heatLevel ?? queueSummary?.heatLevel ?? 'AZ'];
     const queueCount = queueSummary?.queueCount ?? listing.queueCount ?? 0;
-    const highestOffer = queueSummary?.highestOffer ?? listing.highestOffer;
+    const basePrice = listing.basePrice; // replaced highestOffer
 
     const infoRows = [
         { label: 'Növ', value: TYPE_LABELS[listing.type] ?? listing.type },
@@ -594,12 +594,12 @@ export function ListingDetail() {
                                             <p style={{ margin: 0, fontSize: 24, fontWeight: 800, color: C.navy }}>{queueCount}</p>
                                             <p style={{ margin: 0, fontSize: 12, color: C.muted }}>növbəçi</p>
                                         </div>
-                                        {highestOffer && (
+                                        {basePrice ? (
                                             <div style={{ textAlign: 'right' }}>
-                                                <p style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.gold }}>₼{highestOffer.toLocaleString()}</p>
-                                                <p style={{ margin: 0, fontSize: 12, color: C.muted }}>ən yüksək təklif</p>
+                                                <p style={{ margin: 0, fontSize: 18, fontWeight: 700, color: C.gold }}>₼{basePrice.toLocaleString()}</p>
+                                                <p style={{ margin: 0, fontSize: 12, color: C.muted }}>başlanğıc qiymət</p>
                                             </div>
-                                        )}
+                                        ) : null}
                                     </div>
 
                                     {/* Heat bar */}
