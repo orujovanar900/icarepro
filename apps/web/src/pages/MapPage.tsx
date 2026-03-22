@@ -136,6 +136,8 @@ export function MapPage() {
 
     const mappable = React.useMemo(() => listings.filter(l => l.lat != null && l.lng != null), [listings]);
 
+    console.log('[MapPage] API Key Check:', MAPS_API_KEY ? `${MAPS_API_KEY.substring(0, 5)}... (Length: ${MAPS_API_KEY.length})` : 'UNDEFINED');
+
     return (
         <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div style={{ position: 'sticky', top: 0, zIndex: 50, flexShrink: 0 }}>
@@ -202,21 +204,29 @@ export function MapPage() {
 
                 {/* ── Map ── */}
                 <div style={{ flex: 1, position: 'relative', height: '100%', minHeight: 0 }}>
-                    <APIProvider
-                        apiKey={MAPS_API_KEY}
-                        libraries={MAPS_LIBRARIES}
-                    >
-                        <React.Suspense fallback={
-                            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.muted, fontSize: 13 }}>
-                                Xəritə yüklənir...
-                            </div>
-                        }>
-                            <GoogleMapView
-                                listings={mappable}
-                                onQueueClick={l => setQueueListingId(l.id)}
-                            />
-                        </React.Suspense>
-                    </APIProvider>
+                    {!MAPS_API_KEY ? (
+                        <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F3F4F6', color: C.muted, textAlign: 'center', padding: 32 }}>
+                            <p style={{ fontSize: 48, marginBottom: 16 }}>🗺️</p>
+                            <h3 style={{ margin: '0 0 8px', color: C.navy, fontSize: 18 }}>Xəritə xidməti hazırda əlçatmazdır</h3>
+                            <p style={{ margin: 0, fontSize: 14 }}>Google Maps API açarı sistemə daxil edilməyib. Zəhmət olmasa inzibatçıya məlumat verin.</p>
+                        </div>
+                    ) : (
+                        <APIProvider
+                            apiKey={MAPS_API_KEY}
+                            libraries={MAPS_LIBRARIES}
+                        >
+                            <React.Suspense fallback={
+                                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.muted, fontSize: 13 }}>
+                                    Xəritə yüklənir...
+                                </div>
+                            }>
+                                <GoogleMapView
+                                    listings={mappable}
+                                    onQueueClick={l => setQueueListingId(l.id)}
+                                />
+                            </React.Suspense>
+                        </APIProvider>
+                    )}
 
                     {/* No coords overlay */}
                     {!isLoading && mappable.length === 0 && (
