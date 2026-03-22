@@ -467,13 +467,7 @@ export function PropertyDetail() {
                         <h3 className="text-lg font-bold text-text">Fotolar ({property.photos?.length || 0}/5)</h3>
                         <div className="flex flex-col items-end gap-1">
                             <label
-                                className={`cursor-pointer ${((property.photos?.length >= 5 && can('photos')) || isUploadingPhoto) ? 'opacity-50 pointer-events-none' : ''}`}
-                                onClick={(e) => {
-                                    if (!can('photos')) {
-                                        e.preventDefault();
-                                        setUpgradeFeature('photos');
-                                    }
-                                }}
+                                className={`cursor-pointer ${(property.photos?.length >= 5 || isUploadingPhoto) ? 'opacity-50 pointer-events-none' : ''}`}
                             >
                                 <div className="flex items-center gap-2 bg-gold/10 hover:bg-gold/20 text-gold px-4 py-2 rounded-lg transition-colors font-medium text-sm">
                                     {isUploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
@@ -737,7 +731,7 @@ export function PropertyDetail() {
                     <UpgradeModal
                         isOpen={true}
                         feature={upgradeFeature}
-                        requiredPlan={upgradeFeature === 'photos' ? 'starter' : 'starter'}
+                        requiredPlan="starter"
                         onClose={() => setUpgradeFeature(null)}
                     />
                 </div>

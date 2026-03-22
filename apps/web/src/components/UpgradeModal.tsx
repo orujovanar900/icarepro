@@ -23,7 +23,6 @@ const MESSAGES: Record<FeatureGate, string> = {
     excelExport: 'Excel ixrac Bürünc planından mövcuddur',
     reports: 'Hesabatlar Bürünc planından mövcuddur',
     forecast: 'Gəlir proqnozu Bürünc planından açılır',
-    photos: 'Şəkil yükləmə Bürünc planından mövcuddur',
     maxUnits: 'Limit',
     maxUsers: 'Limit',
 };
