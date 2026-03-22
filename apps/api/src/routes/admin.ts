@@ -212,6 +212,68 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
         })
     })
 
+    // POST /admin/reports/export
+    const exportReportSchema = z.object({
+        reportType: z.literal('billing'),
+        dateFrom: z.string().optional(),
+        dateTo: z.string().optional(),
+        organizationId: z.string().optional(),
+        format: z.literal('json')
+    })
+
+    fastify.post('/reports/export', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
+        const parsed = exportReportSchema.safeParse(req.body)
+        if (!parsed.success) {
+            return reply.code(400).send({ success: false, error: 'Invalid payload elements.' })
+        }
+        
+        const { reportType, dateFrom, dateTo, organizationId } = parsed.data
+        
+        if (reportType === 'billing') {
+            const billingWhere: any = {
+                ...(organizationId ? { orgId: organizationId } : {})
+            }
+            
+            if (dateFrom || dateTo) {
+                const billingTimeFilter: any = {}
+                if (dateFrom) billingTimeFilter.gte = new Date(dateFrom)
+                if (dateTo) {
+                    const end = new Date(dateTo)
+                    end.setHours(23, 59, 59, 999)
+                    billingTimeFilter.lte = end
+                }
+                if (Object.keys(billingTimeFilter).length > 0) {
+                    billingWhere.createdAt = billingTimeFilter
+                }
+            }
+            
+            const history = await fastify.prisma.subscriptionHistory.findMany({
+                where: billingWhere,
+                include: {
+                    organization: { select: { name: true } },
+                    changedByUser: { select: { name: true, email: true } }
+                },
+                orderBy: { createdAt: 'desc' }
+            })
+            
+            const data = history.map((h: any) => ({
+                orgName: h.organization?.name || 'Silinmiş təşkilat',
+                previousPlan: h.previousPlan,
+                newPlan: h.newPlan,
+                previousStatus: h.previousStatus,
+                newStatus: h.newStatus,
+                changedAt: h.createdAt,
+                expiresAt: h.expiresAt,
+                changedBy: h.changedByUser ? `${h.changedByUser.name} (${h.changedByUser.email})` : 'System',
+                note: h.note
+            }))
+            
+            return reply.send({ success: true, data })
+        }
+
+        return reply.code(400).send({ success: false, error: 'Bilinməyən hesabat növü' })
+    })
+
     // GET /admin/users (Organizations List)
     fastify.get('/users', { preHandler: [authenticate, requireRole(['SUPERADMIN', 'SUPPORT'])] }, async (req, reply) => {
         const organizations = await fastify.prisma.organization.findMany({
@@ -371,6 +433,19 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
             data: updateData
         })
 
+        await fastify.prisma.subscriptionHistory.create({
+            data: {
+                orgId: id,
+                previousPlan: org.subscriptionPlan,
+                newPlan: updatedOrg.subscriptionPlan,
+                previousStatus: org.subscriptionStatus,
+                newStatus: updatedOrg.subscriptionStatus,
+                expiresAt: planExp,
+                note: note ?? null,
+                changedByUserId: req.user.sub,
+            }
+        })
+
         await logAudit(fastify.prisma, {
             actorUserId: req.user.sub,
             action: 'plan_changed',
@@ -389,32 +464,19 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.send({ success: true, data: updatedOrg })
     })
 
-    // GET /admin/organizations/:id/billing-history
-    fastify.get('/organizations/:id/billing-history', { preHandler: [authenticate, requireRole(['SUPERADMIN', 'SUPPORT'])] }, async (req, reply) => {
-        const { id } = req.params as { id: string }
-        const org = await fastify.prisma.organization.findUnique({ where: { id }, select: { id: true } })
+    // GET /admin/organizations/:orgId/billing-history
+    fastify.get('/organizations/:orgId/billing-history', { preHandler: [authenticate, requireRole(['SUPERADMIN', 'SUPPORT'])] }, async (req, reply) => {
+        const { orgId } = req.params as { orgId: string }
+        const org = await fastify.prisma.organization.findUnique({ where: { id: orgId }, select: { id: true } })
         if (!org) return reply.code(404).send({ success: false, error: 'Təşkilat tapılmadı' })
 
-        const logs = await fastify.prisma.adminAuditLog.findMany({
-            where: { action: 'plan_changed', entityId: id },
+        const history = await fastify.prisma.subscriptionHistory.findMany({
+            where: { orgId },
             orderBy: { createdAt: 'desc' },
-            take: 100,
-            include: { actor: { select: { name: true, email: true } } },
+            include: { changedByUser: { select: { name: true, email: true } } },
         })
 
-        const data = logs.map(log => ({
-            id: log.id,
-            createdAt: log.createdAt,
-            previousPlan: (log.oldValue as any)?.plan ?? null,
-            previousStatus: (log.oldValue as any)?.status ?? null,
-            newPlan: (log.newValue as any)?.plan ?? null,
-            newStatus: (log.newValue as any)?.status ?? null,
-            expiresAt: (log.newValue as any)?.expiresAt ?? null,
-            note: (log.newValue as any)?.note ?? null,
-            changedByUser: log.actor ? { name: log.actor.name, email: log.actor.email ?? '' } : null,
-        }))
-
-        return reply.send({ success: true, data })
+        return reply.send({ success: true, data: history })
     })
 
     // PATCH /admin/users/:userId/role
