@@ -369,12 +369,13 @@ const MAP_STYLES: google.maps.MapTypeStyle[] = [
 export function GoogleMapView({ listings, onQueueClick }: GoogleMapViewProps) {
     const [heatmapOn, setHeatmapOn] = React.useState(false);
 
+    console.log('Maps key:', import.meta.env['VITE_GOOGLE_MAPS_API_KEY']);
+
     return (
         <div style={{ position: 'relative', height: '100%', width: '100%' }}>
             <Map
                 defaultCenter={BAKU_CENTER}
                 defaultZoom={12}
-                mapId="icarepro-map"
                 styles={MAP_STYLES}
                 gestureHandling="greedy"
                 disableDefaultUI={false}
