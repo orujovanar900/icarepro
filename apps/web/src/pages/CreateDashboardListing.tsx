@@ -125,6 +125,10 @@ export function CreateDashboardListing() {
     const [amenities, setAmenities] = useState<string[]>([]);
     const [photos, setPhotos] = useState<string[]>([]);
     const [uploading, setUploading] = useState(false);
+    const [lat, setLat] = useState('');
+    const [lng, setLng] = useState('');
+    const [geocodeMsg, setGeocodeMsg] = useState<string | null>(null);
+    const [geocoding, setGeocoding] = useState(false);
 
     // Auto-fill form whenever the selected property changes
     useEffect(() => {
@@ -226,6 +230,31 @@ export function CreateDashboardListing() {
         );
     };
 
+    const handleAddressBlur = async () => {
+        if (!address.trim()) return;
+        setGeocoding(true);
+        setGeocodeMsg(null);
+        try {
+            const query = encodeURIComponent(`${address}, ${district ? district + ', ' : ''}Bakı, Azərbaycan`);
+            const res = await fetch(
+                `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${import.meta.env['VITE_GOOGLE_MAPS_API_KEY']}`
+            );
+            const data = await res.json();
+            if (data.results?.[0]) {
+                const { lat: gLat, lng: gLng } = data.results[0].geometry.location;
+                setLat(String(gLat));
+                setLng(String(gLng));
+                setGeocodeMsg('📍 Koordinatlar avtomatik dolduruldu');
+            } else {
+                setGeocodeMsg('Koordinatları əl ilə daxil edin');
+            }
+        } catch {
+            setGeocodeMsg('Koordinatları əl ilə daxil edin');
+        } finally {
+            setGeocoding(false);
+        }
+    };
+
     const buildPayload = (): Record<string, unknown> | null => {
         if (!type) { addToast({ message: 'Elan növünü seçin', type: 'error' }); return null; }
         if (!district) { addToast({ message: 'Rayonu seçin', type: 'error' }); return null; }
@@ -249,6 +278,8 @@ export function CreateDashboardListing() {
         if (area) payload['area'] = Number(area);
         if (floor) payload['floor'] = Number(floor);
         if (totalFloors) payload['totalFloors'] = Number(totalFloors);
+        if (lat) payload['lat'] = Number(lat);
+        if (lng) payload['lng'] = Number(lng);
         if (availStatus === 'BOSHALIR') {
             payload['contractStartDate'] = contractStartDate;
             payload['contractEndDate'] = contractEndDate;
@@ -468,9 +499,41 @@ export function CreateDashboardListing() {
                         <Input
                             value={address}
                             onChange={(e) => setAddress(e.target.value)}
+                            onBlur={handleAddressBlur}
                             placeholder="Küçə, bina nömrəsi..."
                             className={inp}
                         />
+                        {geocoding && (
+                            <p className="text-xs text-gold mt-1 animate-pulse">📍 Koordinatlar axtarılır...</p>
+                        )}
+                        {geocodeMsg && !geocoding && (
+                            <p className={`text-xs mt-1 ${geocodeMsg.startsWith('📍') ? 'text-green-600' : 'text-muted'}`}>
+                                {geocodeMsg}
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-sm text-muted font-medium block mb-1">Enlik (lat)</label>
+                            <Input
+                                type="number"
+                                value={lat}
+                                onChange={(e) => { setLat(e.target.value); setGeocodeMsg(null); }}
+                                placeholder="40.4093"
+                                className={inp}
+                            />
+                        </div>
+                        <div>
+                            <label className="text-sm text-muted font-medium block mb-1">Uzunluq (lng)</label>
+                            <Input
+                                type="number"
+                                value={lng}
+                                onChange={(e) => { setLng(e.target.value); setGeocodeMsg(null); }}
+                                placeholder="49.8671"
+                                className={inp}
+                            />
+                        </div>
                     </div>
                 </CardContent>
             </Card>

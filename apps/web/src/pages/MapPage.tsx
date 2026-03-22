@@ -1,12 +1,15 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { APIProvider } from '@vis.gl/react-google-maps';
 
 import { PortalNavbar } from '@/components/portal/PortalNavbar';
 import { LedTicker } from '@/components/portal/LedTicker';
 import { useListings } from '@/hooks/useListings';
 import type { ListingCardData } from '@/hooks/useListings';
+
+const GoogleMapView = React.lazy(() =>
+    import('@/components/portal/GoogleMapView').then(m => ({ default: m.GoogleMapView }))
+);
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -40,12 +43,6 @@ const GRADIENTS = [
     'linear-gradient(135deg,#fa709a,#fee140)',
     'linear-gradient(135deg,#a18cd1,#fbc2eb)',
 ];
-
-const BAKU_CENTER: [number, number] = [40.4093, 49.8671];
-
-const LEAFLET_ICON_URL = 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png';
-const LEAFLET_ICON_2X_URL = 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png';
-const LEAFLET_SHADOW_URL = 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png';
 
 // ─── Compact listing card ──────────────────────────────────────────────────────
 
@@ -111,91 +108,6 @@ function CompactCard({ listing, selected, onClick }: CompactCardProps) {
     );
 }
 
-// ─── Raw Leaflet map component ────────────────────────────────────────────────
-
-interface LeafletMapProps {
-    listings: ListingCardData[];
-    selectedId: string | null;
-    onSelectId: (id: string) => void;
-}
-
-function LeafletMap({ listings, selectedId, onSelectId }: LeafletMapProps) {
-    const containerRef = React.useRef<HTMLDivElement>(null);
-    const mapRef = React.useRef<L.Map | null>(null);
-    const markersRef = React.useRef<Map<string, L.Marker>>(new Map());
-
-    // Init map once
-    React.useEffect(() => {
-        if (!containerRef.current || mapRef.current) return;
-
-        const map = L.map(containerRef.current, {
-            center: BAKU_CENTER,
-            zoom: 12,
-            scrollWheelZoom: true,
-        });
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        }).addTo(map);
-
-        mapRef.current = map;
-
-        return () => {
-            map.remove();
-            mapRef.current = null;
-            markersRef.current.clear();
-        };
-    }, []);
-
-    // Sync markers when listings change
-    React.useEffect(() => {
-        const map = mapRef.current;
-        if (!map) return;
-
-        // Remove old markers
-        markersRef.current.forEach(m => m.remove());
-        markersRef.current.clear();
-
-        // Add new markers for listings with coords
-        listings.filter(l => l.lat != null && l.lng != null).forEach(l => {
-            const color = AVAIL_COLORS[l.availStatus] ?? '#9CA3AF';
-            const count = l.queueCount;
-            const icon = L.divIcon({
-                className: '',
-                html: `<div style="width:32px;height:32px;border-radius:50%;background:${color};border:3px solid #FFF;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;color:#FFF;font-size:11px;font-weight:700;cursor:pointer">${count > 0 ? count : ''}</div>`,
-                iconSize: [32, 32],
-                iconAnchor: [16, 16],
-                popupAnchor: [0, -18],
-            });
-
-            const marker = L.marker([l.lat!, l.lng!], { icon });
-
-            marker.bindPopup(`
-                <div style="min-width:160px;font-family:system-ui,sans-serif">
-                    <p style="margin:0 0 4px;font-weight:700;font-size:13px;color:#1A1A2E">${l.title}</p>
-                    <p style="margin:0 0 8px;font-size:12px;color:#6B7280">${l.district ?? l.address}</p>
-                    <a href="/elan/${l.id}" style="display:inline-block;background:#1A1A2E;color:#FFF;text-decoration:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:700">Ətraflı bax →</a>
-                </div>
-            `);
-
-            marker.on('click', () => onSelectId(l.id));
-            marker.addTo(map);
-            markersRef.current.set(l.id, marker);
-        });
-    }, [listings]); // eslint-disable-line
-
-    // FlyTo when selectedId changes
-    React.useEffect(() => {
-        const map = mapRef.current;
-        if (!map || !selectedId) return;
-        const l = listings.find(x => x.id === selectedId);
-        if (l?.lat && l?.lng) {
-            map.flyTo([l.lat, l.lng], 15, { duration: 0.8 });
-        }
-    }, [selectedId]); // eslint-disable-line
-
-    return <div ref={containerRef} style={{ height: '100%', width: '100%' }} />;
-}
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
@@ -203,6 +115,7 @@ export function MapPage() {
     const navigate = useNavigate();
     const [selectedId, setSelectedId] = React.useState<string | null>(null);
     const [search, setSearch] = React.useState('');
+    const [queueListingId, setQueueListingId] = React.useState<string | null>(null);
 
     const { listings, isLoading } = useListings();
 
@@ -284,36 +197,21 @@ export function MapPage() {
 
                 {/* ── Map ── */}
                 <div style={{ flex: 1, position: 'relative' }}>
-                    <LeafletMap
-                        listings={mappable}
-                        selectedId={selectedId}
-                        onSelectId={setSelectedId}
-                    />
-
-                    {/* Legend */}
-                    <div style={{
-                        position: 'absolute', bottom: 20, left: 20, zIndex: 999,
-                        background: 'rgba(255,255,255,0.95)',
-                        borderRadius: 12, padding: '10px 14px',
-                        border: `1px solid ${C.border}`,
-                        boxShadow: '0 2px 12px rgba(0,0,0,0.1)',
-                        display: 'flex', flexDirection: 'column', gap: 6,
-                        pointerEvents: 'none',
-                    }}>
-                        {[
-                            { color: '#22C55E', label: 'Boşdur' },
-                            { color: '#C9A84C', label: 'Boşalır' },
-                            { color: '#9CA3AF', label: 'Tutulub' },
-                        ].map(item => (
-                            <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <div style={{ width: 14, height: 14, borderRadius: '50%', background: item.color, border: '2px solid #FFF', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }} />
-                                <span style={{ fontSize: 12, color: C.navy, fontWeight: 500 }}>{item.label}</span>
+                    <APIProvider
+                        apiKey={import.meta.env['VITE_GOOGLE_MAPS_API_KEY'] as string}
+                        libraries={['visualization']}
+                    >
+                        <React.Suspense fallback={
+                            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.muted, fontSize: 13 }}>
+                                Xəritə yüklənir...
                             </div>
-                        ))}
-                        <p style={{ margin: '4px 0 0', fontSize: 11, color: C.muted, borderTop: `1px solid ${C.border}`, paddingTop: 4 }}>
-                            🔢 Rəqəm — növbəçi sayı
-                        </p>
-                    </div>
+                        }>
+                            <GoogleMapView
+                                listings={mappable}
+                                onQueueClick={l => setQueueListingId(l.id)}
+                            />
+                        </React.Suspense>
+                    </APIProvider>
 
                     {/* No coords overlay */}
                     {!isLoading && mappable.length === 0 && (
