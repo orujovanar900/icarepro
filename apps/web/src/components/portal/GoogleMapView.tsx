@@ -376,7 +376,6 @@ export function GoogleMapView({ listings, onQueueClick }: GoogleMapViewProps) {
             <Map
                 defaultCenter={BAKU_CENTER}
                 defaultZoom={12}
-                styles={MAP_STYLES}
                 gestureHandling="greedy"
                 disableDefaultUI={false}
                 style={{ height: '100%', width: '100%' }}
