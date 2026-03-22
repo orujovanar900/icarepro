@@ -73,9 +73,10 @@ function HeatBar({ level }: { level: 'AZ' | 'ORTA' | 'YUKSEK' }) {
 interface Props {
     listing: ListingCardData;
     index?: number;
+    onQueueClick?: (listing: ListingCardData) => void;
 }
 
-export const ListingCard = React.memo(function ListingCard({ listing, index = 0 }: Props) {
+export const ListingCard = React.memo(function ListingCard({ listing, index = 0, onQueueClick }: Props) {
     const navigate = useNavigate();
     const gradient = listing.photos[0] ? undefined : GRADIENTS[index % GRADIENTS.length];
     const freeDate = formatFreeDate(listing.expectedFreeDate ?? listing.contractEndDate ?? undefined);
@@ -188,7 +189,11 @@ export const ListingCard = React.memo(function ListingCard({ listing, index = 0 
                 <button
                     className="w-full mt-auto py-2.5 rounded-[10px] text-sm font-medium text-white transition-colors"
                     style={{ background: C.navy }}
-                    onClick={e => { e.stopPropagation(); navigate(`/elan/${listing.id}`); }}
+                    onClick={e => {
+                        e.stopPropagation();
+                        if (onQueueClick) onQueueClick(listing);
+                        else navigate(`/elan/${listing.id}`);
+                    }}
                     onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#252540'; }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = C.navy; }}
                 >

@@ -548,6 +548,7 @@ model QueueEntry {
   activityType  String?
   priceOffer    Float
   desiredMonths Int?
+  lookingForRoommate Boolean @default(false)
   position      Int
   status        String   @default("ACTIVE") // ACTIVE | SELECTED | WITHDRAWN | EXPIRED
   createdAt     DateTime @default(now())

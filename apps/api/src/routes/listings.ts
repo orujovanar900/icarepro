@@ -61,6 +61,7 @@ const joinQueueSchema = z.object({
   activityType: z.string().optional(),
   priceOffer: z.number().positive(),
   desiredMonths: z.number().int().optional(),
+  lookingForRoommate: z.boolean().default(false).optional(),
 })
 
 const reportSchema = z.object({

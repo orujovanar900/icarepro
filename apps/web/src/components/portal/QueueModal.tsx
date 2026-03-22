@@ -31,21 +31,6 @@ interface Props {
 type TenantType = 'FIZIKI' | 'KOMMERSIYA';
 type Step = 'step1' | 'step2' | 'success';
 
-const EMPLOY_OPTIONS = [
-    { value: 'EMPLOYED', label: 'İşləyir' },
-    { value: 'SELF_EMPLOYED', label: 'Özünüməşğul' },
-    { value: 'STUDENT', label: 'Tələbə' },
-    { value: 'RETIRED', label: 'Pensiyaçı' },
-    { value: 'OTHER', label: 'Digər' },
-];
-
-const MONTH_OPTIONS = [
-    { value: 3, label: '3 ay' },
-    { value: 6, label: '6 ay' },
-    { value: 12, label: '12 ay' },
-    { value: 24, label: '24 ay' },
-];
-
 function StepDots({ step }: { step: Step }) {
     const steps: Step[] = ['step1', 'step2', 'success'];
     const idx = steps.indexOf(step);
@@ -91,6 +76,7 @@ export function QueueModal({ listingId: _listingId, onClose, joinQueue }: Props)
     const [desiredMonths, setDesiredMonths] = React.useState(12);
     const [priceOffer, setPriceOffer] = React.useState('');
     const [priceError, setPriceError] = React.useState('');
+    const [lookingForRoommate, setLookingForRoommate] = React.useState(false);
 
     // ESC close
     React.useEffect(() => {
@@ -134,7 +120,7 @@ export function QueueModal({ listingId: _listingId, onClose, joinQueue }: Props)
             fullName: tenantType === 'FIZIKI' ? fullName : contactPerson,
             phone,
             ...(email && { email }),
-            ...(tenantType === 'FIZIKI' && { employStatus, persons, hasPets, isSmoker }),
+            ...(tenantType === 'FIZIKI' && { employStatus, persons, hasPets, isSmoker, lookingForRoommate }),
             ...(tenantType === 'KOMMERSIYA' && {
                 companyName,
                 ...(voen && { voen }),
@@ -275,16 +261,6 @@ export function QueueModal({ listingId: _listingId, onClose, joinQueue }: Props)
                                         <label style={labelStyle}>E-poçt (ixtiyari)</label>
                                         <input style={inputStyle} value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" type="email" />
                                     </div>
-                                    <div>
-                                        <label style={labelStyle}>İş statusu</label>
-                                        <select
-                                            style={{ ...inputStyle, cursor: 'pointer' }}
-                                            value={employStatus}
-                                            onChange={e => setEmployStatus(e.target.value)}
-                                        >
-                                            {EMPLOY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                                        </select>
-                                    </div>
                                 </>
                             ) : (
                                 <>
@@ -352,40 +328,66 @@ export function QueueModal({ listingId: _listingId, onClose, joinQueue }: Props)
                             {/* Fiziki only: persons, pets, smoker */}
                             {tenantType === 'FIZIKI' && (
                                 <>
+                                    {/* Kim köçür? */}
                                     <div>
-                                        <label style={labelStyle}>Şəxs sayı</label>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 6 }}>
-                                            <button
-                                                onClick={() => setPersons(p => Math.max(1, p - 1))}
-                                                style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.border}`, background: C.white, fontSize: 18, cursor: 'pointer', color: C.navy }}
-                                            >−</button>
-                                            <span style={{ fontWeight: 700, fontSize: 18, color: C.navy, minWidth: 24, textAlign: 'center' }}>{persons}</span>
-                                            <button
-                                                onClick={() => setPersons(p => Math.min(10, p + 1))}
-                                                style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.border}`, background: C.white, fontSize: 18, cursor: 'pointer', color: C.navy }}
-                                            >+</button>
+                                        <label style={labelStyle}>Kim köçür?</label>
+                                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
+                                            {[
+                                                { label: 'Ailə 👨‍👩‍👧', value: 'FAMILY' },
+                                                { label: 'Tələbə 🎓', value: 'STUDENT' },
+                                                { label: 'Cütlük 💑', value: 'COUPLE' },
+                                                { label: 'Tək 🧍', value: 'SINGLE' },
+                                                { label: 'İşgüzar 💼', value: 'EMPLOYED' },
+                                            ].map(opt => (
+                                                <button
+                                                    key={opt.value}
+                                                    onClick={() => setEmployStatus(opt.value)}
+                                                    style={{
+                                                        padding: '7px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                                                        background: employStatus === opt.value ? C.navy : 'transparent',
+                                                        color: employStatus === opt.value ? '#FFF' : C.muted,
+                                                        border: employStatus === opt.value ? 'none' : `1px solid ${C.border}`,
+                                                    }}
+                                                >{opt.label}</button>
+                                            ))}
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'flex', gap: 8 }}>
-                                        <button
-                                            onClick={() => setHasPets(!hasPets)}
-                                            style={{
-                                                flex: 1, padding: '9px 0', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                                                background: hasPets ? C.navy : 'transparent',
-                                                color: hasPets ? '#FFF' : C.muted,
-                                                border: hasPets ? 'none' : `1px solid ${C.border}`,
-                                            }}
-                                        >🐾 Ev heyvanı var</button>
-                                        <button
-                                            onClick={() => setIsSmoker(!isSmoker)}
-                                            style={{
-                                                flex: 1, padding: '9px 0', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                                                background: isSmoker ? C.navy : 'transparent',
-                                                color: isSmoker ? '#FFF' : C.muted,
-                                                border: isSmoker ? 'none' : `1px solid ${C.border}`,
-                                            }}
-                                        >🚬 Siqaret çəkirəm</button>
+                                    {/* Şəxs sayı */}
+                                    <div>
+                                        <label style={labelStyle}>Neçə nəfər köçür?</label>
+                                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
+                                            {[1, 2, 3, 4, 5].map(p => (
+                                                <button
+                                                    key={p}
+                                                    onClick={() => setPersons(p)}
+                                                    style={{
+                                                        padding: '7px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                                                        background: persons === p ? C.navy : 'transparent',
+                                                        color: persons === p ? '#FFF' : C.muted,
+                                                        border: persons === p ? 'none' : `1px solid ${C.border}`,
+                                                    }}
+                                                >{p === 5 ? '5+' : p}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Pets and Smoker side by side choice (Yox / Var) */}
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                        <div>
+                                            <label style={labelStyle}>Ev heyvanı</label>
+                                            <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+                                                <button onClick={() => setHasPets(false)} style={{ flex: 1, padding: '7px 0', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', background: !hasPets ? C.navy : 'transparent', color: !hasPets ? '#FFF' : C.muted, border: !hasPets ? 'none' : `1px solid ${C.border}` }}>🚫 Yox</button>
+                                                <button onClick={() => setHasPets(true)} style={{ flex: 1, padding: '7px 0', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', background: hasPets ? C.navy : 'transparent', color: hasPets ? '#FFF' : C.muted, border: hasPets ? 'none' : `1px solid ${C.border}` }}>🐾 Var</button>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label style={labelStyle}>Siqaret</label>
+                                            <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+                                                <button onClick={() => setIsSmoker(false)} style={{ flex: 1, padding: '7px 0', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', background: !isSmoker ? C.navy : 'transparent', color: !isSmoker ? '#FFF' : C.muted, border: !isSmoker ? 'none' : `1px solid ${C.border}` }}>🚫 Yox</button>
+                                                <button onClick={() => setIsSmoker(true)} style={{ flex: 1, padding: '7px 0', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', background: isSmoker ? C.navy : 'transparent', color: isSmoker ? '#FFF' : C.muted, border: isSmoker ? 'none' : `1px solid ${C.border}` }}>🚬 Var</button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </>
                             )}
@@ -394,7 +396,12 @@ export function QueueModal({ listingId: _listingId, onClose, joinQueue }: Props)
                             <div>
                                 <label style={labelStyle}>İstədiyin müddət</label>
                                 <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
-                                    {MONTH_OPTIONS.map(m => (
+                                    {[
+                                        { label: '6 ay', value: 6 },
+                                        { label: '1 il', value: 12 },
+                                        { label: '2 il', value: 24 },
+                                        { label: '3 il+', value: 36 },
+                                    ].map(m => (
                                         <button
                                             key={m.value}
                                             onClick={() => setDesiredMonths(m.value)}
@@ -435,6 +442,36 @@ export function QueueModal({ listingId: _listingId, onClose, joinQueue }: Props)
                             }}>
                                 ℹ️ Minimum qiymət haqqında məlumat növbəyə daxil olduqdan sonra göstəriləcək.
                             </div>
+
+                            {/* Roommate toggle */}
+                            {tenantType === 'FIZIKI' && persons >= 1 && (
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    padding: '12px 16px', background: 'rgba(232,98,10,0.04)',
+                                    border: `1px solid rgba(232,98,10,0.2)`, borderRadius: 12, marginTop: 8
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                        <div style={{ fontSize: 24 }}>🤝</div>
+                                        <div>
+                                            <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: C.navy }}>Yoldaş axtarıram</p>
+                                            <p style={{ margin: 0, fontSize: 12, color: C.muted, marginTop: 2 }}>Profil ümumi lentdə görünəcək</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setLookingForRoommate(!lookingForRoommate)}
+                                        style={{
+                                            width: 44, height: 24, borderRadius: 12, background: lookingForRoommate ? C.orange : 'rgba(0,0,0,0.1)',
+                                            border: 'none', position: 'relative', cursor: 'pointer', transition: 'background 0.3s'
+                                        }}
+                                    >
+                                        <div style={{
+                                            width: 20, height: 20, borderRadius: 10, background: '#FFF',
+                                            position: 'absolute', top: 2, left: lookingForRoommate ? 22 : 2,
+                                            transition: 'left 0.3s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                                        }} />
+                                    </button>
+                                </div>
+                            )}
 
                             {submitError && (
                                 <div style={{ background: 'rgba(220,38,38,0.08)', border: `1px solid rgba(220,38,38,0.2)`, borderRadius: 10, padding: '10px 14px', fontSize: 13, color: C.error }}>
@@ -497,6 +534,17 @@ export function QueueModal({ listingId: _listingId, onClose, joinQueue }: Props)
                                 <span style={{ fontSize: 24, fontWeight: 800, color: C.navy }}>{result.position}</span>
                                 <span style={{ fontSize: 14, color: C.muted, marginLeft: 6 }}>nömrəli növbə</span>
                             </div>
+
+                            {lookingForRoommate && (
+                                <div style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                                    background: '#D1FAE5', color: '#065F46',
+                                    padding: '4px 12px', borderRadius: 20, fontSize: 13, fontWeight: 600,
+                                    marginBottom: 16
+                                }}>
+                                    🤝 Yoldaş axtarışınız aktivdir
+                                </div>
+                            )}
 
                             <p style={{ fontSize: 14, color: C.muted, lineHeight: 1.6, marginBottom: 8 }}>
                                 Növbəniz uğurla qeydə alındı.
