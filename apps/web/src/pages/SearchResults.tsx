@@ -2,8 +2,7 @@ import * as React from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { X, RefreshCw, Map as MapIcon } from 'lucide-react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { APIProvider } from '@vis.gl/react-google-maps';
 import { PortalNavbar } from '@/components/portal/PortalNavbar';
 import { LedTicker } from '@/components/portal/LedTicker';
 import { PortalFooter } from '@/components/portal/PortalFooter';
@@ -11,6 +10,10 @@ import { ListingCard } from '@/components/portal/ListingCard';
 import { useListings } from '@/hooks/useListings';
 import type { ListingCardData } from '@/hooks/useListings';
 import { api } from '@/lib/api';
+
+const GoogleMapView = React.lazy(() =>
+    import('@/components/portal/GoogleMapView').then(m => ({ default: m.GoogleMapView }))
+);
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 
@@ -27,19 +30,6 @@ const C = {
 };
 
 const GOLD_GRAD = 'linear-gradient(135deg,#C9A84C,#e8c56b,#C9A84C)';
-const BAKU_CENTER: [number, number] = [40.4093, 49.8671];
-
-// Heat level → map color
-const HEAT_COLORS: Record<string, string> = {
-    AZ: '#22C55E',
-    ORTA: '#F59E0B',
-    YUKSEK: '#EF4444',
-};
-const HEAT_FILL_OPACITY: Record<string, number> = {
-    AZ: 0.12,
-    ORTA: 0.20,
-    YUKSEK: 0.28,
-};
 
 // ─── Filter data ──────────────────────────────────────────────────────────────
 
@@ -100,133 +90,6 @@ function ListingCardSkeleton() {
     );
 }
 
-// ─── Heatmap Leaflet component ────────────────────────────────────────────────
-
-interface HeatMapProps {
-    listings: ListingCardData[];
-    focusedId: string | null;
-    onMarkerClick: (id: string) => void;
-}
-
-function HeatMap({ listings, focusedId, onMarkerClick }: HeatMapProps) {
-    const containerRef = React.useRef<HTMLDivElement>(null);
-    const mapRef = React.useRef<L.Map | null>(null);
-    const layerRef = React.useRef<L.LayerGroup | null>(null);
-    const markerMapRef = React.useRef<Record<string, L.Marker>>({});
-
-    // Init map once
-    React.useEffect(() => {
-        if (!containerRef.current || mapRef.current) return;
-        const map = L.map(containerRef.current, {
-            center: BAKU_CENTER,
-            zoom: 12,
-            scrollWheelZoom: true,
-            zoomControl: true,
-        });
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-            maxZoom: 19,
-        }).addTo(map);
-        layerRef.current = L.layerGroup().addTo(map);
-        mapRef.current = map;
-        return () => {
-            map.remove();
-            mapRef.current = null;
-            layerRef.current = null;
-            markerMapRef.current = {};
-        };
-    }, []);
-
-    // Update markers when listings change
-    React.useEffect(() => {
-        if (!mapRef.current || !layerRef.current) return;
-        layerRef.current.clearLayers();
-        markerMapRef.current = {};
-
-        listings.forEach(listing => {
-            if (!listing.lat || !listing.lng) return;
-            const heat = listing.heatLevel || 'AZ';
-            const color = HEAT_COLORS[heat] ?? '#9CA3AF';
-            const fillOpacity = HEAT_FILL_OPACITY[heat] ?? 0.12;
-
-            // Heatmap glow circle
-            L.circle([listing.lat, listing.lng], {
-                radius: 180,
-                fillColor: color,
-                fillOpacity,
-                color: color,
-                weight: 0,
-            }).addTo(layerRef.current!);
-
-            // Div marker
-            const qLabel = listing.queueCount > 0 ? String(listing.queueCount) : '';
-            const icon = L.divIcon({
-                className: '',
-                html: `<div style="width:30px;height:30px;border-radius:50%;background:${color};border:2.5px solid #FFF;box-shadow:0 2px 8px rgba(0,0,0,0.25);display:flex;align-items:center;justify-content:center;color:#FFF;font-size:10px;font-weight:700;line-height:1">${qLabel}</div>`,
-                iconSize: [30, 30],
-                iconAnchor: [15, 15],
-            });
-
-            const marker = L.marker([listing.lat, listing.lng], { icon });
-            marker.bindPopup(`
-                <div style="min-width:190px;font-family:system-ui,sans-serif;padding:2px 0">
-                    <p style="font-weight:700;font-size:13px;margin:0 0 3px;color:#1A1A2E">${listing.title}</p>
-                    <p style="font-size:12px;color:#6B7280;margin:0 0 6px">${[listing.district, listing.address].filter(Boolean).join(' · ')}</p>
-                    <p style="font-size:13px;font-weight:700;color:#C9A84C;margin:0 0 10px">${listing.basePrice ? listing.basePrice.toLocaleString() + ' AZN/ay' : '—'}</p>
-                    <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px">
-                        <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${color}22;color:${color};font-weight:600">${heat === 'YUKSEK' ? '🔥 Yüksək' : heat === 'ORTA' ? '🌡 Orta' : '🟢 Az'} tələbat</span>
-                        ${listing.queueCount > 0 ? `<span style="font-size:11px;color:#6B7280">${listing.queueCount} növbəçi</span>` : ''}
-                    </div>
-                    <a href="/elan/${listing.id}" style="display:block;text-align:center;padding:7px 12px;background:#1A1A2E;color:#FFF;border-radius:9px;text-decoration:none;font-size:12px;font-weight:600">Ətraflı bax →</a>
-                </div>
-            `, { maxWidth: 220 });
-            marker.on('click', () => onMarkerClick(listing.id));
-            marker.addTo(layerRef.current!);
-            markerMapRef.current[listing.id] = marker;
-        });
-    }, [listings]); // eslint-disable-line
-
-    // Fly to focused listing
-    React.useEffect(() => {
-        if (!mapRef.current || !focusedId) return;
-        const listing = listings.find(l => l.id === focusedId);
-        if (listing?.lat && listing?.lng) {
-            mapRef.current.flyTo([listing.lat, listing.lng], 16, { duration: 0.8, easeLinearity: 0.5 });
-            const marker = markerMapRef.current[focusedId];
-            if (marker) marker.openPopup();
-        }
-    }, [focusedId]); // eslint-disable-line
-
-    return <div ref={containerRef} style={{ height: '100%', width: '100%' }} />;
-}
-
-// ─── Map Legend ───────────────────────────────────────────────────────────────
-
-function MapLegend() {
-    return (
-        <div style={{
-            position: 'absolute', bottom: 20, left: 12, zIndex: 999,
-            background: 'rgba(255,255,255,0.95)', borderRadius: 12,
-            padding: '10px 14px', boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
-            border: '1px solid rgba(0,0,0,0.07)',
-            backdropFilter: 'blur(8px)',
-        }}>
-            <p style={{ fontSize: 10, fontWeight: 700, color: C.muted, marginBottom: 7, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Tələbat
-            </p>
-            {[
-                { color: '#22C55E', label: 'Az tələbat' },
-                { color: '#F59E0B', label: 'Orta tələbat' },
-                { color: '#EF4444', label: 'Yüksək tələbat' },
-            ].map(item => (
-                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
-                    <span style={{ fontSize: 11, color: C.navy }}>{item.label}</span>
-                </div>
-            ))}
-        </div>
-    );
-}
 
 // ─── Main SearchResults ───────────────────────────────────────────────────────
 
@@ -241,6 +104,7 @@ export function SearchResults() {
 
     const [focusedId, setFocusedId] = React.useState<string | null>(null);
     const [mapVisible, setMapVisible] = React.useState(true);
+    const [queueListingId, setQueueListingId] = React.useState<string | null>(null);
 
     // Map listings query — same filters, limit 200 for full heatmap coverage
     const mapQueryString = React.useMemo(() => {
@@ -559,36 +423,27 @@ export function SearchResults() {
                         width: 400,
                         flexShrink: 0,
                         position: 'sticky',
-                        top: 'calc(102px + 108px)',  /* navbar + ticker + filter bar */
+                        top: 'calc(102px + 108px)',
                         height: 'calc(100vh - 102px - 108px)',
                         alignSelf: 'flex-start',
                         borderLeft: `1px solid ${C.border}`,
                         background: '#E8E6E0',
                     }}>
-                        {/* Map wrapper */}
-                        <div style={{ position: 'relative', height: '100%' }}>
-                            <HeatMap
-                                listings={mapListings ?? []}
-                                focusedId={focusedId}
-                                onMarkerClick={id => setFocusedId(prev => prev === id ? null : id)}
-                            />
-                            <MapLegend />
-
-                            {/* Map header */}
-                            <div style={{
-                                position: 'absolute', top: 10, left: 0, right: 0, zIndex: 999,
-                                display: 'flex', justifyContent: 'center',
-                            }}>
-                                <div style={{
-                                    background: 'rgba(255,255,255,0.92)', borderRadius: 20,
-                                    padding: '5px 14px', fontSize: 11, fontWeight: 600, color: C.muted,
-                                    boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-                                    backdropFilter: 'blur(8px)',
-                                }}>
-                                    🗺 {(mapListings ?? []).filter(l => l.lat && l.lng).length} nöqtə xəritədə
+                        <APIProvider
+                            apiKey={import.meta.env['VITE_GOOGLE_MAPS_API_KEY'] as string}
+                            libraries={['visualization']}
+                        >
+                            <React.Suspense fallback={
+                                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.muted, fontSize: 13 }}>
+                                    Xəritə yüklənir...
                                 </div>
-                            </div>
-                        </div>
+                            }>
+                                <GoogleMapView
+                                    listings={mapListings ?? []}
+                                    onQueueClick={l => setQueueListingId(l.id)}
+                                />
+                            </React.Suspense>
+                        </APIProvider>
                     </div>
                 )}
             </div>
