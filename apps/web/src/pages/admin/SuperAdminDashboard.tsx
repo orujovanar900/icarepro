@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import { PlanModal, PLAN_LABELS } from '@/components/admin/PlanModal';
+import { ReportsModal } from '@/components/admin/ReportsModal';
 
 const PLAN_PRICES: Record<string, string> = {
     FREE_TRIAL: '0',
@@ -75,6 +76,7 @@ const CustomTooltip = ({ active, payload }: any) => {
 export function SuperAdminDashboard() {
     const addToast = useToastStore((s) => s.addToast);
     const [planModalOrg, setPlanModalOrg] = useState<any>(null);
+    const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
 
     const { data, isLoading, isError } = useQuery({
         queryKey: ['admin-dashboard'],
@@ -150,12 +152,21 @@ export function SuperAdminDashboard() {
     return (
         <div className="flex-1 space-y-6 p-6 max-w-[1400px] mx-auto pb-24">
             {/* Header */}
-            <div>
-                <h1 className="text-3xl font-extrabold font-heading text-text flex items-center gap-2">
-                    <Activity className="w-8 h-8 text-gold" />
-                    SuperAdmin Dashboard
-                </h1>
-                <p className="text-sm text-muted mt-1">Platform ümumi vəziyyəti — real vaxt</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-extrabold font-heading text-text flex items-center gap-2">
+                        <Activity className="w-8 h-8 text-gold" />
+                        SuperAdmin Dashboard
+                    </h1>
+                    <p className="text-sm text-muted mt-1">Platform ümumi vəziyyəti — real vaxt</p>
+                </div>
+                
+                <Button 
+                    onClick={() => setIsReportsModalOpen(true)} 
+                    className="bg-gold text-surface hover:bg-gold/90 shadow-sm"
+                >
+                    📊 Hesabat
+                </Button>
             </div>
 
             {/* ── SECTION 1: Stat Cards ── */}
@@ -480,6 +491,11 @@ export function SuperAdminDashboard() {
 
             {/* Plan Change Modal */}
             {planModalOrg && <PlanModal org={planModalOrg} onClose={() => setPlanModalOrg(null)} />}
+            
+            <ReportsModal
+              isOpen={isReportsModalOpen}
+              onClose={() => setIsReportsModalOpen(false)}
+            />
         </div>
     );
 }
