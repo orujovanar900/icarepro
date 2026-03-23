@@ -42,25 +42,32 @@ function heatLabel(level: string): string {
     return 'Az';
 }
 
-const SILVER_STYLE = [
-    { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
+const REAL_ESTATE_STYLE = [
+    { elementType: "geometry", stylers: [{ color: "#f0ebe4" }] },
+    { elementType: "labels.text.fill", stylers: [{ color: "#3d3d3d" }] },
+    { elementType: "labels.text.stroke", stylers: [{ color: "#f0ebe4" }] },
     { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
-    { elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
-    { elementType: "labels.text.stroke", stylers: [{ color: "#f5f5f5" }] },
-    { featureType: "administrative.land_parcel", elementType: "labels.text.fill", stylers: [{ color: "#bdbdbd" }] },
-    { featureType: "poi", elementType: "geometry", stylers: [{ color: "#eeeeee" }] },
-    { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
-    { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#e5e5e5" }] },
-    { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
     { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
-    { featureType: "road.arterial", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
-    { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#dadada" }] },
-    { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
-    { featureType: "road.local", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
-    { featureType: "transit.line", elementType: "geometry", stylers: [{ color: "#e5e5e5" }] },
-    { featureType: "transit.station", elementType: "geometry", stylers: [{ color: "#eeeeee" }] },
-    { featureType: "water", elementType: "geometry", stylers: [{ color: "#c9c9c9" }] },
-    { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] }
+    { featureType: "road.local", elementType: "geometry", stylers: [{ color: "#f5f2ee" }] },
+    { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#ede6dc" }] },
+    { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#e0d4c4" }] },
+    { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#c8bca8" }] },
+    { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#888888" }] },
+    { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#666666" }] },
+    { featureType: "landscape.man_made", elementType: "geometry", stylers: [{ color: "#e8e0d8" }] },
+    { featureType: "landscape.natural", elementType: "geometry", stylers: [{ color: "#ede8e0" }] },
+    { featureType: "building", elementType: "geometry", stylers: [{ color: "#d4ccc4" }] },
+    { featureType: "building", elementType: "geometry.stroke", stylers: [{ color: "#b8b0a8" }] },
+    { featureType: "poi", stylers: [{ visibility: "off" }] },
+    { featureType: "poi.park", stylers: [{ visibility: "on" }] },
+    { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#d8e8d0" }] },
+    { featureType: "poi.park", elementType: "labels", stylers: [{ visibility: "off" }] },
+    { featureType: "water", elementType: "geometry", stylers: [{ color: "#b8d4e8" }] },
+    { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#6a9ab8" }] },
+    { featureType: "transit", stylers: [{ visibility: "off" }] },
+    { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#b8afa8" }] },
+    { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#1a1a2e" }] },
+    { featureType: "administrative.neighborhood", elementType: "labels.text.fill", stylers: [{ color: "#666666" }] },
 ];
 
 // ─── Cluster bubble ───────────────────────────────────────────────────────────
@@ -388,10 +395,12 @@ export function GoogleMapView({ listings, onQueueClick }: GoogleMapViewProps) {
         <div style={{ position: 'absolute', inset: 0 }}>
             <Map
                 defaultCenter={BAKU_CENTER}
-                defaultZoom={12}
+                defaultZoom={13}
                 gestureHandling="greedy"
                 disableDefaultUI={false}
-                styles={SILVER_STYLE}
+                styles={REAL_ESTATE_STYLE}
+                tilt={45}
+                heading={0}
                 style={{ width: '100%', height: '100%' }}
             >
                 <InnerMap
