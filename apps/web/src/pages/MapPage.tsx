@@ -122,6 +122,16 @@ export function MapPage() {
     const [search, setSearch] = React.useState('');
     const [queueListingId, setQueueListingId] = React.useState<string | null>(null);
 
+    const [mobileTab, setMobileTab] = React.useState<'list' | 'map'>('list');
+    const [isMobile, setIsMobile] = React.useState(false);
+
+    React.useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 768);
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, []);
+
     const { listings, isLoading } = useListings();
 
     const filtered = React.useMemo(() => {
@@ -145,14 +155,52 @@ export function MapPage() {
                 <LedTicker placement="PORTAL_MAIN" />
             </div>
 
-            <div style={{ flex: 1, display: 'flex', overflow: 'hidden', height: 'calc(100vh - 102px)' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100vh - 102px)' }}>
 
-                {/* ── Sidebar ── */}
-                <div style={{
-                    width: 320, flexShrink: 0, background: C.white,
-                    borderRight: `1px solid ${C.border}`,
-                    display: 'flex', flexDirection: 'column', overflow: 'hidden',
+                {/* Mobile Tab Bar */}
+                <div className="mobile-tab-bar" style={{
+                    display: isMobile ? 'flex' : 'none',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 100,
+                    background: '#fff',
+                    borderBottom: '1px solid #eee',
+                    padding: '8px 16px',
+                    gap: '8px',
+                    flexShrink: 0
                 }}>
+                    <button
+                        onClick={() => setMobileTab('list')}
+                        style={{
+                            flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
+                            background: mobileTab === 'list' ? '#1A1A2E' : '#f5f5f5',
+                            color: mobileTab === 'list' ? '#fff' : '#666',
+                            fontWeight: 600, cursor: 'pointer'
+                        }}
+                    >
+                        📋 Siyahı
+                    </button>
+                    <button
+                        onClick={() => setMobileTab('map')}
+                        style={{
+                            flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
+                            background: mobileTab === 'map' ? '#1A1A2E' : '#f5f5f5',
+                            color: mobileTab === 'map' ? '#fff' : '#666',
+                            fontWeight: 600, cursor: 'pointer'
+                        }}
+                    >
+                        🗺 Xəritə
+                    </button>
+                </div>
+
+                <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+
+                    {/* ── Sidebar ── */}
+                    <div style={{
+                        width: isMobile ? '100%' : 320, flexShrink: 0, background: C.white,
+                        borderRight: isMobile ? 'none' : `1px solid ${C.border}`,
+                        display: isMobile && mobileTab !== 'list' ? 'none' : 'flex', flexDirection: 'column', overflow: 'hidden',
+                    }}>
                     <div style={{ padding: '14px 14px 10px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                             <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.navy }}>
@@ -203,7 +251,10 @@ export function MapPage() {
                 </div>
 
                 {/* ── Map ── */}
-                <div style={{ flex: 1, position: 'relative', height: '100%', minHeight: 0 }}>
+                <div style={{ 
+                    flex: 1, position: 'relative', height: '100%', minHeight: 0,
+                    display: isMobile && mobileTab !== 'map' ? 'none' : 'block'
+                }}>
                     {!MAPS_API_KEY ? (
                         <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F3F4F6', color: C.muted, textAlign: 'center', padding: 32 }}>
                             <p style={{ fontSize: 48, marginBottom: 16 }}>🗺️</p>
@@ -241,6 +292,7 @@ export function MapPage() {
                             <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>Elanların yeri hələ qeyd edilməyib.</p>
                         </div>
                     )}
+                </div>
                 </div>
             </div>
         </div>
