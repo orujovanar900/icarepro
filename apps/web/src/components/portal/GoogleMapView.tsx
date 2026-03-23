@@ -42,28 +42,7 @@ function heatLabel(level: string): string {
     return 'Az';
 }
 
-const WARM_MINIMAL_STYLE = [
-    { featureType: "all", elementType: "geometry", stylers: [{ color: "#f5f1eb" }] },
-    { featureType: "all", elementType: "labels.text.fill", stylers: [{ color: "#4a4039" }] },
-    { featureType: "all", elementType: "labels.text.stroke", stylers: [{ color: "#f5f1eb" }] },
-    { featureType: "all", elementType: "labels.icon", stylers: [{ visibility: "off" }] },
-    { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
-    { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#ede5d8" }] },
-    { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#ddd0be" }] },
-    { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#c8b89a" }] },
-    { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#7a6a5a" }] },
-    { featureType: "landscape.man_made", elementType: "geometry", stylers: [{ color: "#e8dfd4" }] },
-    { featureType: "landscape.natural", elementType: "geometry", stylers: [{ color: "#ede8e0" }] },
-    { featureType: "poi", stylers: [{ visibility: "off" }] },
-    { featureType: "poi.park", stylers: [{ visibility: "on" }] },
-    { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#d4e8c8" }] },
-    { featureType: "poi.park", elementType: "labels", stylers: [{ visibility: "off" }] },
-    { featureType: "water", elementType: "geometry", stylers: [{ color: "#b8d4e8" }] },
-    { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#6a9ab8" }] },
-    { featureType: "transit", stylers: [{ visibility: "off" }] },
-    { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#c0b0a0" }] },
-    { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#2a1a0a" }] },
-];
+// Styling controlled via Google Cloud Console (mapId: d19f791f5e30ebc0e5787f51)
 
 // ─── Cluster bubble ───────────────────────────────────────────────────────────
 
@@ -390,12 +369,10 @@ export function GoogleMapView({ listings, onQueueClick }: GoogleMapViewProps) {
         <div style={{ position: 'absolute', inset: 0 }}>
             <Map
                 defaultCenter={BAKU_CENTER}
-                defaultZoom={13}
+                defaultZoom={17}
+                mapId="d19f791f5e30ebc0e5787f51"
                 gestureHandling="greedy"
                 disableDefaultUI={false}
-                styles={WARM_MINIMAL_STYLE}
-                tilt={45}
-                heading={0}
                 style={{ width: '100%', height: '100%' }}
             >
                 <InnerMap

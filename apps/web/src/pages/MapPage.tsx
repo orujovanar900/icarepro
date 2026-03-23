@@ -146,7 +146,6 @@ export function MapPage() {
 
     const mappable = React.useMemo(() => listings.filter(l => l.lat != null && l.lng != null), [listings]);
 
-    console.log('[MapPage] API Key Check:', MAPS_API_KEY ? `${MAPS_API_KEY.substring(0, 5)}... (Length: ${MAPS_API_KEY.length})` : 'UNDEFINED');
 
     return (
         <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
