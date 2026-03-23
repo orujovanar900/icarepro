@@ -1,5 +1,7 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { APIProvider, Map as GoogleMap, AdvancedMarker } from '@vis.gl/react-google-maps';
+
+const MAPS_KEY = import.meta.env['VITE_GOOGLE_MAPS_API_KEY'] as string;
 
 interface Property {
     id: string;
@@ -8,6 +10,8 @@ interface Property {
     tenantName?: string;
     rent?: number;
     status?: 'active' | 'expiring' | 'expired';
+    lat?: number;
+    lng?: number;
 }
 
 interface SimpleMapProps {
@@ -30,20 +34,49 @@ const STATUS_LABEL: Record<string, string> = {
     expired: 'Bitmişdir',
 };
 
+const BAKU_CENTER = { lat: 40.4093, lng: 49.8671 };
+
 export default function SimpleMap({ compact = false, hidePanel = false, height: heightProp, properties, onPropertyClick }: SimpleMapProps) {
     const height = compact ? '100%' : (heightProp ?? 280);
 
-    // OpenStreetMap iframe — Baku area, zero JS dependencies
-    const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=49.65,40.30,50.05,40.55&layer=mapnik`;
-
     return (
         <div style={{ position: 'relative', height, borderRadius: 12, overflow: 'hidden', border: '1px solid #e5e7eb' }}>
-            <iframe
-                src={mapUrl}
-                style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-                title="Baku xəritəsi"
-                loading="lazy"
-            />
+            <APIProvider apiKey={MAPS_KEY}>
+                <GoogleMap
+                    defaultCenter={BAKU_CENTER}
+                    defaultZoom={12}
+                    disableDefaultUI={true}
+                    zoomControl={true}
+                    gestureHandling="cooperative"
+                    styles={[
+                        { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+                        { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+                    ]}
+                >
+                    {properties
+                        .filter(p => p.lat && p.lng)
+                        .map(p => (
+                            <AdvancedMarker
+                                key={p.id}
+                                position={{ lat: p.lat!, lng: p.lng! }}
+                                onClick={() => onPropertyClick?.(p.id)}
+                            >
+                                <div style={{
+                                    background: STATUS_COLOR[p.status || 'expired'],
+                                    color: '#fff',
+                                    padding: '4px 8px',
+                                    borderRadius: 12,
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                                    whiteSpace: 'nowrap',
+                                }}>
+                                    {p.rent ? `${p.rent.toLocaleString()}₼` : p.name.slice(0, 12)}
+                                </div>
+                            </AdvancedMarker>
+                        ))}
+                </GoogleMap>
+            </APIProvider>
 
             {/* Property overlay panel — hidden when Dashboard shows its own side list */}
             {!hidePanel && properties.length > 0 && (
@@ -54,7 +87,7 @@ export default function SimpleMap({ compact = false, hidePanel = false, height: 
                     background: 'rgba(255,255,255,0.97)',
                     borderRadius: 10,
                     padding: '6px 6px 2px',
-                    maxHeight: compact ? 200 : (height as number) - 20,
+                    maxHeight: compact ? 200 : typeof height === 'number' ? height - 20 : 260,
                     overflowY: 'auto',
                     boxShadow: '0 2px 10px rgba(0,0,0,0.18)',
                     minWidth: 190,

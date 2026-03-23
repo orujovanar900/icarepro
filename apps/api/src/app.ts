@@ -52,7 +52,9 @@ export async function buildApp() {
     await app.register(cors, {
         origin: [
             'https://icarepro.pages.dev',
-            'http://localhost:5173'
+            'http://localhost:5173',
+            'http://localhost:3000',
+            'http://localhost:3001'
         ],
         credentials: true,
     })

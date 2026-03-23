@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { APIProvider, Map as GoogleMap, AdvancedMarker } from '@vis.gl/react-google-maps';
 
 import { PortalNavbar } from '@/components/portal/PortalNavbar';
 import { LedTicker } from '@/components/portal/LedTicker';
@@ -103,7 +102,9 @@ function SkeletonDetail() {
     );
 }
 
-// ─── Raw Leaflet mini-map component ──────────────────────────────────────────
+// ─── Google Maps mini-map component ──────────────────────────────────────────
+
+const MAPS_KEY = import.meta.env['VITE_GOOGLE_MAPS_API_KEY'] as string;
 
 interface LocationMapProps {
     lat: number;
@@ -111,50 +112,63 @@ interface LocationMapProps {
 }
 
 function LocationMap({ lat, lng }: LocationMapProps) {
-    const containerRef = React.useRef<HTMLDivElement>(null);
-    const mapRef = React.useRef<L.Map | null>(null);
+    return (
+        <div style={{ height: '100%', width: '100%' }}>
+            <APIProvider apiKey={MAPS_KEY}>
+                <GoogleMap
+                    defaultCenter={{ lat, lng }}
+                    defaultZoom={15}
+                    disableDefaultUI={true}
+                    zoomControl={true}
+                    scrollwheel={false}
+                    gestureHandling="cooperative"
+                    styles={[
+                        { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+                        { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+                    ]}
+                >
+                    {/* Privacy circle overlay */}
+                    <PrivacyCircle lat={lat} lng={lng} />
+                    <AdvancedMarker position={{ lat, lng }} />
+                </GoogleMap>
+            </APIProvider>
+        </div>
+    );
+}
+
+/** Orange translucent privacy circle around listing location */
+function PrivacyCircle({ lat, lng }: { lat: number; lng: number }) {
+    const map = React.useRef<google.maps.Circle | null>(null);
+    const googleMap = React.useRef<google.maps.Map | null>(null);
 
     React.useEffect(() => {
-        if (!containerRef.current || mapRef.current) return;
+        // Wait for the google maps API
+        const interval = setInterval(() => {
+            const mapEl = document.querySelector('[data-testid="map"]') as HTMLElement | null;
+            if (!mapEl || !window.google?.maps) return;
+            clearInterval(interval);
 
-        const map = L.map(containerRef.current, {
-            center: [lat, lng],
-            zoom: 15,
-            scrollWheelZoom: false,
-            zoomControl: true,
-        });
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-        }).addTo(map);
-
-        // Privacy circle — blurred ~200m radius
-        L.circle([lat, lng], {
-            radius: 200,
-            color: 'transparent',
-            fillColor: '#E8620A',
-            fillOpacity: 0.15,
-        }).addTo(map);
-
-        // Marker with default icon fix
-        const icon = L.icon({
-            iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-            iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-        });
-        L.marker([lat, lng], { icon }).addTo(map);
-
-        mapRef.current = map;
+            // Get map instance from the internal gm property
+            if (map.current) return;
+            map.current = new google.maps.Circle({
+                center: { lat, lng },
+                radius: 200,
+                strokeColor: 'transparent',
+                fillColor: '#E8620A',
+                fillOpacity: 0.15,
+            });
+        }, 200);
 
         return () => {
-            map.remove();
-            mapRef.current = null;
+            clearInterval(interval);
+            if (map.current) {
+                map.current.setMap(null);
+                map.current = null;
+            }
         };
     }, [lat, lng]);
 
-    return <div ref={containerRef} style={{ height: '100%', width: '100%' }} />;
+    return null;
 }
 
 interface PhotoGalleryProps {
