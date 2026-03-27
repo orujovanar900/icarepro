@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Eye, Pencil, Trash2, AlertCircle, Clock, CheckCircle2, XCircle, List, Send, HandshakeIcon, X, FileText } from 'lucide-react';
+import { Plus, Eye, Pencil, Trash2, AlertCircle, Clock, CheckCircle2, XCircle, List, Send, HandshakeIcon, X, FileText, MapPin } from 'lucide-react';
+import { Modal } from '@/components/ui/Modal';
+import { MapPicker } from '@/components/portal/MapPicker';
 import { api } from '@/lib/api';
 import { useToastStore } from '@/store/toast';
 import { Badge } from '@/components/ui/Badge';
@@ -141,12 +143,118 @@ function CancelDealModal({ listingId, onClose, onSuccess }: CancelDealModalProps
     );
 }
 
+/* ─── Edit listing modal ─── */
+const AVAIL_OPTS = [
+    { value: 'BOSHDUR', label: '🟢 Boşdur' },
+    { value: 'BOSHALIR', label: '🟡 Boşalır' },
+    { value: 'INSAAT', label: '⚫ İnşaat/Təmir' },
+];
+
+interface EditListingModalProps {
+    listing: any;
+    onClose: () => void;
+    onSuccess: () => void;
+}
+
+function EditListingModal({ listing, onClose, onSuccess }: EditListingModalProps) {
+    const addToast = useToastStore((s) => s.addToast);
+    const [form, setForm] = useState({
+        basePrice: String(listing.basePrice ?? ''),
+        description: listing.description ?? '',
+        availStatus: listing.availStatus ?? 'BOSHDUR',
+        district: listing.district ?? '',
+        address: listing.address ?? '',
+        lat: listing.lat != null ? Number(listing.lat) : undefined as number | undefined,
+        lng: listing.lng != null ? Number(listing.lng) : undefined as number | undefined,
+    });
+    const [showMapPicker, setShowMapPicker] = useState(false);
+    const [selectedAddress, setSelectedAddress] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSaving(true);
+        try {
+            await api.put(`/listings/${listing.id}`, {
+                basePrice: Number(form.basePrice),
+                description: form.description,
+                availStatus: form.availStatus,
+                district: form.district,
+                address: form.address,
+                ...(form.lat != null && form.lng != null ? { lat: form.lat, lng: form.lng } : {}),
+            });
+            addToast({ message: 'Dəyişikliklər saxlanıldı ✓', type: 'success' });
+            onSuccess();
+        } catch (err: any) {
+            addToast({ message: err.response?.data?.error || err.response?.data?.message || 'Xəta baş verdi', type: 'error' });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <Modal isOpen onClose={onClose} title="Elanı redaktə et">
+            <form onSubmit={handleSave} className="space-y-4">
+                <div>
+                    <label className="text-xs font-semibold text-muted block mb-1">Qiymət (AZN/ay)</label>
+                    <Input type="number" value={form.basePrice} onChange={e => setForm(f => ({ ...f, basePrice: e.target.value }))} placeholder="850" />
+                </div>
+                <div>
+                    <label className="text-xs font-semibold text-muted block mb-1">Mövcudluq statusu</label>
+                    <Select value={form.availStatus} onChange={e => setForm(f => ({ ...f, availStatus: e.target.value }))} options={AVAIL_OPTS} />
+                </div>
+                <div>
+                    <label className="text-xs font-semibold text-muted block mb-1">Rayon</label>
+                    <Input value={form.district} onChange={e => setForm(f => ({ ...f, district: e.target.value }))} placeholder="Nəsimi" />
+                </div>
+                <div>
+                    <label className="text-xs font-semibold text-muted block mb-1">Ünvan</label>
+                    <Input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="Küçə, bina..." />
+                </div>
+                <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: '#aaa', marginBottom: 6, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Xəritədən yer seçin</label>
+                    <button type="button" onClick={() => setShowMapPicker(v => !v)}
+                        style={{ width: '100%', padding: '10px 16px', borderRadius: 8, border: '1px solid #C9A84C', background: 'transparent', color: '#C9A84C', cursor: 'pointer', fontSize: 13, fontWeight: 600, marginBottom: 8, textAlign: 'left' }}>
+                        🗺 {selectedAddress || (form.lat ? `${form.lat?.toFixed(4)}, ${form.lng?.toFixed(4)}` : 'Xəritədən yer seçin')}
+                    </button>
+                    {showMapPicker && (
+                        <MapPicker
+                            initialLat={form.lat}
+                            initialLng={form.lng}
+                            onLocationSelect={(lat, lng, address) => {
+                                setForm(f => ({ ...f, lat, lng }));
+                                setSelectedAddress(address);
+                            }}
+                            onConfirm={() => setShowMapPicker(false)}
+                        />
+                    )}
+                </div>
+                <div>
+                    <label className="text-xs font-semibold text-muted block mb-1">Təsvir</label>
+                    <textarea
+                        value={form.description}
+                        onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                        rows={3}
+                        placeholder="Elan haqqında məlumat..."
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--color-border)', fontSize: 13, resize: 'vertical', outline: 'none', background: 'var(--color-surface)', color: 'var(--color-text)' }}
+                    />
+                </div>
+                <div className="flex gap-3 pt-2">
+                    <Button type="button" variant="outline" className="flex-1" onClick={onClose} disabled={isSaving}>Ləğv et</Button>
+                    <Button type="submit" className="flex-1" disabled={isSaving}>{isSaving ? 'Saxlanılır...' : 'Saxla'}</Button>
+                </div>
+            </form>
+        </Modal>
+    );
+}
+
 export function DashboardElanlar() {
     const queryClient = useQueryClient();
     const addToast = useToastStore((s) => s.addToast);
     const navigate = useNavigate();
 
     const [cancelDealListingId, setCancelDealListingId] = useState<string | null>(null);
+    const [editListing, setEditListing] = useState<any | null>(null);
 
     const { data, isLoading } = useQuery({
         queryKey: ['my-listings'],
@@ -205,6 +313,18 @@ export function DashboardElanlar() {
 
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-6 pb-24">
+            {/* Edit listing modal */}
+            {editListing && (
+                <EditListingModal
+                    listing={editListing}
+                    onClose={() => setEditListing(null)}
+                    onSuccess={() => {
+                        setEditListing(null);
+                        queryClient.invalidateQueries({ queryKey: ['my-listings'] });
+                    }}
+                />
+            )}
+
             {/* Cancel-deal modal */}
             {cancelDealListingId && (
                 <CancelDealModal
@@ -395,6 +515,16 @@ export function DashboardElanlar() {
                                                         onClick={() => window.open(`/elan/${listing.id}`, '_blank')}
                                                     >
                                                         <Eye className="w-4 h-4" />
+                                                    </Button>
+                                                    {/* Edit */}
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="h-8 w-8 p-0 text-gold hover:bg-gold/10"
+                                                        title="Redaktə et"
+                                                        onClick={() => setEditListing(listing)}
+                                                    >
+                                                        <Pencil className="w-4 h-4" />
                                                     </Button>
                                                     {/* Delete */}
                                                     <Button

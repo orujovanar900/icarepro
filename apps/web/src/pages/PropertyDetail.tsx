@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Building, MapPin, Maximize, ArrowLeft, Calendar, User, FileText, Zap, Camera, Trash2, UploadCloud, Loader2, ChevronLeft, ChevronRight, X, ExternalLink, Download, FilePlus, Printer, Store } from 'lucide-react';
+import { Building, MapPin, Maximize, ArrowLeft, Calendar, User, FileText, Zap, Camera, Trash2, UploadCloud, Loader2, ChevronLeft, ChevronRight, X, ExternalLink, Download, FilePlus, Printer, Store, Pencil } from 'lucide-react';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { Modal } from '@/components/ui/Modal';
+import { MapPicker } from '@/components/portal/MapPicker';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { api } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -64,6 +68,13 @@ export function PropertyDetail() {
     const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
     const [isUploadingDoc, setIsUploadingDoc] = useState(false);
     const [isUploadingOther, setIsUploadingOther] = useState(false);
+
+    // Edit modal
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [editForm, setEditForm] = useState({ name: '', number: '', address: '', area: '', status: 'VACANT', propertyType: 'MENZIL', lat: 40.4093, lng: 49.8671 });
+    const [isSavingEdit, setIsSavingEdit] = useState(false);
+    const [editShowMapPicker, setEditShowMapPicker] = useState(false);
+    const [editSelectedAddress, setEditSelectedAddress] = useState('');
 
     // Keyboard nav for lightbox - must be declared before early returns (React rules)
     useEffect(() => {
@@ -226,8 +237,104 @@ export function PropertyDetail() {
         }
     };
 
+    const openEditModal = () => {
+        setEditForm({
+            name: property.name || '',
+            number: property.number || '',
+            address: property.address || '',
+            area: property.area != null ? String(property.area) : '',
+            status: property.status || 'VACANT',
+            propertyType: property.type || 'MENZIL',
+            lat: property.lat != null ? Number(property.lat) : 40.4093,
+            lng: property.lng != null ? Number(property.lng) : 49.8671,
+        });
+        setEditSelectedAddress('');
+        setEditShowMapPicker(false);
+        setIsEditOpen(true);
+    };
+
+    const handleSaveEdit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSavingEdit(true);
+        try {
+            await api.patch(`/properties/${id}`, {
+                name: editForm.name,
+                number: editForm.number,
+                address: editForm.address,
+                building: editForm.address,
+                area: Number(editForm.area),
+                status: editForm.status,
+                type: editForm.propertyType,
+                lat: editForm.lat,
+                lng: editForm.lng,
+            });
+            addToast({ message: 'Dəyişikliklər saxlanıldı ✓', type: 'success' });
+            queryClient.invalidateQueries({ queryKey: ['property', id] });
+            setIsEditOpen(false);
+        } catch (err: any) {
+            addToast({ message: err.response?.data?.error || 'Xəta baş verdi', type: 'error' });
+        } finally {
+            setIsSavingEdit(false);
+        }
+    };
+
+    const PROPERTY_TYPES = [
+        { v: 'MENZIL', l: '🏠 Mənzil' }, { v: 'OFIS', l: '🏢 Ofis' },
+        { v: 'OBYEKT', l: '🏗 Obyekt' }, { v: 'HEYET_EVI', l: '🏡 Həyət evi' },
+        { v: 'GARAJ', l: '🚗 Qaraj' }, { v: 'TORPAQ', l: '🌱 Torpaq' }, { v: 'ANBAR', l: '📦 Anbar' },
+    ];
+
     return (
         <div className="flex-1 space-y-6 p-6 max-w-5xl mx-auto pb-24">
+            {/* Edit Modal */}
+            <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} title="Obyekti redaktə et">
+                <form onSubmit={handleSaveEdit} className="space-y-4">
+                    <div>
+                        <label className="text-xs text-muted font-medium uppercase tracking-wide block mb-2">Növ</label>
+                        <div className="flex flex-wrap gap-2">
+                            {PROPERTY_TYPES.map(t => (
+                                <button key={t.v} type="button"
+                                    onClick={() => setEditForm(f => ({ ...f, propertyType: t.v }))}
+                                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${editForm.propertyType === t.v ? 'bg-gold text-black border-gold' : 'bg-surface text-muted border-border hover:border-gold'}`}
+                                >{t.l}</button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <Input label="Nömrə *" value={editForm.number} onChange={e => setEditForm(f => ({ ...f, number: e.target.value }))} placeholder="məs: A-02" />
+                        <Input label="Ad *" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} placeholder="Mənzil 3A" />
+                    </div>
+                    <Input label="Ünvan *" value={editForm.address} onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))} placeholder="Neftçilər pr. 10, Bakı" />
+                    <div style={{ marginTop: 4 }}>
+                        <label style={{ fontSize: 12, fontWeight: 600, color: '#aaa', marginBottom: 6, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Xəritədən yer seçin</label>
+                        <button type="button" onClick={() => setEditShowMapPicker(v => !v)}
+                            style={{ width: '100%', padding: '10px 16px', borderRadius: 8, border: '1px solid #C9A84C', background: 'transparent', color: '#C9A84C', cursor: 'pointer', fontSize: 13, fontWeight: 600, marginBottom: 8, textAlign: 'left' }}>
+                            🗺 {editSelectedAddress || 'Xəritədən yer seçin'}
+                        </button>
+                        {editShowMapPicker && (
+                            <MapPicker
+                                initialLat={editForm.lat}
+                                initialLng={editForm.lng}
+                                onLocationSelect={(lat, lng, address) => {
+                                    setEditForm(f => ({ ...f, lat, lng }));
+                                    setEditSelectedAddress(address);
+                                }}
+                                onConfirm={() => setEditShowMapPicker(false)}
+                            />
+                        )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <Input label="Sahə (m²) *" type="number" value={editForm.area} onChange={e => setEditForm(f => ({ ...f, area: e.target.value }))} placeholder="75.5" />
+                        <Select label="Status" value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}
+                            options={[{ label: 'Boş', value: 'VACANT' }, { label: 'İcarədədir', value: 'OCCUPIED' }, { label: 'Təmirdə', value: 'UNDER_REPAIR' }]} />
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <Button type="button" variant="outline" className="flex-1" onClick={() => setIsEditOpen(false)} disabled={isSavingEdit}>Ləğv et</Button>
+                        <Button type="submit" className="flex-1" disabled={isSavingEdit}>{isSavingEdit ? 'Saxlanılır...' : 'Saxla'}</Button>
+                    </div>
+                </form>
+            </Modal>
+
             {/* Header */}
             <div className="flex items-center gap-4">
                 <Button variant="ghost" size="sm" onClick={() => navigate('/properties')} className="shrink-0">
@@ -241,6 +348,16 @@ export function PropertyDetail() {
                     <p className="text-sm text-muted mt-1">Nömrə: {property.number}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={openEditModal}
+                        style={{ borderColor: '#C9A84C', color: '#C9A84C' }}
+                        className="gap-1.5 hover:bg-gold/10"
+                    >
+                        <Pencil className="w-4 h-4" />
+                        Redaktə et
+                    </Button>
                     {canCreateListing && (
                         <Button
                             variant="outline"

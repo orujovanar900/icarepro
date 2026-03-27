@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { X, RefreshCw, Map as MapIcon } from 'lucide-react';
+import { X, RefreshCw, Map as MapIcon, ChevronDown } from 'lucide-react';
 import { APIProvider } from '@vis.gl/react-google-maps';
 import { PortalNavbar } from '@/components/portal/PortalNavbar';
 import { LedTicker } from '@/components/portal/LedTicker';
@@ -111,6 +111,15 @@ export function SearchResults() {
     const [mapVisible, setMapVisible] = React.useState(true);
     const [queueListingId, setQueueListingId] = React.useState<string | null>(null);
 
+    const [filtersOpen, setFiltersOpen] = React.useState(false);
+    const [isMobile, setIsMobile] = React.useState(false);
+    React.useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 768);
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, []);
+
     // Map listings query — same filters, limit 200 for full heatmap coverage
     const mapQueryString = React.useMemo(() => {
         const p = new URLSearchParams(searchParams);
@@ -165,6 +174,38 @@ export function SearchResults() {
                         padding: '10px 0 6px',
                         overflowX: 'auto',
                     }}>
+                        {/* Mobile: Filtrlər + Sort FIRST for visibility */}
+                        {isMobile && (
+                            <>
+                                <button
+                                    onClick={() => setFiltersOpen(v => !v)}
+                                    style={{
+                                        padding: '5px 12px', borderRadius: 18, fontSize: 12, fontWeight: 700,
+                                        border: 'none', cursor: 'pointer',
+                                        background: filtersOpen ? C.gold : C.navy,
+                                        color: filtersOpen ? '#0A0B0F' : '#fff',
+                                        flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4,
+                                        transition: 'all 0.15s',
+                                    }}
+                                >
+                                    <ChevronDown style={{
+                                        width: 13, height: 13,
+                                        transform: filtersOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                                        transition: 'transform 0.2s',
+                                    }} />
+                                    Filtrlər
+                                </button>
+                                <select
+                                    value={filters.sort}
+                                    onChange={e => updateFilter('sort', e.target.value)}
+                                    style={{ ...selectStyle, flexShrink: 0 }}
+                                >
+                                    {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                </select>
+                                <div style={{ width: 1, height: 20, background: C.border, flexShrink: 0 }} />
+                            </>
+                        )}
+
                         {/* Type pills */}
                         {TYPE_TABS.map(t => {
                             const active = filters.type === t.value;
@@ -220,16 +261,18 @@ export function SearchResults() {
                             <strong style={{ color: C.navy }}>{isLoading ? '...' : total}</strong>&nbsp;elan
                         </span>
 
-                        {/* Sort */}
-                        <select
-                            value={filters.sort}
-                            onChange={e => updateFilter('sort', e.target.value)}
-                            style={{ ...selectStyle, flexShrink: 0 }}
-                        >
-                            {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
+                        {/* Sort — desktop only (mobile version is at the start) */}
+                        {!isMobile && (
+                            <select
+                                value={filters.sort}
+                                onChange={e => updateFilter('sort', e.target.value)}
+                                style={{ ...selectStyle, flexShrink: 0 }}
+                            >
+                                {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                            </select>
+                        )}
 
-                        {/* Map toggle */}
+                        {/* Map toggle — hidden on mobile */}
                         <button
                             onClick={() => setMapVisible(v => !v)}
                             style={{
@@ -237,17 +280,38 @@ export function SearchResults() {
                                 border: 'none', cursor: 'pointer',
                                 background: mapVisible ? C.navy : '#F2F0EC',
                                 color: mapVisible ? '#FFF' : C.muted,
-                                flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5,
+                                flexShrink: 0, display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: 5,
                             }}
                         >
                             <MapIcon style={{ width: 12, height: 12 }} />
                             {mapVisible ? 'Xəritəni gizlət' : 'Xəritə'}
                         </button>
+
+                        {/* Filter fold toggle — desktop only (mobile version is at the start) */}
+                        <button
+                            onClick={() => setFiltersOpen(v => !v)}
+                            style={{
+                                padding: '5px 12px', borderRadius: 18, fontSize: 12, fontWeight: 600,
+                                border: 'none', cursor: 'pointer',
+                                background: filtersOpen ? C.gold : '#F2F0EC',
+                                color: filtersOpen ? '#0A0B0F' : C.muted,
+                                flexShrink: 0, display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: 4,
+                                transition: 'all 0.15s',
+                            }}
+                        >
+                            <ChevronDown style={{
+                                width: 13, height: 13,
+                                transform: filtersOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                                transition: 'transform 0.2s',
+                            }} />
+                            Filtrlər
+                        </button>
                     </div>
 
-                    {/* Row 2: secondary filters */}
+                    {/* Row 2: secondary filters — collapsible */}
                     <div style={{
-                        display: 'flex', alignItems: 'center', gap: 8,
+                        display: filtersOpen ? 'flex' : 'none',
+                        alignItems: 'center', gap: 8,
                         padding: '4px 0 10px',
                         flexWrap: 'wrap',
                     }}>
@@ -422,8 +486,9 @@ export function SearchResults() {
                     )}
                 </div>
 
-                {/* Right: sticky map panel — APIProvider stays mounted to avoid re-init */}
+                {/* Right: sticky map panel — hidden on mobile */}
                 <div style={{
+                    display: isMobile ? 'none' : 'block',
                     width: mapVisible ? 400 : 0,
                     flexShrink: 0,
                     position: 'sticky',
@@ -431,7 +496,8 @@ export function SearchResults() {
                     height: 'calc(100vh - 102px - 108px)',
                     alignSelf: 'flex-start',
                     borderLeft: mapVisible ? `1px solid ${C.border}` : 'none',
-                    background: '#E8E6E0',
+                    background: '#f5f1eb',
+                    borderRadius: '16px',
                     overflow: 'hidden',
                     transition: 'width 0.2s ease',
                 }}>

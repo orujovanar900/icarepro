@@ -148,7 +148,7 @@ export function MapPage() {
 
 
     return (
-        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: C.bg }}>
             <div style={{ position: 'sticky', top: 0, zIndex: 50, flexShrink: 0 }}>
                 <PortalNavbar />
                 <LedTicker placement="PORTAL_MAIN" />
@@ -192,7 +192,7 @@ export function MapPage() {
                     </button>
                 </div>
 
-                <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+                <div style={{ flex: 1, display: 'flex', overflow: 'hidden', background: C.bg }}>
 
                     {/* ── Sidebar ── */}
                     <div style={{
@@ -250,9 +250,11 @@ export function MapPage() {
                 </div>
 
                 {/* ── Map ── */}
-                <div style={{ 
+                <div style={{
                     flex: 1, position: 'relative', height: '100%', minHeight: 0,
-                    display: isMobile && mobileTab !== 'map' ? 'none' : 'block'
+                    display: isMobile && mobileTab !== 'map' ? 'none' : 'block',
+                    borderRadius: '16px', overflow: 'hidden', background: C.bg,
+                    margin: 8,
                 }}>
                     {!MAPS_API_KEY ? (
                         <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F3F4F6', color: C.muted, textAlign: 'center', padding: 32 }}>

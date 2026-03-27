@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
+import { MapPicker } from '@/components/portal/MapPicker';
 
 /* ──────────── Constants ──────────── */
 const LISTING_TYPES = [
@@ -129,6 +130,8 @@ export function CreateDashboardListing() {
     const [lng, setLng] = useState('');
     const [geocodeMsg, setGeocodeMsg] = useState<string | null>(null);
     const [geocoding, setGeocoding] = useState(false);
+    const [showMapPicker, setShowMapPicker] = useState(false);
+    const [selectedAddress, setSelectedAddress] = useState('');
 
     // Auto-fill form whenever the selected property changes
     useEffect(() => {
@@ -513,27 +516,33 @@ export function CreateDashboardListing() {
                         )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-sm text-muted font-medium block mb-1">Enlik (lat)</label>
-                            <Input
-                                type="number"
-                                value={lat}
-                                onChange={(e) => { setLat(e.target.value); setGeocodeMsg(null); }}
-                                placeholder="40.4093"
-                                className={inp}
+                    <div>
+                        <label className="text-sm font-semibold block mb-1.5" style={{ color: '#333' }}>📍 Yer seçin</label>
+                        <button
+                            type="button"
+                            onClick={() => setShowMapPicker(v => !v)}
+                            style={{
+                                padding: '10px 16px', borderRadius: 8,
+                                border: '1px solid #C9A84C', background: 'transparent',
+                                color: '#C9A84C', cursor: 'pointer', fontSize: 13,
+                                fontWeight: 600, marginBottom: 8, width: '100%',
+                            }}
+                        >
+                            🗺 {selectedAddress || 'Xəritədən yer seçin'}
+                        </button>
+                        {showMapPicker && (
+                            <MapPicker
+                                initialLat={lat ? Number(lat) : undefined}
+                                initialLng={lng ? Number(lng) : undefined}
+                                onLocationSelect={(newLat, newLng, addr) => {
+                                    setLat(String(newLat));
+                                    setLng(String(newLng));
+                                    setSelectedAddress(addr);
+                                    setGeocodeMsg('📍 Koordinatlar seçildi');
+                                }}
+                                onConfirm={() => setShowMapPicker(false)}
                             />
-                        </div>
-                        <div>
-                            <label className="text-sm text-muted font-medium block mb-1">Uzunluq (lng)</label>
-                            <Input
-                                type="number"
-                                value={lng}
-                                onChange={(e) => { setLng(e.target.value); setGeocodeMsg(null); }}
-                                placeholder="49.8671"
-                                className={inp}
-                            />
-                        </div>
+                        )}
                     </div>
                 </CardContent>
             </Card>

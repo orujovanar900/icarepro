@@ -138,10 +138,11 @@ DİL:
                     }
                     `}
                 </style>
-                <div className="absolute inset-0 bg-purple-500 rounded-full animate-ping opacity-75 duration-1000"></div>
+                <div className="absolute inset-0 rounded-full animate-ping opacity-75 duration-1000" style={{ background: '#C9A84C' }}></div>
                 <button
                     onClick={() => setIsOpen(true)}
-                    className="relative w-full h-full bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition-colors flex items-center justify-center z-10"
+                    className="relative w-full h-full text-white rounded-full shadow-lg transition-colors flex items-center justify-center z-10"
+                    style={{ background: '#1A1A2E' }}
                 >
                     <MessageCircle className="w-8 h-8" />
                 </button>
@@ -152,16 +153,16 @@ DİL:
     return (
         <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 w-[380px] max-w-[calc(100vw-2rem)] h-[500px] max-h-[calc(100vh-7rem)] bg-[var(--color-surface)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[var(--color-border)]">
             {/* Header */}
-            <div className="bg-gradient-to-r from-purple-800 to-purple-600 text-white p-4 flex justify-between items-center z-10">
+            <div className="text-white p-4 flex justify-between items-center z-10" style={{ background: 'linear-gradient(135deg, #1A1A2E, #2a2a4e)' }}>
                 <div className="flex flex-col">
                     <span className="font-bold text-lg">İcarə Pro Dəstək</span>
-                    <span className="text-xs text-purple-200 flex items-center gap-1.5 mt-0.5">
+                    <span className="text-xs text-gray-300 flex items-center gap-1.5 mt-0.5">
                         <span className="w-2 h-2 rounded-full bg-green-400"></span> Online
                     </span>
                 </div>
                 <button
                     onClick={() => setIsOpen(false)}
-                    className="text-purple-200 hover:text-white transition-colors"
+                    className="text-gray-300 hover:text-white transition-colors"
                 >
                     <X className="w-6 h-6" />
                 </button>
@@ -173,7 +174,7 @@ DİL:
                     <div
                         key={index}
                         className={`max-w-[85%] p-3 rounded-2xl text-[14px] leading-relaxed ${message.role === 'user'
-                            ? 'bg-purple-600 text-white rounded-br-sm self-end'
+                            ? 'bg-[#1A1A2E] text-white rounded-br-sm self-end'
                             : 'bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] rounded-bl-sm self-start shadow-sm'
                             }`}
                     >
@@ -187,7 +188,7 @@ DİL:
 
                 {isLoading && (
                     <div className="bg-[var(--color-surface)] text-[var(--color-muted)] border border-[var(--color-border)] p-3 rounded-2xl rounded-bl-sm self-start shadow-sm flex gap-1 items-center">
-                        <MoreHorizontal className="w-5 h-5 animate-pulse text-purple-500" />
+                        <MoreHorizontal className="w-5 h-5 animate-pulse text-[#C9A84C]" />
                     </div>
                 )}
 
@@ -198,7 +199,7 @@ DİL:
                             <button
                                 key={i}
                                 onClick={() => handleSend(reply)}
-                                className="text-[13px] bg-[var(--color-surface)] border border-purple-200 text-purple-700 px-3 py-1.5 rounded-full hover:bg-purple-500/10 transition-colors text-left"
+                                className="text-[13px] bg-[var(--color-surface)] border border-[#C9A84C]/30 text-[#1A1A2E] px-3 py-1.5 rounded-full hover:bg-[#C9A84C]/10 transition-colors text-left"
                             >
                                 {reply}
                             </button>
@@ -222,13 +223,13 @@ DİL:
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Mesajınızı yazın..."
-                        className="flex-1 bg-[var(--color-card)] rounded-full px-4 text-[14px] text-[var(--color-text)] outline-none focus:ring-2 focus:ring-purple-500/50 transition-all placeholder:text-[var(--color-muted)]"
+                        className="flex-1 bg-[var(--color-card)] rounded-full px-4 text-[14px] text-[var(--color-text)] outline-none focus:ring-2 focus:ring-[#C9A84C]/50 transition-all placeholder:text-[var(--color-muted)]"
                         disabled={isLoading}
                     />
                     <button
                         type="submit"
                         disabled={!input.trim() || isLoading}
-                        className="w-10 h-10 bg-purple-600 text-white rounded-full flex items-center justify-center shrink-0 disabled:opacity-50 hover:bg-purple-700 transition-colors"
+                        className="w-10 h-10 bg-[#1A1A2E] text-white rounded-full flex items-center justify-center shrink-0 disabled:opacity-50 hover:bg-[#2a2a4e] transition-colors"
                     >
                         <Send className="w-5 h-5 ml-[-2px] mt-[1px]" />
                     </button>

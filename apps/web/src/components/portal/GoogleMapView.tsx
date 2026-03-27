@@ -80,24 +80,57 @@ function ClusterMarker({ position, count, onClick }: ClusterMarkerProps) {
 
 // ─── Heatmap layer (uses google.maps.visualization) ──────────────────────────
 
+type HeatMode = 'queue' | 'price';
+
 interface HeatmapLayerProps {
     listings: ListingCardData[];
+    mode: HeatMode;
 }
 
-function HeatmapLayer({ listings }: HeatmapLayerProps) {
+function HeatmapLayer({ listings, mode }: HeatmapLayerProps) {
     const map = useMap();
     const visualization = useMapsLibrary('visualization');
     const heatmapRef = React.useRef<google.maps.visualization.HeatmapLayer | null>(null);
 
+    // Color gradient per mode
+    const gradient = React.useMemo(() => {
+        if (mode === 'price') {
+            return [
+                'rgba(0,0,0,0)',
+                'rgba(34,197,94,0.4)',   // green low
+                'rgba(201,168,76,0.6)',  // gold mid
+                'rgba(232,98,10,0.8)',   // orange high
+                'rgba(239,68,68,1)',     // red very high
+            ];
+        }
+        // queue — default orange-red
+        return [
+            'rgba(0,0,0,0)',
+            'rgba(232,98,10,0.3)',
+            'rgba(232,98,10,0.6)',
+            'rgba(239,68,68,0.8)',
+            'rgba(200,30,30,1)',
+        ];
+    }, [mode]);
+
     React.useEffect(() => {
         if (!map || !visualization) return;
 
-        const points = listings
-            .filter(l => l.lat != null && l.lng != null)
-            .map(l => ({
+        // Compute max for normalization
+        const mappable = listings.filter(l => l.lat != null && l.lng != null);
+        const maxVal = mode === 'price'
+            ? Math.max(...mappable.map(l => l.basePrice ?? 0), 1)
+            : Math.max(...mappable.map(l => l.queueCount ?? 0), 1);
+
+        const points = mappable.map(l => {
+            const raw = mode === 'price'
+                ? (l.basePrice ?? 0)
+                : (l.queueCount > 0 ? l.queueCount : 1);
+            return {
                 location: new google.maps.LatLng(l.lat!, l.lng!),
-                weight: l.queueCount > 0 ? l.queueCount : 1,
-            }));
+                weight: Math.max(raw / maxVal * 10, 0.5), // normalize to 0.5–10
+            };
+        });
 
         if (!heatmapRef.current) {
             heatmapRef.current = new visualization.HeatmapLayer({
@@ -105,16 +138,18 @@ function HeatmapLayer({ listings }: HeatmapLayerProps) {
                 map,
                 radius: 40,
                 opacity: 0.6,
+                gradient,
             });
         } else {
             heatmapRef.current.setData(points);
+            heatmapRef.current.set('gradient', gradient);
         }
 
         return () => {
             heatmapRef.current?.setMap(null);
             heatmapRef.current = null;
         };
-    }, [map, visualization, listings]);
+    }, [map, visualization, listings, mode, gradient]);
 
     return null;
 }
@@ -203,13 +238,15 @@ function useClientClusters(listings: ListingCardData[], zoom: number): Cluster[]
 
 interface InnerMapProps extends GoogleMapViewProps {
     heatmapOn: boolean;
+    heatMode: HeatMode;
 }
 
-function InnerMap({ listings, onQueueClick, heatmapOn }: InnerMapProps) {
+function InnerMap({ listings, onQueueClick, heatmapOn, heatMode }: InnerMapProps) {
     const navigate = useNavigate();
     const map = useMap();
     const [zoom, setZoom] = React.useState(12);
     const [openId, setOpenId] = React.useState<string | null>(null);
+    const [is3D, setIs3D] = React.useState(false);
 
     // Track zoom for clustering
     React.useEffect(() => {
@@ -220,6 +257,12 @@ function InnerMap({ listings, onQueueClick, heatmapOn }: InnerMapProps) {
         return () => google.maps.event.removeListener(listener);
     }, [map]);
 
+    // 3D tilt
+    React.useEffect(() => {
+        if (!map) return;
+        map.setTilt(is3D ? 45 : 0);
+    }, [map, is3D]);
+
     const clusters = useClientClusters(listings, zoom);
     const openListing = openId
         ? listings.find(l => l.id === openId) ?? null
@@ -228,7 +271,7 @@ function InnerMap({ listings, onQueueClick, heatmapOn }: InnerMapProps) {
     return (
         <>
             <FitBounds listings={listings} />
-            {heatmapOn && <HeatmapLayer listings={listings} />}
+            {heatmapOn && <HeatmapLayer listings={listings} mode={heatMode} />}
 
             {clusters.map(cluster => {
                 if (cluster.listings.length > 1) {
@@ -281,6 +324,42 @@ function InnerMap({ listings, onQueueClick, heatmapOn }: InnerMapProps) {
                     </AdvancedMarker>
                 );
             })}
+
+            {/* ── Custom zoom controls ── */}
+            <div style={{
+                position: 'absolute', top: 80, right: 12, zIndex: 10,
+                display: 'flex', flexDirection: 'column', gap: 4,
+            }}>
+                <button
+                    onClick={() => map && map.setZoom((map.getZoom() ?? 12) + 1)}
+                    style={{
+                        width: 40, height: 40, borderRadius: 8, border: '1px solid #ddd',
+                        background: '#fff', fontSize: 20, cursor: 'pointer',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.15)', lineHeight: 1,
+                    }}
+                >+</button>
+                <button
+                    onClick={() => map && map.setZoom((map.getZoom() ?? 12) - 1)}
+                    style={{
+                        width: 40, height: 40, borderRadius: 8, border: '1px solid #ddd',
+                        background: '#fff', fontSize: 20, cursor: 'pointer',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.15)', lineHeight: 1,
+                    }}
+                >−</button>
+            </div>
+
+            {/* ── 3D toggle ── */}
+            <button
+                onClick={() => setIs3D(v => !v)}
+                style={{
+                    position: 'absolute', top: 180, right: 12, zIndex: 10,
+                    width: 40, height: 40, borderRadius: 8, border: '1px solid #ddd',
+                    background: is3D ? C.navy : '#fff',
+                    color: is3D ? C.white : '#333',
+                    fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                }}
+            >3D</button>
 
             {openListing && openListing.lat != null && openListing.lng != null && (
                 <InfoWindow
@@ -364,47 +443,90 @@ function InnerMap({ listings, onQueueClick, heatmapOn }: InnerMapProps) {
 
 export function GoogleMapView({ listings, onQueueClick }: GoogleMapViewProps) {
     const [heatmapOn, setHeatmapOn] = React.useState(false);
+    const [heatMode, setHeatMode] = React.useState<HeatMode>('queue');
+
+    const HEAT_MODES: { key: HeatMode; icon: string; label: string }[] = [
+        { key: 'queue', icon: '🔥', label: 'Tələb' },
+        { key: 'price', icon: '💰', label: 'Qiymət' },
+    ];
 
     return (
-        <div style={{ position: 'absolute', inset: 0 }}>
+        <div style={{ position: 'absolute', inset: 0, borderRadius: '16px', overflow: 'hidden', background: '#f5f1eb' }}>
             <Map
                 defaultCenter={BAKU_CENTER}
                 defaultZoom={17}
                 mapId="d19f791f5e30ebc0e5787f51"
                 gestureHandling="greedy"
-                disableDefaultUI={false}
+                disableDefaultUI={true}
                 style={{ width: '100%', height: '100%' }}
             >
                 <InnerMap
                     listings={listings}
                     onQueueClick={onQueueClick}
                     heatmapOn={heatmapOn}
+                    heatMode={heatMode}
                 />
             </Map>
 
-            {/* Heatmap toggle button */}
-            <button
-                onClick={() => setHeatmapOn(v => !v)}
-                style={{
-                    position: 'absolute',
-                    top: 12,
-                    right: 12,
-                    zIndex: 10,
-                    padding: '7px 14px',
-                    borderRadius: 20,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: heatmapOn ? C.gold : 'rgba(255,255,255,0.95)',
-                    color: heatmapOn ? '#0A0B0F' : C.muted,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                    transition: 'all 0.15s',
-                    backdropFilter: 'blur(8px)',
-                }}
-            >
-                🔥 İstilik xəritəsi
-            </button>
+            {/* Heatmap controls — top right */}
+            <div style={{
+                position: 'absolute', top: 12, right: 12, zIndex: 10,
+                display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end',
+            }}>
+                {/* Toggle switch */}
+                <div
+                    onClick={() => setHeatmapOn(v => !v)}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        background: '#fff', borderRadius: 20, padding: '6px 12px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)', cursor: 'pointer',
+                    }}
+                >
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#333' }}>
+                        🔥 İstilik
+                    </span>
+                    <div style={{
+                        width: 40, height: 22, borderRadius: 11,
+                        background: heatmapOn ? '#E8620A' : '#ddd',
+                        position: 'relative', transition: 'background 0.2s',
+                    }}>
+                        <div style={{
+                            position: 'absolute',
+                            top: 3, left: heatmapOn ? 21 : 3,
+                            width: 16, height: 16, borderRadius: '50%',
+                            background: '#fff', transition: 'left 0.2s',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                        }} />
+                    </div>
+                </div>
+
+                {/* Mode pills — only shown when heatmap is on */}
+                {heatmapOn && (
+                    <div style={{
+                        display: 'flex', gap: 4,
+                        background: '#fff', borderRadius: 16, padding: 3,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    }}>
+                        {HEAT_MODES.map(m => (
+                            <button
+                                key={m.key}
+                                onClick={() => setHeatMode(m.key)}
+                                style={{
+                                    padding: '4px 10px', borderRadius: 12, fontSize: 11,
+                                    fontWeight: 700, border: 'none', cursor: 'pointer',
+                                    background: heatMode === m.key
+                                        ? (m.key === 'queue' ? '#E8620A' : '#C9A84C')
+                                        : 'transparent',
+                                    color: heatMode === m.key ? '#fff' : '#666',
+                                    transition: 'all 0.15s',
+                                }}
+                            >
+                                {m.icon} {m.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

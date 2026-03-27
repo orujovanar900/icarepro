@@ -118,14 +118,11 @@ function LocationMap({ lat, lng }: LocationMapProps) {
                 <GoogleMap
                     defaultCenter={{ lat, lng }}
                     defaultZoom={15}
+                    mapId="d19f791f5e30ebc0e5787f51"
                     disableDefaultUI={true}
                     zoomControl={true}
                     scrollwheel={false}
                     gestureHandling="cooperative"
-                    styles={[
-                        { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-                        { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-                    ]}
                 >
                     {/* Privacy circle overlay */}
                     <PrivacyCircle lat={lat} lng={lng} />

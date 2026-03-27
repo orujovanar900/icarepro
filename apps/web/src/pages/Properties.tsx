@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Select } from '@/components/ui/Select';
 import SimpleMap from '@/components/SimpleMap';
+import { MapPicker } from '@/components/portal/MapPicker';
 import { useToastStore } from '@/store/toast';
 import { usePlan, FeatureGate } from '@/utils/planGates';
 import { UpgradeModal } from '@/components/UpgradeModal';
@@ -40,6 +41,8 @@ export function Properties() {
     // Add property form state
     const [form, setForm] = useState({ number: '', name: '', propertyType: 'MENZIL', address: '', area: '', status: 'VACANT', lat: 40.4093, lng: 49.8671 });
     const [isSaving, setIsSaving] = useState(false);
+    const [showMapPicker, setShowMapPicker] = useState(false);
+    const [selectedAddress, setSelectedAddress] = useState('');
 
     // Extra filters
     const [typeFilter, setTypeFilter] = useState('');
@@ -124,6 +127,8 @@ export function Properties() {
     const openAddModal = () => {
         setEditingProperty(null);
         setForm({ number: '', name: '', propertyType: 'MENZIL', address: '', area: '', status: 'VACANT', lat: 40.4093, lng: 49.8671 });
+        setShowMapPicker(false);
+        setSelectedAddress('');
         setIsModalOpen(true);
     };
 
@@ -140,6 +145,8 @@ export function Properties() {
             lat: p.lat != null ? Number(p.lat) : 40.4093,
             lng: p.lng != null ? Number(p.lng) : 49.8671,
         });
+        setShowMapPicker(false);
+        setSelectedAddress('');
         setIsModalOpen(true);
     };
 
@@ -368,6 +375,34 @@ export function Properties() {
                         onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
                         placeholder="Məs: Neftçilər pr. 10, Bakı"
                     />
+                    <div style={{ marginTop: 4 }}>
+                        <label style={{ fontSize: 12, fontWeight: 600, color: '#aaa', marginBottom: 6, display: 'block', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Xəritədən yer seçin
+                        </label>
+                        <button
+                            type="button"
+                            onClick={() => setShowMapPicker(v => !v)}
+                            style={{
+                                width: '100%', padding: '10px 16px', borderRadius: 8,
+                                border: '1px solid #C9A84C', background: 'transparent',
+                                color: '#C9A84C', cursor: 'pointer', fontSize: 13,
+                                fontWeight: 600, marginBottom: 8, textAlign: 'left',
+                            }}
+                        >
+                            🗺 {selectedAddress || 'Xəritədən yer seçin'}
+                        </button>
+                        {showMapPicker && (
+                            <MapPicker
+                                initialLat={form.lat}
+                                initialLng={form.lng}
+                                onLocationSelect={(lat, lng, address) => {
+                                    setForm(f => ({ ...f, lat, lng }));
+                                    setSelectedAddress(address);
+                                }}
+                                onConfirm={() => setShowMapPicker(false)}
+                            />
+                        )}
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         <Input
                             label="Sahə (m²) *"
@@ -398,8 +433,8 @@ export function Properties() {
                 </form>
             </Modal>
 
-            {/* Map Section */}
-            <div className="w-full mb-6 rounded-xl overflow-hidden border border-border shadow-sm">
+            {/* Map Section — hidden on mobile */}
+            <div className="hidden md:block w-full mb-6 rounded-xl overflow-hidden border border-border shadow-sm">
                 <SimpleMap
                     properties={properties.map((p: any) => {
                         const contract = activeContracts.find((c: any) => c.propertyId === p.id);
@@ -411,10 +446,14 @@ export function Properties() {
                         return {
                             id: p.id,
                             name: p.name,
+                            number: p.number,
                             address: p.address,
+                            area: p.area != null ? Number(p.area) : undefined,
                             tenantName: contract?.tenant?.fullName,
                             rent: contract ? Number(contract.monthlyRent) : undefined,
                             status,
+                            lat: p.lat != null ? Number(p.lat) : undefined,
+                            lng: p.lng != null ? Number(p.lng) : undefined,
                         };
                     })}
                     onPropertyClick={(id) => navigate(`/properties/${id}`)}

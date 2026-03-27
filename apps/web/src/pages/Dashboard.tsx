@@ -7,7 +7,7 @@ import {
 import {
     Wallet, TrendingUp, AlertCircle, Calendar, ArrowRight, Users, Search,
     ArrowUpRight, ArrowDownRight, MapPin, Clock, Plus, X,
-    AlertTriangle, CalendarX, Building2, LineChart, Lock, Store
+    AlertTriangle, CalendarX, Building2, LineChart, Lock, Store, Maximize2, Minimize2
 } from 'lucide-react';
 import { usePlan, FeatureGate } from '@/utils/planGates';
 import { UpgradeModal } from '@/components/UpgradeModal';
@@ -227,6 +227,7 @@ function DashboardContent() {
     const [reportEndDate, setReportEndDate] = useState(new Date().toISOString().split('T')[0]);
     const [reportContracts, setReportContracts] = useState<string[]>([]);
     const [isExporting, setIsExporting] = useState(false);
+    const [mapFullscreen, setMapFullscreen] = useState(false);
 
     // Quick Add Modal State
     const queryClient = useQueryClient();
@@ -769,10 +770,24 @@ function DashboardContent() {
             {/* Map and Debtors Side by Side Layout */}
             <div className="grid gap-6 grid-cols-1 lg:grid-cols-3 mt-6">
                 {/* Map Widget */}
-                <Card variant="elevated" className="overflow-hidden lg:col-span-2 flex flex-col lg:h-[350px]">
+                <Card variant="elevated" className={`overflow-hidden flex flex-col ${mapFullscreen ? 'fixed inset-0 z-50 rounded-none' : 'lg:col-span-2 lg:h-[350px]'}`}
+                    style={mapFullscreen ? { height: '100vh' } : undefined}>
                     <CardHeader className="pb-2 shrink-0">
-                        <CardTitle className="flex items-center gap-2" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
-                            📍 Obyektlər xəritədə
+                        <CardTitle className="flex items-center justify-between" style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px' }}>
+                            <span className="flex items-center gap-2">📍 Obyektlər xəritədə</span>
+                            <button
+                                onClick={() => setMapFullscreen(f => !f)}
+                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                                style={{
+                                    background: mapFullscreen ? '#ef4444' : '#1A1A2E',
+                                    color: '#fff',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                }}
+                            >
+                                {mapFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                                {mapFullscreen ? 'Kiçilt' : 'Tam ekran'}
+                            </button>
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
@@ -792,7 +807,11 @@ function DashboardContent() {
                                         return {
                                             id: p.id,
                                             name: p.name,
+                                            number: p.number,
                                             address: p.address,
+                                            area: p.area != null ? Number(p.area) : undefined,
+                                            lat: p.lat != null ? Number(p.lat) : undefined,
+                                            lng: p.lng != null ? Number(p.lng) : undefined,
                                             tenantName: contract?.tenant
                                                 ? contract.tenant.tenantType === 'fiziki'
                                                     ? `${contract.tenant.firstName || ''} ${contract.tenant.lastName || ''}`.trim()
