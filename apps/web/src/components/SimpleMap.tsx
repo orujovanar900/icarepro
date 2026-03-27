@@ -142,7 +142,7 @@ export default function SimpleMap({ compact = false, hidePanel = false, height: 
                                 position={{ lat: p.lat!, lng: p.lng! }}
                                 onClick={() => setSelectedId(s => s === p.id ? null : p.id)}
                             >
-                                <PinMarker color={STATUS_COLOR[p.status || 'expired']} />
+                                <PinMarker color={STATUS_COLOR[p.status || 'expired'] ?? '#ef4444'} />
                             </AdvancedMarker>
                         ))}
 
