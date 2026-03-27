@@ -7,6 +7,7 @@ import { PortalNavbar } from '@/components/portal/PortalNavbar';
 import { LedTicker } from '@/components/portal/LedTicker';
 import { PortalFooter } from '@/components/portal/PortalFooter';
 import { ListingCard } from '@/components/portal/ListingCard';
+import { FilterModal } from '@/components/portal/FilterPanel';
 import { useListings } from '@/hooks/useListings';
 import type { ListingCardData } from '@/hooks/useListings';
 import { api } from '@/lib/api';
@@ -104,7 +105,7 @@ export function SearchResults() {
 
     const {
         listings, total, totalPages, isLoading, isFetching,
-        filters, page, setPage, updateFilter, resetFilters, hasActiveFilters,
+        filters, page, setPage, updateFilter, updateFilters, resetFilters, hasActiveFilters,
     } = useListings();
 
     const [focusedId, setFocusedId] = React.useState<string | null>(null);
@@ -112,6 +113,7 @@ export function SearchResults() {
     const [queueListingId, setQueueListingId] = React.useState<string | null>(null);
 
     const [filtersOpen, setFiltersOpen] = React.useState(false);
+    const [showFilterModal, setShowFilterModal] = React.useState(false);
     const [isMobile, setIsMobile] = React.useState(false);
     React.useEffect(() => {
         const check = () => setIsMobile(window.innerWidth < 768);
@@ -119,6 +121,16 @@ export function SearchResults() {
         window.addEventListener('resize', check);
         return () => window.removeEventListener('resize', check);
     }, []);
+
+    // Count active advanced filters for badge
+    const advancedFilterCount = [
+        filters.buildingType, filters.renovation, filters.floorMin, filters.floorMax,
+        filters.metro, filters.landmark,
+    ].filter(Boolean).length
+        + filters.districts.length
+        + filters.amenities.length
+        + (filters.notFirstFloor ? 1 : 0)
+        + (filters.notTopFloor ? 1 : 0);
 
     // Map listings query — same filters, limit 200 for full heatmap coverage
     const mapQueryString = React.useMemo(() => {
@@ -271,6 +283,30 @@ export function SearchResults() {
                                 {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                             </select>
                         )}
+
+                        {/* ⚙️ Filtrlər button — opens FilterModal */}
+                        <button
+                            onClick={() => setShowFilterModal(true)}
+                            style={{
+                                padding: '5px 12px', borderRadius: 18, fontSize: 12, fontWeight: 600,
+                                border: 'none', cursor: 'pointer',
+                                background: advancedFilterCount > 0 ? C.gold : '#F2F0EC',
+                                color: advancedFilterCount > 0 ? '#0A0B0F' : C.muted,
+                                flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5,
+                                transition: 'all 0.15s',
+                            }}
+                        >
+                            ⚙️ Filtrlər
+                            {advancedFilterCount > 0 && (
+                                <span style={{
+                                    background: C.navy, color: '#fff',
+                                    borderRadius: '50%', width: 18, height: 18,
+                                    fontSize: 11, display: 'inline-flex',
+                                    alignItems: 'center', justifyContent: 'center',
+                                    marginLeft: 2, fontWeight: 800, flexShrink: 0,
+                                }}>{advancedFilterCount}</span>
+                            )}
+                        </button>
 
                         {/* Map toggle — hidden on mobile */}
                         <button
@@ -520,6 +556,18 @@ export function SearchResults() {
             </div>
 
             <PortalFooter />
+
+            {/* FilterModal — advanced filters */}
+            <FilterModal
+                isOpen={showFilterModal}
+                onClose={() => setShowFilterModal(false)}
+                title="Ətraflı filterlər"
+                filters={filters}
+                onChange={(updated) => updateFilters(updated)}
+                onApply={() => setShowFilterModal(false)}
+                onReset={() => { resetFilters(); setShowFilterModal(false); }}
+                listingCount={total}
+            />
         </div>
     );
 }

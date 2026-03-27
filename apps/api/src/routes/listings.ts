@@ -42,6 +42,10 @@ const createListingSchema = z.object({
   photos: z.array(z.string()).default([]),
   lat: z.number().optional(),
   lng: z.number().optional(),
+  buildingType: z.string().optional(),
+  renovation: z.string().optional(),
+  metroStation: z.string().optional(),
+  landmark: z.string().optional(),
 })
 
 const updateListingSchema = createListingSchema.partial()
@@ -124,7 +128,7 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
       if (q['areaMax']) where.area.lte = Number(q['areaMax'])
     }
     if (q['amenities']) {
-      const amenityList = q['amenities'].split(',').map(a => a.trim()).filter(Boolean)
+      const amenityList = q['amenities'].split(',').map((a: string) => a.trim()).filter(Boolean)
       if (amenityList.length) where.amenities = { hasEvery: amenityList }
     }
     if (q['search']) {
@@ -134,6 +138,50 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
         { district: { contains: q['search'], mode: 'insensitive' } },
       ]
     }
+
+    // Price filter
+    if (q['priceMin'] || q['priceMax']) {
+      where.basePrice = where.basePrice ?? {}
+      if (q['priceMin']) where.basePrice.gte = Number(q['priceMin'])
+      if (q['priceMax']) where.basePrice.lte = Number(q['priceMax'])
+    }
+
+    // Building type & renovation
+    if (q['buildingType']) where.buildingType = q['buildingType']
+    if (q['renovation']) where.renovation = q['renovation']
+
+    // Floor filters
+    if (q['floorMin'] || q['floorMax'] || q['notFirstFloor'] || q['notTopFloor']) {
+      where.floor = where.floor ?? {}
+      if (q['floorMin']) where.floor.gte = Number(q['floorMin'])
+      if (q['floorMax']) where.floor.lte = Number(q['floorMax'])
+      if (q['notFirstFloor'] === 'true') where.floor.gt = Math.max(where.floor.gt ?? 0, 1)
+    }
+    if (q['notTopFloor'] === 'true') {
+      where.NOT = { ...where.NOT, floor: { equals: where.totalFloors } }
+    }
+
+    // Metro & landmark (fuzzy)
+    if (q['metro']) where.metroStation = { contains: q['metro'], mode: 'insensitive' }
+    if (q['landmark']) where.landmark = { contains: q['landmark'], mode: 'insensitive' }
+
+    // Districts multi-select (comma-separated)
+    if (q['districts']) {
+      const districts = (q['districts'] as string).split(',').filter(Boolean)
+      if (districts.length > 0) where.district = { in: districts }
+    }
+
+    // Sort
+    const sortMap: Record<string, object> = {
+      price_asc:  { basePrice: 'asc' },
+      price_desc: { basePrice: 'desc' },
+      newest:     { createdAt: 'desc' },
+      queue_desc: { queueEntries: { _count: 'desc' } },
+    }
+    const userSort = sortMap[q['sort'] as string]
+    const orderBy: object[] = userSort
+      ? [{ isPanorama: 'desc' }, { isVip: 'desc' }, { isPushed: 'desc' }, userSort]
+      : [{ isPanorama: 'desc' }, { isVip: 'desc' }, { isPushed: 'desc' }, { createdAt: 'desc' }]
 
     const [listings, total] = await Promise.all([
       fastify.prisma.listing.findMany({
@@ -146,14 +194,10 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
           publisherType: true, publisherName: true,
           isVip: true, isPushed: true, isPanorama: true,
           amenities: true, photos: true, lat: true, lng: true,
+          buildingType: true, renovation: true, metroStation: true, landmark: true,
           createdAt: true,
         },
-        orderBy: [
-          { isPanorama: 'desc' },
-          { isVip: 'desc' },
-          { isPushed: 'desc' },
-          { createdAt: 'desc' },
-        ],
+        orderBy,
         take: limit,
         skip: offset,
       }),
@@ -220,7 +264,9 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
         availStatus: true, contractEndDate: true, expectedFreeDate: true,
         publisherType: true, publisherName: true,
         isVip: true, isPushed: true, isPanorama: true,
-        amenities: true, photos: true, lat: true, lng: true, createdAt: true,
+        amenities: true, photos: true, lat: true, lng: true,
+        buildingType: true, renovation: true, metroStation: true, landmark: true,
+        createdAt: true,
       },
     })
 

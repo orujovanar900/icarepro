@@ -1,11 +1,13 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, SlidersHorizontal, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { PortalNavbar } from '@/components/portal/PortalNavbar';
 import { LedTicker } from '@/components/portal/LedTicker';
 import { PortalFooter } from '@/components/portal/PortalFooter';
 import { HeroSection } from '@/components/portal/HeroSection';
+import { FilterModal } from '@/components/portal/FilterPanel';
+import type { ListingFilters } from '@/hooks/useListings';
 import { api } from '@/lib/api';
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
@@ -119,25 +121,49 @@ function PillBtn({ active, onClick, children, activeColor }: {
 
 export function Portal() {
     const navigate = useNavigate();
-    const [filtersOpen, setFiltersOpen] = React.useState(false);
-    const curtainRef = React.useRef<HTMLDivElement>(null);
+    const [showFilterPanel, setShowFilterPanel] = React.useState(false);
 
-    // Filter state — local only, submitted via navigate
+    // Search state (simple text, submitted on Enter/button)
     const [search, setSearch] = React.useState('');
-    const [type, setType] = React.useState('');
-    const [availStatus, setAvailStatus] = React.useState('');
-    const [district, setDistrict] = React.useState('');
-    const [rooms, setRooms] = React.useState('');
-    const [priceMin, setPriceMin] = React.useState('');
-    const [priceMax, setPriceMax] = React.useState('');
-    const [areaMin, setAreaMin] = React.useState('');
-    const [areaMax, setAreaMax] = React.useState('');
-    const [buildingType, setBuildingType] = React.useState('');
-    const [amenities, setAmenities] = React.useState<string[]>([]);
-    const [freeDate, setFreeDate] = React.useState('');
 
-    const activeFilterCount = [type, availStatus, district, rooms, priceMin, priceMax, areaMin, areaMax, buildingType, freeDate]
-        .filter(Boolean).length + amenities.length;
+    // Advanced filter state — lives here, passed to FilterModal
+    const [panelFilters, setPanelFilters] = React.useState<ListingFilters>({
+        search: '',
+        type: '',
+        buildingType: '',
+        renovation: '',
+        district: '',
+        districts: [],
+        rooms: '',
+        areaMin: '',
+        areaMax: '',
+        priceMin: '',
+        priceMax: '',
+        floorMin: '',
+        floorMax: '',
+        notFirstFloor: false,
+        notTopFloor: false,
+        freeDate: '',
+        availStatus: '',
+        amenities: [],
+        metro: '',
+        landmark: '',
+        sort: 'default',
+    });
+
+    const activeFilterCount = [
+        panelFilters.type, panelFilters.buildingType, panelFilters.renovation,
+        panelFilters.district, panelFilters.rooms,
+        panelFilters.priceMin, panelFilters.priceMax,
+        panelFilters.areaMin, panelFilters.areaMax,
+        panelFilters.floorMin, panelFilters.floorMax,
+        panelFilters.freeDate, panelFilters.availStatus,
+        panelFilters.metro, panelFilters.landmark,
+    ].filter(Boolean).length
+        + panelFilters.amenities.length
+        + panelFilters.districts.length
+        + (panelFilters.notFirstFloor ? 1 : 0)
+        + (panelFilters.notTopFloor ? 1 : 0);
 
     // Lightweight count query for hero section
     const { data: countData } = useQuery({
@@ -152,28 +178,40 @@ export function Portal() {
     const handleSearch = () => {
         const params = new URLSearchParams();
         if (search) params.set('search', search);
-        if (type) params.set('type', type);
-        if (availStatus) params.set('availStatus', availStatus);
-        if (district) params.set('district', district);
-        if (rooms) params.set('rooms', rooms);
-        if (priceMin) params.set('priceMin', priceMin);
-        if (priceMax) params.set('priceMax', priceMax);
-        if (areaMin) params.set('areaMin', areaMin);
-        if (areaMax) params.set('areaMax', areaMax);
-        if (buildingType) params.set('buildingType', buildingType);
-        if (amenities.length) params.set('amenities', amenities.join(','));
-        if (freeDate) params.set('freeDate', freeDate);
+        // Merge panelFilters into URL params
+        if (panelFilters.type) params.set('type', panelFilters.type);
+        if (panelFilters.availStatus) params.set('availStatus', panelFilters.availStatus);
+        if (panelFilters.districts.length > 0) {
+            params.set('districts', panelFilters.districts.join(','));
+        } else if (panelFilters.district) {
+            params.set('district', panelFilters.district);
+        }
+        if (panelFilters.rooms) params.set('rooms', panelFilters.rooms);
+        if (panelFilters.priceMin) params.set('priceMin', panelFilters.priceMin);
+        if (panelFilters.priceMax) params.set('priceMax', panelFilters.priceMax);
+        if (panelFilters.areaMin) params.set('areaMin', panelFilters.areaMin);
+        if (panelFilters.areaMax) params.set('areaMax', panelFilters.areaMax);
+        if (panelFilters.buildingType) params.set('buildingType', panelFilters.buildingType);
+        if (panelFilters.renovation) params.set('renovation', panelFilters.renovation);
+        if (panelFilters.floorMin) params.set('floorMin', panelFilters.floorMin);
+        if (panelFilters.floorMax) params.set('floorMax', panelFilters.floorMax);
+        if (panelFilters.notFirstFloor) params.set('notFirstFloor', 'true');
+        if (panelFilters.notTopFloor) params.set('notTopFloor', 'true');
+        if (panelFilters.metro) params.set('metro', panelFilters.metro);
+        if (panelFilters.landmark) params.set('landmark', panelFilters.landmark);
+        if (panelFilters.amenities.length) params.set('amenities', panelFilters.amenities.join(','));
         navigate(`/elanlar?${params.toString()}`);
     };
 
     const handleReset = () => {
-        setSearch(''); setType(''); setAvailStatus(''); setDistrict('');
-        setRooms(''); setPriceMin(''); setPriceMax(''); setAreaMin('');
-        setAreaMax(''); setBuildingType(''); setAmenities([]); setFreeDate('');
+        setPanelFilters(prev => ({
+            ...prev,
+            type: '', buildingType: '', renovation: '', district: '', districts: [],
+            rooms: '', priceMin: '', priceMax: '', areaMin: '', areaMax: '',
+            floorMin: '', floorMax: '', notFirstFloor: false, notTopFloor: false,
+            freeDate: '', availStatus: '', amenities: [], metro: '', landmark: '',
+        }));
     };
-
-    const toggleAmenity = (val: string) =>
-        setAmenities(prev => prev.includes(val) ? prev.filter(x => x !== val) : [...prev, val]);
 
     return (
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: C.cream }}>
@@ -237,13 +275,12 @@ export function Portal() {
                     {/* Filter toggle */}
                     <div style={{ display: 'flex', justifyContent: 'center', marginTop: 14, gap: 10 }}>
                         <button
-                            onClick={() => setFiltersOpen(v => !v)}
+                            onClick={() => setShowFilterPanel(true)}
                             style={{
                                 display: 'inline-flex', alignItems: 'center', gap: 6,
                                 padding: '8px 18px', borderRadius: 24, fontSize: 13, fontWeight: 600,
-                                background: filtersOpen ? C.navy : C.white,
-                                color: filtersOpen ? '#FFF' : C.navy,
-                                border: `1px solid ${filtersOpen ? C.navy : C.borderMed}`,
+                                background: C.white, color: C.navy,
+                                border: `1px solid ${C.borderMed}`,
                                 cursor: 'pointer', transition: 'all 0.15s',
                                 boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
                             }}
@@ -256,10 +293,6 @@ export function Portal() {
                                     padding: '1px 7px', fontSize: 11, fontWeight: 700,
                                 }}>{activeFilterCount}</span>
                             )}
-                            {filtersOpen
-                                ? <ChevronUp style={{ width: 13, height: 13 }} />
-                                : <ChevronDown style={{ width: 13, height: 13 }} />
-                            }
                         </button>
 
                         {activeFilterCount > 0 && (
@@ -277,162 +310,18 @@ export function Portal() {
                         )}
                     </div>
 
-                    {/* ── Filter curtain ──────────────────────────────────────────── */}
-                    <div
-                        ref={curtainRef}
-                        style={{
-                            maxHeight: filtersOpen ? 900 : 0,
-                            overflow: 'hidden',
-                            transition: 'max-height 0.35s cubic-bezier(0.4,0,0.2,1)',
-                        }}
-                    >
-                        <div style={{
-                            background: C.white, borderRadius: 18,
-                            border: `1px solid ${C.borderMed}`,
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-                            padding: '28px 24px 20px',
-                            marginTop: 12,
-                            display: 'flex', flexDirection: 'column', gap: 22,
-                        }}>
-
-                            {/* Əmlak növü */}
-                            <div>
-                                <label style={labelStyle}>Əmlak növü</label>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                                    {TYPE_TABS.map(t => (
-                                        <PillBtn key={t.value} active={type === t.value} onClick={() => setType(t.value)} activeColor="gold">
-                                            {t.label}
-                                        </PillBtn>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Vəziyyət */}
-                            <div>
-                                <label style={labelStyle}>Mövcudluq vəziyyəti</label>
-                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                                    {AVAIL_TABS.map(t => (
-                                        <PillBtn key={t.value} active={availStatus === t.value} onClick={() => setAvailStatus(t.value)} activeColor="navy">
-                                            {t.label}
-                                        </PillBtn>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* District + Rooms + Area + Price */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(155px, 1fr))', gap: 14 }}>
-                                <div>
-                                    <label style={labelStyle}>Rayon</label>
-                                    <select value={district} onChange={e => setDistrict(e.target.value)} style={selectStyle}>
-                                        <option value="">Bütün rayonlar</option>
-                                        {DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Otaq sayı</label>
-                                    <select value={rooms} onChange={e => setRooms(e.target.value)} style={selectStyle}>
-                                        <option value="">Hamısı</option>
-                                        {[1, 2, 3, 4, '5+'].map(n => <option key={n} value={String(n)}>{n} otaq</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Qiymət min (₼)</label>
-                                    <input type="number" min={0} value={priceMin} onChange={e => setPriceMin(e.target.value)} placeholder="0" style={inputStyle} />
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Qiymət max (₼)</label>
-                                    <input type="number" min={0} value={priceMax} onChange={e => setPriceMax(e.target.value)} placeholder="∞" style={inputStyle} />
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Sahə min (m²)</label>
-                                    <input type="number" min={0} value={areaMin} onChange={e => setAreaMin(e.target.value)} placeholder="0" style={inputStyle} />
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Sahə max (m²)</label>
-                                    <input type="number" min={0} value={areaMax} onChange={e => setAreaMax(e.target.value)} placeholder="∞" style={inputStyle} />
-                                </div>
-                                <div>
-                                    <label style={labelStyle}>Boşalma tarixi</label>
-                                    <input
-                                        type="date"
-                                        value={freeDate}
-                                        onChange={e => setFreeDate(e.target.value)}
-                                        style={{ ...inputStyle, color: freeDate ? C.navy : C.muted }}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Tikili növü */}
-                            <div>
-                                <label style={labelStyle}>Tikili növü</label>
-                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                                    {BUILDING_TYPES.map(t => (
-                                        <PillBtn key={t.value} active={buildingType === t.value} onClick={() => setBuildingType(t.value)} activeColor="orange">
-                                            {t.label}
-                                        </PillBtn>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Əlavə imkanlar */}
-                            <div>
-                                <label style={labelStyle}>Əlavə imkanlar</label>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                                    {AMENITY_OPTIONS.map(a => {
-                                        const active = amenities.includes(a.value);
-                                        return (
-                                            <button
-                                                key={a.value}
-                                                onClick={() => toggleAmenity(a.value)}
-                                                style={{
-                                                    padding: '6px 14px', borderRadius: 20, fontSize: 12,
-                                                    fontWeight: active ? 700 : 400,
-                                                    cursor: 'pointer', transition: 'all 0.15s',
-                                                    border: 'none',
-                                                    background: active ? 'rgba(201,168,76,0.15)' : '#F5F5F3',
-                                                    color: active ? C.gold : C.muted,
-                                                    boxShadow: active ? `0 0 0 1.5px ${C.gold}` : 'none',
-                                                }}
-                                            >{a.label}</button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* Action row */}
-                            <div style={{ display: 'flex', gap: 10, borderTop: `1px solid ${C.border}`, paddingTop: 16 }}>
-                                <button
-                                    onClick={handleReset}
-                                    style={{
-                                        flex: '0 0 auto', padding: '11px 20px', borderRadius: 12,
-                                        fontSize: 13, fontWeight: 600,
-                                        background: 'transparent', color: C.muted,
-                                        border: `1px solid ${C.borderMed}`, cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', gap: 5,
-                                    }}
-                                >
-                                    <X style={{ width: 13, height: 13 }} /> Sıfırla
-                                </button>
-                                <button
-                                    onClick={handleSearch}
-                                    style={{
-                                        flex: 1, padding: '11px 0', borderRadius: 12,
-                                        fontSize: 14, fontWeight: 700,
-                                        background: GOLD_GRAD, backgroundSize: '200% 200%',
-                                        color: '#0A0B0F', border: 'none', cursor: 'pointer',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                                        boxShadow: '0 4px 16px rgba(201,168,76,0.3)',
-                                    }}
-                                >
-                                    <Search style={{ width: 15, height: 15 }} />
-                                    Elanları göstər
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    {/* FilterModal */}
+                    <FilterModal
+                        isOpen={showFilterPanel}
+                        onClose={() => setShowFilterPanel(false)}
+                        filters={panelFilters}
+                        onChange={setPanelFilters}
+                        onApply={() => { setShowFilterPanel(false); handleSearch(); }}
+                        onReset={handleReset}
+                    />
 
                     {/* Quick action links */}
-                    {!filtersOpen && (
+                    {(
                         <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 20, flexWrap: 'wrap' }}>
                             {[
                                 { label: '🏠 Mənzillər', value: 'MENZIL' },
