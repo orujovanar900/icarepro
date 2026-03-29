@@ -15,6 +15,7 @@ import { MapPicker } from '@/components/portal/MapPicker';
 import { useToastStore } from '@/store/toast';
 import { usePlan, FeatureGate } from '@/utils/planGates';
 import { UpgradeModal } from '@/components/UpgradeModal';
+import { NisangahModal } from '@/components/portal/NisangahModal';
 
 const formatMoney = (amount: number) => {
     return new Intl.NumberFormat('az-AZ', {
@@ -34,6 +35,7 @@ export function Properties() {
     const [showDeleted, setShowDeleted] = useState(false);
     const [statusFilter, setStatusFilter] = useState('');
     const limit = 20;
+    const mapLimit = 300;
 
     const { can, plan } = usePlan();
     const [upgradeFeature, setUpgradeFeature] = useState<FeatureGate | null>(null);
@@ -43,6 +45,13 @@ export function Properties() {
     const [isSaving, setIsSaving] = useState(false);
     const [showMapPicker, setShowMapPicker] = useState(false);
     const [selectedAddress, setSelectedAddress] = useState('');
+    // New characteristic fields for property
+    const [propBuildingType, setPropBuildingType] = useState('');
+    const [propRenovation, setPropRenovation] = useState('');
+    const [propMetroStation, setPropMetroStation] = useState('');
+    const [propLandmark, setPropLandmark] = useState('');
+    const [showPropNisangah, setShowPropNisangah] = useState(false);
+    const [propNisangahTab, setPropNisangahTab] = useState<'rayon' | 'metro' | 'landmark'>('metro');
 
     // Extra filters
     const [typeFilter, setTypeFilter] = useState('');
@@ -70,7 +79,7 @@ export function Properties() {
         queryKey: ['properties', debouncedSearch, page, showDeleted, typeFilter],
         queryFn: async () => {
             const params = new URLSearchParams({
-                limit: String(limit),
+                limit: String(mapLimit),
                 offset: String((page - 1) * limit)
             });
             if (debouncedSearch) params.append('search', debouncedSearch);
@@ -129,6 +138,10 @@ export function Properties() {
         setForm({ number: '', name: '', propertyType: 'MENZIL', address: '', area: '', status: 'VACANT', lat: 40.4093, lng: 49.8671 });
         setShowMapPicker(false);
         setSelectedAddress('');
+        setPropBuildingType('');
+        setPropRenovation('');
+        setPropMetroStation('');
+        setPropLandmark('');
         setIsModalOpen(true);
     };
 
@@ -141,12 +154,15 @@ export function Properties() {
             address: p.address || '',
             area: p.area != null ? String(p.area) : '',
             status: p.status || 'VACANT',
-            // Prisma returns Decimal as strings – explicitly cast to number
             lat: p.lat != null ? Number(p.lat) : 40.4093,
             lng: p.lng != null ? Number(p.lng) : 49.8671,
         });
         setShowMapPicker(false);
         setSelectedAddress('');
+        setPropBuildingType(p.buildingType || '');
+        setPropRenovation(p.renovation || '');
+        setPropMetroStation(p.metroStation || '');
+        setPropLandmark(p.landmark || '');
         setIsModalOpen(true);
     };
 
@@ -154,6 +170,10 @@ export function Properties() {
         setEditingProperty(null);
         setIsModalOpen(false);
         setForm({ number: '', name: '', propertyType: 'MENZIL', address: '', area: '', status: 'VACANT', lat: 40.4093, lng: 49.8671 });
+        setPropBuildingType('');
+        setPropRenovation('');
+        setPropMetroStation('');
+        setPropLandmark('');
     };
 
     const handleAddProperty = async (e: React.FormEvent) => {
@@ -181,10 +201,25 @@ export function Properties() {
                         status: form.status,
                         lat: form.lat,
                         lng: form.lng,
+                        ...(propBuildingType ? { buildingType: propBuildingType } : {}),
+                        ...(propRenovation ? { renovation: propRenovation } : {}),
+                        ...(propMetroStation ? { metroStation: propMetroStation } : {}),
+                        ...(propLandmark ? { landmark: propLandmark } : {}),
                     },
                 });
             } else {
-                await api.post('/properties', { ...form, type: form.propertyType, building: form.address, area: Number(form.area), lat: form.lat, lng: form.lng });
+                await api.post('/properties', {
+                    ...form,
+                    type: form.propertyType,
+                    building: form.address,
+                    area: Number(form.area),
+                    lat: form.lat,
+                    lng: form.lng,
+                    ...(propBuildingType ? { buildingType: propBuildingType } : {}),
+                    ...(propRenovation ? { renovation: propRenovation } : {}),
+                    ...(propMetroStation ? { metroStation: propMetroStation } : {}),
+                    ...(propLandmark ? { landmark: propLandmark } : {}),
+                });
                 addToast({ message: 'Obyekt əlavə edildi ✓', type: 'success' });
                 queryClient.invalidateQueries({ queryKey: ['properties'] });
                 closeModal();
@@ -337,7 +372,9 @@ export function Properties() {
                             {[
                                 { v: 'MENZIL',    l: '🏠 Mənzil' },
                                 { v: 'HEYET_EVI', l: '🏡 Həyət evi' },
+                                { v: 'VILLA',     l: '🏰 Villa' },
                                 { v: 'OFIS',      l: '📋 Ofis' },
+                                { v: 'MAGAZA',    l: '🏪 Mağaza' },
                                 { v: 'OBYEKT',    l: '🏗 Obyekt' },
                                 { v: 'GARAJ',     l: '🚗 Qaraj' },
                                 { v: 'TORPAQ',    l: '🌱 Torpaq' },
@@ -424,6 +461,71 @@ export function Properties() {
                             ]}
                         />
                     </div>
+
+                    {/* Building type chips */}
+                    <div>
+                        <label className="text-xs font-medium text-muted uppercase tracking-wide block mb-2">Tikili növü</label>
+                        <div className="flex gap-2 flex-wrap">
+                            {[
+                                { v: 'YENI_TIKILI', l: '🏗 Yeni tikili' },
+                                { v: 'KOHNE_TIKILI', l: '🏚 Köhnə tikili' },
+                            ].map(bt => (
+                                <button key={bt.v} type="button"
+                                    onClick={() => setPropBuildingType(p => p === bt.v ? '' : bt.v)}
+                                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${propBuildingType === bt.v
+                                        ? 'bg-gold text-black border-gold'
+                                        : 'bg-surface text-muted border-border hover:border-gold'
+                                    }`}
+                                >{bt.l}</button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Renovation chips */}
+                    <div>
+                        <label className="text-xs font-medium text-muted uppercase tracking-wide block mb-2">Təmir</label>
+                        <div className="flex gap-2 flex-wrap">
+                            {[
+                                { v: 'TEMIRLI', l: '✨ Təmirli' },
+                                { v: 'TEMIRSIZ', l: '🔨 Təmirsiz' },
+                                { v: 'FERQI_YOXDUR', l: '🤷 Fərqi yoxdur' },
+                            ].map(rv => (
+                                <button key={rv.v} type="button"
+                                    onClick={() => setPropRenovation(p => p === rv.v ? '' : rv.v)}
+                                    className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${propRenovation === rv.v
+                                        ? 'bg-gold text-black border-gold'
+                                        : 'bg-surface text-muted border-border hover:border-gold'
+                                    }`}
+                                >{rv.l}</button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Metro / Nişangah chip buttons */}
+                    <div>
+                        <label className="text-xs font-medium text-muted uppercase tracking-wide block mb-2">Metro / Nişangah</label>
+                        <div className="flex gap-2 flex-wrap">
+                            <button type="button"
+                                onClick={() => { setPropNisangahTab('metro'); setShowPropNisangah(true); }}
+                                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all flex items-center gap-1.5 ${propMetroStation
+                                    ? 'bg-gold text-black border-gold'
+                                    : 'bg-surface text-muted border-border hover:border-gold'
+                                }`}
+                            >
+                                🚇 Metro{propMetroStation && <span className="text-xs">— {propMetroStation}</span>}
+                            </button>
+                            <button type="button"
+                                onClick={() => { setPropNisangahTab('landmark'); setShowPropNisangah(true); }}
+                                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all flex items-center gap-1.5 ${propLandmark
+                                    ? 'bg-gold text-black border-gold'
+                                    : 'bg-surface text-muted border-border hover:border-gold'
+                                }`}
+                            >
+                                📍 Nişangah{propLandmark && <span className="text-xs">— {propLandmark}</span>}
+                            </button>
+                        </div>
+                    </div>
+
                     <div className="flex gap-3 pt-4 border-t border-border">
                         <Button type="button" variant="outline" className="flex-1" onClick={() => setIsModalOpen(false)} disabled={isSaving}>Ləğv et</Button>
                         <Button type="submit" className="flex-1" disabled={isSaving}>
@@ -432,6 +534,19 @@ export function Properties() {
                     </div>
                 </form>
             </Modal>
+
+            {/* NisangahModal for Property form */}
+            <NisangahModal
+                isOpen={showPropNisangah}
+                onClose={() => setShowPropNisangah(false)}
+                initialTab={propNisangahTab}
+                selectedDistricts={[]}
+                selectedMetro={propMetroStation ? [propMetroStation] : []}
+                selectedLandmarks={propLandmark ? [propLandmark] : []}
+                onChangeDistricts={() => {}}
+                onChangeMetro={(vals) => setPropMetroStation(vals[0] ?? '')}
+                onChangeLandmarks={(vals) => setPropLandmark(vals[0] ?? '')}
+            />
 
             {/* Map Section — hidden on mobile */}
             <div className="hidden md:block w-full mb-6 rounded-xl overflow-hidden border border-border shadow-sm">

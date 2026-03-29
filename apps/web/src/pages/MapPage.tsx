@@ -154,7 +154,7 @@ export function MapPage() {
                 <LedTicker placement="PORTAL_MAIN" />
             </div>
 
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100vh - 102px)' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', height: 'calc(100vh - 60px)' }}>
 
                 {/* Mobile Tab Bar */}
                 <div className="mobile-tab-bar" style={{

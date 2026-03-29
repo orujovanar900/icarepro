@@ -53,6 +53,8 @@ enum ListingType {
   GARAJ
   TORPAQ
   ANBAR
+  MAGAZA
+  VILLA
 }
 
 enum ListingAvailStatus {

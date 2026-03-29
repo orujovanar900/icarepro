@@ -21,7 +21,7 @@ const createListingSchema = z.object({
   propertyId: z.string().optional(),
   title: z.string().min(1),
   description: z.string().optional(),
-  type: z.enum(['MENZIL', 'OFIS', 'OBYEKT', 'HEYET_EVI', 'GARAJ', 'TORPAQ', 'ANBAR']),
+  type: z.enum(['MENZIL', 'OFIS', 'OBYEKT', 'HEYET_EVI', 'GARAJ', 'TORPAQ', 'ANBAR', 'MAGAZA', 'VILLA']),
   district: z.string().optional(),
   address: z.string().min(1),
   floor: z.number().int().optional(),
@@ -774,6 +774,28 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     return reply.send({ success: true, data: stripBasePrice(listing) })
+  })
+
+  // POST /listings/:id/favorite — toggle favorite for current user
+  fastify.post('/:id/favorite', {
+    preHandler: [authenticate],
+  }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const userId = req.user.sub
+
+    const existing = await fastify.prisma.listingFavorite.findFirst({
+      where: { listingId: id, userId },
+    })
+
+    if (existing) {
+      await fastify.prisma.listingFavorite.delete({ where: { id: existing.id } })
+      return reply.send({ success: true, data: { favorited: false } })
+    } else {
+      await fastify.prisma.listingFavorite.create({
+        data: { listingId: id, userId },
+      })
+      return reply.send({ success: true, data: { favorited: true } })
+    }
   })
 
   // POST /listings/upload-photo — multipart to Supabase

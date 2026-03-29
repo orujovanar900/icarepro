@@ -139,8 +139,8 @@ export function useListingDetail(id: string | undefined) {
         queryKey: ['listing-favorite', id],
         queryFn: async () => {
             const res = await api.get('/users/me/favorites');
-            const favorites: { id: string }[] = res.data?.data ?? [];
-            return favorites.some((f) => f.id === id);
+            const favorites: { listingId?: string; listing?: { id: string } }[] = res.data?.data ?? [];
+            return favorites.some((f) => (f.listingId ?? f.listing?.id) === id);
         },
         enabled: Boolean(id) && isAuthenticated,
         staleTime: 60_000,

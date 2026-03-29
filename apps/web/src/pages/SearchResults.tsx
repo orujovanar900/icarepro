@@ -112,7 +112,6 @@ export function SearchResults() {
     const [mapVisible, setMapVisible] = React.useState(true);
     const [queueListingId, setQueueListingId] = React.useState<string | null>(null);
 
-    const [filtersOpen, setFiltersOpen] = React.useState(false);
     const [showFilterModal, setShowFilterModal] = React.useState(false);
     const [isMobile, setIsMobile] = React.useState(false);
     React.useEffect(() => {
@@ -155,13 +154,6 @@ export function SearchResults() {
         updateFilter('search', '');
     };
 
-    const selectStyle: React.CSSProperties = {
-        padding: '6px 10px', fontSize: 12, borderRadius: 8,
-        border: `1px solid ${C.borderMed}`, background: C.white,
-        color: C.navy, outline: 'none', cursor: 'pointer',
-        appearance: 'none' as const,
-    };
-
     return (
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: C.listBg }}>
             <div style={{ position: 'sticky', top: 0, zIndex: 50, flexShrink: 0 }}>
@@ -186,31 +178,13 @@ export function SearchResults() {
                         padding: '10px 0 6px',
                         overflowX: 'auto',
                     }}>
-                        {/* Mobile: Filtrlər + Sort FIRST for visibility */}
+                        {/* Mobile: Sort FIRST for visibility */}
                         {isMobile && (
                             <>
-                                <button
-                                    onClick={() => setFiltersOpen(v => !v)}
-                                    style={{
-                                        padding: '5px 12px', borderRadius: 18, fontSize: 12, fontWeight: 700,
-                                        border: 'none', cursor: 'pointer',
-                                        background: filtersOpen ? C.gold : C.navy,
-                                        color: filtersOpen ? '#0A0B0F' : '#fff',
-                                        flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4,
-                                        transition: 'all 0.15s',
-                                    }}
-                                >
-                                    <ChevronDown style={{
-                                        width: 13, height: 13,
-                                        transform: filtersOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                                        transition: 'transform 0.2s',
-                                    }} />
-                                    Filtrlər
-                                </button>
                                 <select
                                     value={filters.sort}
                                     onChange={e => updateFilter('sort', e.target.value)}
-                                    style={{ ...selectStyle, flexShrink: 0 }}
+                                    style={{ padding: '5px 8px', fontSize: 12, borderRadius: 8, border: `1px solid ${C.borderMed}`, background: C.white, color: C.navy, outline: 'none', cursor: 'pointer', flexShrink: 0 }}
                                 >
                                     {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                                 </select>
@@ -273,12 +247,12 @@ export function SearchResults() {
                             <strong style={{ color: C.navy }}>{isLoading ? '...' : total}</strong>&nbsp;elan
                         </span>
 
-                        {/* Sort — desktop only (mobile version is at the start) */}
+                        {/* Sort — desktop only */}
                         {!isMobile && (
                             <select
                                 value={filters.sort}
                                 onChange={e => updateFilter('sort', e.target.value)}
-                                style={{ ...selectStyle, flexShrink: 0 }}
+                                style={{ padding: '5px 8px', fontSize: 12, borderRadius: 8, border: `1px solid ${C.borderMed}`, background: C.white, color: C.navy, outline: 'none', cursor: 'pointer', flexShrink: 0 }}
                             >
                                 {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                             </select>
@@ -323,128 +297,6 @@ export function SearchResults() {
                             {mapVisible ? 'Xəritəni gizlət' : 'Xəritə'}
                         </button>
 
-                        {/* Filter fold toggle — desktop only (mobile version is at the start) */}
-                        <button
-                            onClick={() => setFiltersOpen(v => !v)}
-                            style={{
-                                padding: '5px 12px', borderRadius: 18, fontSize: 12, fontWeight: 600,
-                                border: 'none', cursor: 'pointer',
-                                background: filtersOpen ? C.gold : '#F2F0EC',
-                                color: filtersOpen ? '#0A0B0F' : C.muted,
-                                flexShrink: 0, display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: 4,
-                                transition: 'all 0.15s',
-                            }}
-                        >
-                            <ChevronDown style={{
-                                width: 13, height: 13,
-                                transform: filtersOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                                transition: 'transform 0.2s',
-                            }} />
-                            Filtrlər
-                        </button>
-                    </div>
-
-                    {/* Row 2: secondary filters — collapsible */}
-                    <div style={{
-                        display: filtersOpen ? 'flex' : 'none',
-                        alignItems: 'center', gap: 8,
-                        padding: '4px 0 10px',
-                        flexWrap: 'wrap',
-                    }}>
-                        {/* Active search chip */}
-                        {activeSearch && (
-                            <div style={{
-                                display: 'inline-flex', alignItems: 'center', gap: 5,
-                                padding: '4px 10px', borderRadius: 16,
-                                background: 'rgba(26,26,46,0.08)', color: C.navy,
-                                fontSize: 12, fontWeight: 600,
-                            }}>
-                                🔍 {activeSearch}
-                                <button onClick={handleClearSearch} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted, padding: 0, lineHeight: 1, fontSize: 15 }}>×</button>
-                            </div>
-                        )}
-
-                        {/* District */}
-                        <select
-                            value={filters.district}
-                            onChange={e => updateFilter('district', e.target.value)}
-                            style={selectStyle}
-                        >
-                            <option value="">📍 Bütün rayonlar</option>
-                            {DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
-                        </select>
-
-                        {/* Rooms */}
-                        <select
-                            value={filters.rooms}
-                            onChange={e => updateFilter('rooms', e.target.value)}
-                            style={selectStyle}
-                        >
-                            <option value="">🚪 Otaq sayı</option>
-                            {[1, 2, 3, 4, '5+'].map(n => <option key={n} value={String(n)}>{n} otaq</option>)}
-                        </select>
-
-                        {/* Building type */}
-                        <select
-                            value={filters.buildingType}
-                            onChange={e => updateFilter('buildingType', e.target.value)}
-                            style={selectStyle}
-                        >
-                            {BUILDING_TYPE_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
-
-                        {/* Price range */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <input
-                                type="number" min={0} value={filters.priceMin}
-                                onChange={e => updateFilter('priceMin', e.target.value)}
-                                placeholder="₼ min"
-                                style={{
-                                    width: 72, padding: '5px 8px', fontSize: 12,
-                                    border: `1px solid ${C.borderMed}`, borderRadius: 8,
-                                    outline: 'none', color: C.navy, background: C.white,
-                                }}
-                            />
-                            <span style={{ fontSize: 11, color: C.muted }}>—</span>
-                            <input
-                                type="number" min={0} value={filters.priceMax}
-                                onChange={e => updateFilter('priceMax', e.target.value)}
-                                placeholder="₼ max"
-                                style={{
-                                    width: 72, padding: '5px 8px', fontSize: 12,
-                                    border: `1px solid ${C.borderMed}`, borderRadius: 8,
-                                    outline: 'none', color: C.navy, background: C.white,
-                                }}
-                            />
-                        </div>
-
-                        {/* Reset */}
-                        {hasActiveFilters && (
-                            <button
-                                onClick={resetFilters}
-                                style={{
-                                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                                    padding: '5px 12px', borderRadius: 16, fontSize: 12, fontWeight: 600,
-                                    background: 'transparent', color: C.muted,
-                                    border: `1px solid ${C.borderMed}`, cursor: 'pointer',
-                                }}
-                            >
-                                <X style={{ width: 11, height: 11 }} /> Sıfırla
-                            </button>
-                        )}
-
-                        {/* Back to home */}
-                        <button
-                            onClick={() => navigate('/')}
-                            style={{
-                                marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4,
-                                padding: '5px 12px', borderRadius: 16, fontSize: 12, fontWeight: 500,
-                                background: 'transparent', color: C.muted,
-                                border: `1px solid ${C.border}`, cursor: 'pointer',
-                            }}
-                        >
-                            ← Ana səhifə
-                        </button>
                     </div>
                 </div>
             </div>

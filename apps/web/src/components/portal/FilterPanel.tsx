@@ -1,5 +1,6 @@
 import * as React from 'react';
 import type { ListingFilters } from '@/hooks/useListings';
+import { NisangahModal } from '@/components/portal/NisangahModal';
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 const C = {
@@ -158,13 +159,17 @@ export function FilterPanel({ filters, onChange, onApply, onReset, listingCount 
             ? filters.amenities.filter(a => a !== v)
             : [...filters.amenities, v]);
 
-    const toggleDistrict = (v: string) =>
-        set('districts', filters.districts.includes(v)
-            ? filters.districts.filter(d => d !== v)
-            : [...filters.districts, v]);
-
     const toggleAvail = (v: string) =>
         set('availStatus', filters.availStatus === v ? '' : v);
+
+    // NisangahModal state
+    const [showNisangah, setShowNisangah] = React.useState(false);
+    const [nisangahTab, setNisangahTab] = React.useState<'rayon' | 'metro' | 'landmark'>('rayon');
+
+    const openNisangah = (tab: 'rayon' | 'metro' | 'landmark') => {
+        setNisangahTab(tab);
+        setShowNisangah(true);
+    };
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: '4px 0' }}>
@@ -291,43 +296,124 @@ export function FilterPanel({ filters, onChange, onApply, onReset, listingCount 
 
             <Divider />
 
-            {/* 9. Rayon */}
+            {/* 9. Rayon / Metro / Nişangah — via NisangahModal */}
             <div>
-                <SectionLabel>Rayon</SectionLabel>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {DISTRICTS.map(d => (
-                        <button
-                            key={d}
-                            onClick={() => toggleDistrict(d)}
-                            style={{
-                                padding: '5px 12px', borderRadius: 16, fontSize: 12,
-                                fontWeight: filters.districts.includes(d) ? 700 : 400,
-                                cursor: 'pointer', border: 'none', transition: 'all 0.12s',
-                                background: filters.districts.includes(d)
-                                    ? 'rgba(201,168,76,0.15)' : '#EFEDE9',
-                                color: filters.districts.includes(d) ? C.gold : C.muted,
-                                boxShadow: filters.districts.includes(d)
-                                    ? `0 0 0 1.5px ${C.gold}` : 'none',
-                            }}
-                        >{d}</button>
-                    ))}
+                <SectionLabel>Rayon / Metro / Nişangah</SectionLabel>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+
+                    {/* Rayon button */}
+                    <button
+                        onClick={() => openNisangah('rayon')}
+                        style={{
+                            padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600,
+                            cursor: 'pointer', border: `1px solid ${filters.districts.length > 0 ? C.gold : C.borderMed}`,
+                            background: filters.districts.length > 0 ? C.navy : C.white,
+                            color: filters.districts.length > 0 ? C.white : C.muted,
+                            display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s',
+                        }}
+                    >
+                        📍 Rayon
+                        {filters.districts.length > 0 && (
+                            <span style={{
+                                background: C.gold, color: '#0A0B0F',
+                                borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 800,
+                            }}>{filters.districts.length}</span>
+                        )}
+                    </button>
+
+                    {/* Metro button */}
+                    <button
+                        onClick={() => openNisangah('metro')}
+                        style={{
+                            padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600,
+                            cursor: 'pointer', border: `1px solid ${filters.metro ? C.gold : C.borderMed}`,
+                            background: filters.metro ? C.navy : C.white,
+                            color: filters.metro ? C.white : C.muted,
+                            display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s',
+                        }}
+                    >
+                        🚇 Metro
+                        {filters.metro && (
+                            <span style={{
+                                background: C.gold, color: '#0A0B0F',
+                                borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 800,
+                            }}>1</span>
+                        )}
+                    </button>
+
+                    {/* Nişangah button */}
+                    <button
+                        onClick={() => openNisangah('landmark')}
+                        style={{
+                            padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600,
+                            cursor: 'pointer', border: `1px solid ${filters.landmark ? C.gold : C.borderMed}`,
+                            background: filters.landmark ? C.navy : C.white,
+                            color: filters.landmark ? C.white : C.muted,
+                            display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s',
+                        }}
+                    >
+                        🏛 Nişangah
+                        {filters.landmark && (
+                            <span style={{
+                                background: C.gold, color: '#0A0B0F',
+                                borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 800,
+                            }}>1</span>
+                        )}
+                    </button>
                 </div>
+
+                {/* Active chips summary */}
+                {(filters.districts.length > 0 || filters.metro || filters.landmark) && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+                        {filters.districts.map(d => (
+                            <span key={d} style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                padding: '3px 10px', borderRadius: 14, fontSize: 12, fontWeight: 600,
+                                background: 'rgba(201,168,76,0.12)', color: C.gold,
+                                border: `1px solid ${C.gold}`,
+                            }}>
+                                📍 {d}
+                                <button
+                                    onClick={() => set('districts', filters.districts.filter(x => x !== d))}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted, padding: 0, lineHeight: 1, fontSize: 14 }}
+                                >×</button>
+                            </span>
+                        ))}
+                        {filters.metro && (
+                            <span style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                padding: '3px 10px', borderRadius: 14, fontSize: 12, fontWeight: 600,
+                                background: 'rgba(201,168,76,0.12)', color: C.gold,
+                                border: `1px solid ${C.gold}`,
+                            }}>
+                                🚇 {filters.metro}
+                                <button
+                                    onClick={() => set('metro', '')}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted, padding: 0, lineHeight: 1, fontSize: 14 }}
+                                >×</button>
+                            </span>
+                        )}
+                        {filters.landmark && (
+                            <span style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                padding: '3px 10px', borderRadius: 14, fontSize: 12, fontWeight: 600,
+                                background: 'rgba(201,168,76,0.12)', color: C.gold,
+                                border: `1px solid ${C.gold}`,
+                            }}>
+                                🏛 {filters.landmark}
+                                <button
+                                    onClick={() => set('landmark', '')}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted, padding: 0, lineHeight: 1, fontSize: 14 }}
+                                >×</button>
+                            </span>
+                        )}
+                    </div>
+                )}
             </div>
 
             <Divider />
 
-            {/* 10. Metro / Nişangah */}
-            <div>
-                <SectionLabel>Metro / Nişangah</SectionLabel>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <TextInput value={filters.metro} onChange={v => set('metro', v)} placeholder="Metro stansiyası..." />
-                    <TextInput value={filters.landmark} onChange={v => set('landmark', v)} placeholder="Nişangah (məktəb, tibb, park...)" />
-                </div>
-            </div>
-
-            <Divider />
-
-            {/* 11. Əlavə imkanlar */}
+            {/* 10. Əlavə imkanlar */}
             <div>
                 <SectionLabel>Əlavə imkanlar</SectionLabel>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -379,6 +465,19 @@ export function FilterPanel({ filters, onChange, onApply, onReset, listingCount 
                     }
                 </button>
             </div>
+
+            {/* NisangahModal */}
+            <NisangahModal
+                isOpen={showNisangah}
+                onClose={() => setShowNisangah(false)}
+                initialTab={nisangahTab}
+                selectedDistricts={filters.districts}
+                selectedMetro={filters.metro ? [filters.metro] : []}
+                selectedLandmarks={filters.landmark ? [filters.landmark] : []}
+                onChangeDistricts={(vals) => set('districts', vals)}
+                onChangeMetro={(vals) => set('metro', vals[0] ?? '')}
+                onChangeLandmarks={(vals) => set('landmark', vals[0] ?? '')}
+            />
         </div>
     );
 }
@@ -392,6 +491,16 @@ export interface FilterModalProps extends FilterPanelProps {
 }
 
 export function FilterModal({ isOpen, onClose, title = 'Filtrlər', ...panelProps }: FilterModalProps) {
+    const [isMobile, setIsMobile] = React.useState(
+        typeof window !== 'undefined' ? window.innerWidth < 768 : false
+    );
+
+    React.useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, []);
+
     // Close on Escape key
     React.useEffect(() => {
         if (!isOpen) return;
@@ -416,48 +525,103 @@ export function FilterModal({ isOpen, onClose, title = 'Filtrlər', ...panelProp
                 style={{
                     position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
                     zIndex: 200, backdropFilter: 'blur(2px)',
-                    animation: 'fadeIn 0.15s ease',
+                    animation: 'fp_fadeIn 0.15s ease',
                 }}
             />
 
-            {/* Panel */}
-            <div style={{
-                position: 'fixed', top: 0, right: 0, bottom: 0,
-                width: '100%', maxWidth: 520, background: C.white,
-                zIndex: 201, display: 'flex', flexDirection: 'column',
-                boxShadow: '-8px 0 48px rgba(0,0,0,0.14)',
-                animation: 'slideIn 0.22s cubic-bezier(0.4,0,0.2,1)',
-            }}>
-                {/* Header */}
+            {isMobile ? (
+                /* ── Mobile: bottom-sheet ── */
                 <div style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '20px 24px', borderBottom: `1px solid ${C.border}`,
-                    flexShrink: 0,
+                    position: 'fixed',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    zIndex: 201,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    pointerEvents: 'none',
                 }}>
-                    <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: C.navy }}>
-                        {title}
-                    </h2>
-                    <button
-                        onClick={onClose}
-                        style={{
-                            width: 34, height: 34, borderRadius: '50%', border: 'none',
-                            background: C.bg, color: C.muted, fontSize: 20, lineHeight: 1,
-                            cursor: 'pointer', display: 'flex', alignItems: 'center',
-                            justifyContent: 'center',
-                        }}
-                    >×</button>
-                </div>
+                    <div style={{
+                        flex: 1,
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        background: C.white,
+                        borderRadius: '16px 16px 0 0',
+                        marginTop: 'auto',
+                        maxHeight: '90vh',
+                        pointerEvents: 'all',
+                        boxShadow: '0 -8px 48px rgba(0,0,0,0.18)',
+                        animation: 'fp_slideUp 0.22s cubic-bezier(0.4,0,0.2,1)',
+                    }}>
+                        {/* Drag handle */}
+                        <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
+                            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(0,0,0,0.12)' }} />
+                        </div>
 
-                {/* Scrollable content */}
-                <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
-                    <FilterPanel {...panelProps} />
+                        {/* Header */}
+                        <div style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '8px 20px 14px', borderBottom: `1px solid ${C.border}`,
+                            flexShrink: 0,
+                        }}>
+                            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: C.navy }}>{title}</h2>
+                            <button
+                                onClick={onClose}
+                                style={{
+                                    width: 32, height: 32, borderRadius: '50%', border: 'none',
+                                    background: C.bg, color: C.muted, fontSize: 20, lineHeight: 1,
+                                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                }}
+                            >×</button>
+                        </div>
+
+                        {/* Scrollable content */}
+                        <div style={{
+                            flex: 1, overflowY: 'auto', padding: '16px 20px',
+                            WebkitOverflowScrolling: 'touch' as any,
+                        }}>
+                            <FilterPanel {...panelProps} />
+                        </div>
+                    </div>
                 </div>
-            </div>
+            ) : (
+                /* ── Desktop: right slide-in panel ── */
+                <div style={{
+                    position: 'fixed', top: 0, right: 0, bottom: 0,
+                    width: '100%', maxWidth: 520, background: C.white,
+                    zIndex: 201, display: 'flex', flexDirection: 'column',
+                    boxShadow: '-8px 0 48px rgba(0,0,0,0.14)',
+                    animation: 'fp_slideIn 0.22s cubic-bezier(0.4,0,0.2,1)',
+                }}>
+                    {/* Header */}
+                    <div style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '20px 24px', borderBottom: `1px solid ${C.border}`,
+                        flexShrink: 0,
+                    }}>
+                        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: C.navy }}>{title}</h2>
+                        <button
+                            onClick={onClose}
+                            style={{
+                                width: 34, height: 34, borderRadius: '50%', border: 'none',
+                                background: C.bg, color: C.muted, fontSize: 20, lineHeight: 1,
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}
+                        >×</button>
+                    </div>
+
+                    {/* Scrollable content */}
+                    <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+                        <FilterPanel {...panelProps} />
+                    </div>
+                </div>
+            )}
 
             <style>{`
-                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-                @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+                @keyframes fp_fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes fp_slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+                @keyframes fp_slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
             `}</style>
         </>
     );
 }
+

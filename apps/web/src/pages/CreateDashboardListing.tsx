@@ -10,16 +10,19 @@ import { Input } from '@/components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Select';
 import { MapPicker } from '@/components/portal/MapPicker';
+import { NisangahModal } from '@/components/portal/NisangahModal';
 
 /* ──────────── Constants ──────────── */
 const LISTING_TYPES = [
-    { value: 'MENZIL', label: '🏠 Mənzil' },
-    { value: 'OFIS', label: '🏢 Ofis' },
-    { value: 'OBYEKT', label: '🏗 Obyekt' },
+    { value: 'MENZIL',    label: '🏠 Mənzil' },
+    { value: 'OFIS',      label: '🏢 Ofis' },
+    { value: 'OBYEKT',    label: '🏗 Obyekt' },
     { value: 'HEYET_EVI', label: '🏡 Həyət evi' },
-    { value: 'GARAJ', label: '🚗 Qaraj' },
-    { value: 'TORPAQ', label: '🌱 Torpaq' },
-    { value: 'ANBAR', label: '📦 Anbar' },
+    { value: 'VILLA',     label: '🏰 Villa' },
+    { value: 'MAGAZA',    label: '🏪 Mağaza' },
+    { value: 'GARAJ',     label: '🚗 Qaraj' },
+    { value: 'TORPAQ',    label: '🌱 Torpaq' },
+    { value: 'ANBAR',     label: '📦 Anbar' },
 ];
 
 const TYPES_WITH_ROOMS = ['MENZIL', 'OFIS', 'HEYET_EVI'];
@@ -50,7 +53,7 @@ const AMENITIES = [
 
 const TYPE_LABEL_MAP: Record<string, string> = {
     MENZIL: 'Mənzil', OFIS: 'Ofis', OBYEKT: 'Obyekt', HEYET_EVI: 'Həyət evi',
-    GARAJ: 'Qaraj', TORPAQ: 'Torpaq', ANBAR: 'Anbar',
+    GARAJ: 'Qaraj', TORPAQ: 'Torpaq', ANBAR: 'Anbar', VILLA: 'Villa', MAGAZA: 'Mağaza',
 };
 
 /* ──────────── Component ──────────── */
@@ -132,6 +135,14 @@ export function CreateDashboardListing() {
     const [geocoding, setGeocoding] = useState(false);
     const [showMapPicker, setShowMapPicker] = useState(false);
     const [selectedAddress, setSelectedAddress] = useState('');
+    // New building characteristic fields
+    const [buildingType, setBuildingType] = useState('');
+    const [renovation, setRenovation] = useState('');
+    const [metroStation, setMetroStation] = useState('');
+    const [landmark, setLandmark] = useState('');
+    // NisangahModal state for form
+    const [showNisangahModal, setShowNisangahModal] = useState(false);
+    const [nisangahTab, setNisangahTab] = useState<'rayon' | 'metro' | 'landmark'>('metro');
 
     // Auto-fill form whenever the selected property changes
     useEffect(() => {
@@ -283,6 +294,10 @@ export function CreateDashboardListing() {
         if (totalFloors) payload['totalFloors'] = Number(totalFloors);
         if (lat) payload['lat'] = Number(lat);
         if (lng) payload['lng'] = Number(lng);
+        if (buildingType) payload['buildingType'] = buildingType;
+        if (renovation) payload['renovation'] = renovation;
+        if (metroStation) payload['metroStation'] = metroStation;
+        if (landmark) payload['landmark'] = landmark;
         if (availStatus === 'BOSHALIR') {
             payload['contractStartDate'] = contractStartDate;
             payload['contractEndDate'] = contractEndDate;
@@ -544,8 +559,50 @@ export function CreateDashboardListing() {
                             />
                         )}
                     </div>
+
+                    {/* Metro / Nişangah — chip buttons opening NisangahModal */}
+                    <div>
+                        <label className="text-sm text-muted font-medium block mb-2">Metro / Nişangah</label>
+                        <div className="flex flex-wrap gap-2 mb-2">
+                            <button
+                                type="button"
+                                onClick={() => { setNisangahTab('metro'); setShowNisangahModal(true); }}
+                                className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all flex items-center gap-2 ${
+                                    metroStation
+                                        ? 'bg-gold text-bg border-gold'
+                                        : 'border-border text-muted hover:border-gold/50'
+                                }`}
+                            >
+                                🚇 Metro{metroStation && <span className="bg-white/20 rounded-full px-2 py-0.5 text-xs">{metroStation}</span>}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => { setNisangahTab('landmark'); setShowNisangahModal(true); }}
+                                className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all flex items-center gap-2 ${
+                                    landmark
+                                        ? 'bg-gold text-bg border-gold'
+                                        : 'border-border text-muted hover:border-gold/50'
+                                }`}
+                            >
+                                📍 Nişangah{landmark && <span className="bg-white/20 rounded-full px-2 py-0.5 text-xs">{landmark}</span>}
+                            </button>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
+
+            {/* NisangahModal for metro / landmark selection */}
+            <NisangahModal
+                isOpen={showNisangahModal}
+                onClose={() => setShowNisangahModal(false)}
+                initialTab={nisangahTab}
+                selectedDistricts={[]}
+                selectedMetro={metroStation ? [metroStation] : []}
+                selectedLandmarks={landmark ? [landmark] : []}
+                onChangeDistricts={() => {}}
+                onChangeMetro={(vals) => setMetroStation(vals[0] ?? '')}
+                onChangeLandmarks={(vals) => setLandmark(vals[0] ?? '')}
+            />
 
             {/* SECTION 3: Availability */}
             <Card>
@@ -567,19 +624,9 @@ export function CreateDashboardListing() {
                     ))}
 
                     {availStatus === 'BOSHALIR' && (
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
-                            <div>
-                                <label className="text-sm text-muted font-medium block mb-1">Müqavilə başlanğıcı</label>
-                                <Input type="date" value={contractStartDate} onChange={(e) => setContractStartDate(e.target.value)} />
-                            </div>
-                            <div>
-                                <label className="text-sm text-muted font-medium block mb-1">Müqavilə sonu</label>
-                                <Input type="date" value={contractEndDate} onChange={(e) => setContractEndDate(e.target.value)} />
-                            </div>
-                            <div>
-                                <label className="text-sm text-muted font-medium block mb-1">Gözlənilən boşalma</label>
-                                <Input type="date" value={expectedFreeDate} onChange={(e) => setExpectedFreeDate(e.target.value)} />
-                            </div>
+                        <div className="mt-2 max-w-xs">
+                            <label className="text-sm text-muted font-medium block mb-1">Gözlənilən boşalma tarixi</label>
+                            <Input type="date" value={expectedFreeDate} onChange={(e) => setExpectedFreeDate(e.target.value)} />
                         </div>
                     )}
 
@@ -611,14 +658,70 @@ export function CreateDashboardListing() {
                     </div>
                     <div className="flex items-start gap-2 bg-gold/10 border border-gold/30 rounded-xl px-4 py-3 text-sm text-text">
                         <span className="text-gold mt-0.5 shrink-0">ℹ️</span>
-                        <span>Bu qiymət icarəçilərə görünməyəcək. Növbəyə girmək üçün minimum məbləğ kimi istifadə ediləcək.</span>
+                        <span>Bu başlanğıc qiymətidir. İcarəçi maraqlandıqda öz qiymət təklifini göndərə bilər — növbəyə daxil olma şərti budur.</span>
                     </div>
                 </CardContent>
             </Card>
 
-            {/* SECTION 5: Amenities */}
+            {/* SECTION 5.5: Building characteristics */}
             <Card>
-                <CardHeader><CardTitle>5. Xüsusiyyətlər</CardTitle></CardHeader>
+                <CardHeader><CardTitle>5. Tikili xüsusiyyətləri</CardTitle></CardHeader>
+                <CardContent className="space-y-5">
+
+                    {/* Building type */}
+                    <div>
+                        <p className="text-sm text-muted font-medium mb-3">Tikili növü</p>
+                        <div className="flex flex-wrap gap-2">
+                            {[
+                                { value: 'YENI_TIKILI', label: '🏗 Yeni tikili' },
+                                { value: 'KOHNE_TIKILI', label: '🏚 Köhnə tikili' },
+                            ].map(bt => (
+                                <button
+                                    key={bt.value}
+                                    type="button"
+                                    onClick={() => setBuildingType(p => p === bt.value ? '' : bt.value)}
+                                    className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
+                                        buildingType === bt.value
+                                            ? 'bg-gold text-bg border-gold'
+                                            : 'border-border text-muted hover:border-gold/50'
+                                    }`}
+                                >
+                                    {bt.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Renovation */}
+                    <div>
+                        <p className="text-sm text-muted font-medium mb-3">Təmir</p>
+                        <div className="flex flex-wrap gap-2">
+                            {[
+                                { value: 'TEMIRLI',  label: '✨ Təmirli' },
+                                { value: 'TEMIRSIZ', label: '🔨 Təmirsiz' },
+                            ].map(rv => (
+                                <button
+                                    key={rv.value}
+                                    type="button"
+                                    onClick={() => setRenovation(p => p === rv.value ? '' : rv.value)}
+                                    className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all ${
+                                        renovation === rv.value
+                                            ? 'bg-gold text-bg border-gold'
+                                            : 'border-border text-muted hover:border-gold/50'
+                                    }`}
+                                >
+                                    {rv.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                </CardContent>
+            </Card>
+
+            {/* SECTION 6: Amenities */}
+            <Card>
+                <CardHeader><CardTitle>6. Əlavə imkanlar</CardTitle></CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         {AMENITIES.map((a) => (
