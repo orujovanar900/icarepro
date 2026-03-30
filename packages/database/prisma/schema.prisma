@@ -164,6 +164,7 @@ enum SubscriptionPlan {
   PROFESSIONAL
   BIZNES
   KORPORATIV
+  ENTERPRISE
 }
 
 // ─────────────────────────────────────────

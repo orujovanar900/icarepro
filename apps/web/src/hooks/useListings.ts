@@ -35,6 +35,7 @@ export interface ListingCardData {
     queueCount: number;
     highestOffer?: number;
     heatLevel: 'AZ' | 'ORTA' | 'YUKSEK';
+    isFavorited?: boolean;
 }
 
 export interface ListingFilters {

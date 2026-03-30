@@ -1,6 +1,10 @@
 import * as React from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin } from 'lucide-react';
+import { MapPin, Heart } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { useAuthStore } from '@/store/auth';
 import type { ListingCardData } from '@/hooks/useListings';
 
 // Portal palette
@@ -78,6 +82,31 @@ interface Props {
 
 export const ListingCard = React.memo(function ListingCard({ listing, index = 0, onQueueClick }: Props) {
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuthStore();
+    const queryClient = useQueryClient();
+    const [isFav, setIsFav] = useState(listing.isFavorited ?? false);
+
+    const favMutation = useMutation({
+        mutationFn: () => api.post(`/listings/${listing.id}/favorite`),
+        onSuccess: (res: any) => {
+            const favorited = res.data?.data?.isFavorited ?? !isFav;
+            setIsFav(favorited);
+            queryClient.invalidateQueries({ queryKey: ['my-favorites'] });
+        },
+    });
+
+    const handleFavClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!isAuthenticated) {
+            sessionStorage.setItem('portalIntent', `/elan/${listing.id}`);
+            navigate('/login');
+            return;
+        }
+        // Optimistic update
+        setIsFav(!isFav);
+        favMutation.mutate();
+    };
+
     const gradient = listing.photos[0] ? undefined : GRADIENTS[index % GRADIENTS.length];
     const freeDate = formatFreeDate(listing.expectedFreeDate ?? listing.contractEndDate ?? undefined);
     const isVacant = listing.availStatus === 'BOSHDUR';
@@ -119,9 +148,28 @@ export const ListingCard = React.memo(function ListingCard({ listing, index = 0,
                     {photoBadge.label}
                 </span>
 
-                {/* Queue badge top-right */}
+                {/* Favorite heart top-right */}
+                <button
+                    onClick={handleFavClick}
+                    className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200"
+                    style={{
+                        background: isFav ? '#EF4444' : 'rgba(0,0,0,0.45)',
+                        border: 'none',
+                        cursor: 'pointer',
+                    }}
+                    title={isFav ? 'Sevimlilərdən sil' : 'Sevimlilərə əlavə et'}
+                >
+                    <Heart
+                        className="w-4 h-4"
+                        fill={isFav ? '#FFFFFF' : 'none'}
+                        stroke="#FFFFFF"
+                        strokeWidth={2}
+                    />
+                </button>
+
+                {/* Queue badge below heart */}
                 {listing.queueCount > 0 && (
-                    <span className="absolute top-3 right-3 text-[11px] font-medium px-2 py-1 rounded-full text-white" style={{ background: 'rgba(0,0,0,0.55)' }}>
+                    <span className="absolute top-14 right-3 text-[11px] font-medium px-2 py-1 rounded-full text-white" style={{ background: 'rgba(0,0,0,0.55)' }}>
                         {listing.queueCount} növbədə 👥
                     </span>
                 )}

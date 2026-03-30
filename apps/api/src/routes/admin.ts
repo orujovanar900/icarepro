@@ -414,6 +414,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
             BIZNES: 'PRO',
             KORPORATIV: 'ENTERPRISE',
             PROFESSIONAL: 'PRO',
+            ENTERPRISE: 'ENTERPRISE',
         }
 
         const updateData: any = {

@@ -66,6 +66,7 @@ export function AdminOrganizations() {
                 (planFilter === 'Bürünc' && o.subscriptionPlan === 'BASHLANQIC') ||
                 (planFilter === 'Gümüş' && o.subscriptionPlan === 'BIZNES') ||
                 (planFilter === 'Qızıl' && o.subscriptionPlan === 'KORPORATIV') ||
+                (planFilter === 'İndividual' && o.subscriptionPlan === 'ENTERPRISE') ||
                 (planFilter === o.plan); // Fallback to old plan ENUM if needed
         }
 
@@ -176,6 +177,7 @@ export function AdminOrganizations() {
                                 { label: 'Bürünc', value: 'Bürünc' },
                                 { label: 'Gümüş', value: 'Gümüş' },
                                 { label: 'Qızıl', value: 'Qızıl' },
+                                { label: '⭐ İndividual', value: 'İndividual' },
                             ]}
                         />
                         <Select
@@ -274,9 +276,15 @@ export function AdminOrganizations() {
                                     <td className="p-4 font-medium text-text">{org.propertiesCount}</td>
                                     <td className="p-4 text-muted">{formatDate(org.createdAt)}</td>
                                     <td className="p-4">
-                                        <Badge className="bg-surface border-border text-muted">
-                                            {org.subscriptionPlan || org.plan}
-                                        </Badge>
+                                        {(org.subscriptionPlan === 'ENTERPRISE') ? (
+                                            <Badge className="bg-amber-50 border-amber-300 text-amber-700 font-bold">
+                                                ⭐ İndividual
+                                            </Badge>
+                                        ) : (
+                                            <Badge className="bg-surface border-border text-muted">
+                                                {org.subscriptionPlan || org.plan}
+                                            </Badge>
+                                        )}
                                     </td>
                                     <td className="p-4">
                                         {renderSubscriptionBadge(org.subscriptionStatus || 'N/A')}
