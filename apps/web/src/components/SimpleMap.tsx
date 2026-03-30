@@ -2,6 +2,41 @@ import React, { useState, useCallback } from 'react';
 import { APIProvider, Map as GoogleMap, AdvancedMarker, InfoWindow, useMap } from '@vis.gl/react-google-maps';
 
 const MAPS_KEY = import.meta.env['VITE_GOOGLE_MAPS_API_KEY'] as string;
+const MAP_ID = 'd19f791f5e30ebc0e5787f51'; // Required for AdvancedMarker
+
+// Suppress the Google Maps "Oops! Something went wrong" error overlay
+if (typeof document !== 'undefined') {
+    const style = document.createElement('style');
+    style.textContent = `.gm-err-container, .gm-err-autocomplete, .dismissButton, .gm-style > div[style*="z-index: 1000"] { display: none !important; }`;
+    document.head.appendChild(style);
+}
+
+class MapErrorBoundary extends React.Component<
+    { children: React.ReactNode; height: number | string },
+    { hasError: boolean }
+> {
+    constructor(props: any) { super(props); this.state = { hasError: false }; }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    static getDerivedStateFromError(_: any) { return { hasError: true }; }
+    override render() {
+        if (this.state.hasError) {
+            return (
+                <div style={{
+                    height: this.props.height, display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', background: '#f9fafb', borderRadius: 12,
+                    border: '1px solid #e5e7eb', flexDirection: 'column', gap: 8,
+                }}>
+                    <span style={{ fontSize: 24 }}>🗺️</span>
+                    <p style={{ fontSize: 13, color: '#6b7280', textAlign: 'center', margin: 0 }}>
+                        Xəritə yüklənmədi.<br />
+                        <span style={{ fontSize: 11 }}>API açarını Google Cloud Console-da<br />localhost üçün aktivləşdirin.</span>
+                    </p>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
 
 interface Property {
     id: string;
@@ -122,12 +157,13 @@ export default function SimpleMap({ compact = false, hidePanel = false, height: 
     const selectedProperty = properties.find(p => p.id === selectedId);
 
     return (
+        <MapErrorBoundary height={height}>
         <div style={{ position: 'relative', height, borderRadius: 12, overflow: 'hidden', border: '1px solid #e5e7eb' }}>
             <APIProvider apiKey={MAPS_KEY}>
                 <GoogleMap
                     defaultCenter={BAKU_CENTER}
                     defaultZoom={12}
-                    mapId="d19f791f5e30ebc0e5787f51"
+                    mapId={MAP_ID}
                     disableDefaultUI={true}
                     gestureHandling="cooperative"
                     onClick={() => setSelectedId(null)}
@@ -284,5 +320,6 @@ export default function SimpleMap({ compact = false, hidePanel = false, height: 
                 </div>
             )}
         </div>
+        </MapErrorBoundary>
     );
 }
