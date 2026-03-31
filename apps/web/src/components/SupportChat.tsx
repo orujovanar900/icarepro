@@ -121,32 +121,72 @@ DİL:
 
     if (!isOpen) {
         return (
-            <div
-                className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 flex items-center justify-center cursor-pointer"
-                style={{
-                    width: '60px',
-                    height: '60px',
-                    animation: 'float 3s ease-in-out infinite'
-                }}
-            >
+            <>
                 <style>
                     {`
-                    @keyframes float {
-                        0% { transform: translateY(0px); }
-                        50% { transform: translateY(-12px); }
+                    @keyframes floatBtn {
+                        0%   { transform: translateY(0px); }
+                        50%  { transform: translateY(-8px); }
                         100% { transform: translateY(0px); }
+                    }
+                    @keyframes ripple1 {
+                        0%   { transform: scale(1);   opacity: 0.7; }
+                        100% { transform: scale(2.6); opacity: 0; }
+                    }
+                    @media (max-width: 767px) {
+                        .support-chat-btn { bottom: 80px !important; }
+                        .support-chat-btn button { width: 44px !important; height: 44px !important; }
                     }
                     `}
                 </style>
-                <div className="absolute inset-0 rounded-full animate-ping opacity-75 duration-1000" style={{ background: '#C9A84C' }}></div>
-                <button
-                    onClick={() => setIsOpen(true)}
-                    className="relative w-full h-full text-white rounded-full shadow-lg transition-colors flex items-center justify-center z-10"
-                    style={{ background: '#1A1A2E' }}
-                >
-                    <MessageCircle className="w-8 h-8" />
-                </button>
-            </div>
+                <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 999 }} className="support-chat-btn">
+                    {/* Ripple rings */}
+                    <span style={{
+                        position: 'absolute', inset: 0, borderRadius: '50%',
+                        background: 'rgba(201, 168, 76, 0.4)',
+                        animation: 'ripple1 2.4s ease-out infinite',
+                    }} />
+                    <span style={{
+                        position: 'absolute', inset: 0, borderRadius: '50%',
+                        background: 'rgba(201, 168, 76, 0.25)',
+                        animation: 'ripple1 2.4s ease-out infinite 0.8s',
+                    }} />
+                    <span style={{
+                        position: 'absolute', inset: 0, borderRadius: '50%',
+                        background: 'rgba(201, 168, 76, 0.12)',
+                        animation: 'ripple1 2.4s ease-out infinite 1.6s',
+                    }} />
+                    <button
+                        onClick={() => setIsOpen(true)}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)';
+                            e.currentTarget.style.boxShadow = '0 6px 32px rgba(0, 0, 0, 0.2)';
+                            e.currentTarget.style.transform = 'scale(1.05)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                            e.currentTarget.style.boxShadow = '0 4px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2)';
+                            e.currentTarget.style.transform = 'scale(1)';
+                        }}
+                        style={{
+                            position: 'relative', zIndex: 1,
+                            width: 48, height: 48,
+                            borderRadius: '50%',
+                            background: 'rgba(255, 255, 255, 0.15)',
+                            backdropFilter: 'blur(12px)',
+                            WebkitBackdropFilter: 'blur(12px)',
+                            border: '1px solid rgba(255, 255, 255, 0.25)',
+                            boxShadow: '0 4px 24px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'all 0.2s ease',
+                            animation: 'floatBtn 3s ease-in-out infinite',
+                        }}
+                    >
+                        <MessageCircle style={{ width: 20, height: 20, color: '#1A1A2E' }} />
+                    </button>
+                </div>
+            </>
         );
     }
 

@@ -93,6 +93,10 @@ export const ListingCard = React.memo(function ListingCard({ listing, index = 0,
             setIsFav(favorited);
             queryClient.invalidateQueries({ queryKey: ['my-favorites'] });
         },
+        onError: () => {
+            // Rollback optimistic update
+            setIsFav((prev) => !prev);
+        },
     });
 
     const handleFavClick = (e: React.MouseEvent) => {

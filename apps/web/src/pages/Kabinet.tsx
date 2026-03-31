@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PortalNavbar } from '@/components/portal/PortalNavbar';
 import { PortalFooter } from '@/components/portal/PortalFooter';
@@ -84,7 +84,9 @@ export function Kabinet() {
     const addToast = useToastStore((s) => s.addToast);
     const queryClient = useQueryClient();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState<Tab>('queue');
+    const [searchParams] = useSearchParams();
+    const initialTab = (searchParams.get('tab') as Tab) || 'queue';
+    const [activeTab, setActiveTab] = useState<Tab>(initialTab);
 
     // Profile form state
     const [profileName, setProfileName] = useState(user?.name ?? '');

@@ -216,10 +216,30 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
 
     const countMap = new Map(queueCounts.map(r => [r.listingId, r._count.id]))
 
+    // Optionally enrich with isFavorited for authenticated users
+    let favSet = new Set<string>()
+    try {
+      const authHeader = req.headers.authorization
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.slice(7)
+        const decoded = fastify.jwt.verify(token) as { sub: string }
+        if (decoded.sub) {
+          const favs = await fastify.prisma.listingFavorite.findMany({
+            where: { userId: decoded.sub, listingId: { in: listingIds } },
+            select: { listingId: true },
+          })
+          favSet = new Set(favs.map(f => f.listingId))
+        }
+      }
+    } catch {
+      // Not authenticated or invalid token — ignore, all isFavorited = false
+    }
+
     const data = listings.map(l => ({
       ...l,
       queueCount: countMap.get(l.id) ?? 0,
       heatLevel: computeHeatLevel(countMap.get(l.id) ?? 0),
+      isFavorited: favSet.has(l.id),
     }))
 
     return reply.send({ success: true, data, meta: { total, page, limit, pages: Math.ceil(total / limit) } })

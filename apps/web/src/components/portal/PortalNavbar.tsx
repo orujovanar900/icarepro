@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, Plus } from 'lucide-react';
+import { Menu, X, Plus, Heart } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 
 const GOLD_GRAD = 'linear-gradient(135deg,#C9A84C,#e8c56b,#C9A84C)';
@@ -59,6 +59,17 @@ export function PortalNavbar() {
 
                 {/* Right actions */}
                 <div className="hidden md:flex items-center gap-3">
+                    {/* Favorites heart icon */}
+                    <Link
+                        to={isAuthenticated ? '/kabinet?tab=favorites' : '/login'}
+                        onClick={() => { if (!isAuthenticated) sessionStorage.setItem('portalIntent', '/kabinet?tab=favorites'); }}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 38, height: 38, borderRadius: 10, border: '1px solid rgba(0,0,0,0.1)', background: 'transparent', textDecoration: 'none', cursor: 'pointer' }}
+                        className="hover:bg-red-50 transition-colors"
+                        title="Sevimlilər"
+                    >
+                        <Heart style={{ width: 18, height: 18, color: '#EF4444', fill: '#EF4444' }} />
+                    </Link>
+
                     {/* Elan əlavə et — always visible */}
                     <Link to="/elan-elave-et" style={btnOrange}>
                         <Plus style={{ width: 15, height: 15 }} />
@@ -105,6 +116,13 @@ export function PortalNavbar() {
                     <Link to="/elanlar" style={{ color: NAVY, fontWeight: 500, textDecoration: 'none', fontSize: 15 }} onClick={() => setMobileOpen(false)}>Obyektlər</Link>
                     <Link to="/xerite" style={{ color: MUTED, fontWeight: 500, textDecoration: 'none', fontSize: 15 }} onClick={() => setMobileOpen(false)}>Xəritə</Link>
                     <Link to="/haqqinda" style={{ color: MUTED, fontWeight: 500, textDecoration: 'none', fontSize: 15 }} onClick={() => setMobileOpen(false)}>Necə işləyir</Link>
+                    <Link
+                        to={isAuthenticated ? '/kabinet?tab=favorites' : '/login'}
+                        onClick={() => { if (!isAuthenticated) sessionStorage.setItem('portalIntent', '/kabinet?tab=favorites'); setMobileOpen(false); }}
+                        style={{ color: '#EF4444', fontWeight: 600, textDecoration: 'none', fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}
+                    >
+                        <Heart style={{ width: 16, height: 16 }} fill="#EF4444" stroke="#EF4444" /> Sevimlilər
+                    </Link>
                     <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 12 }} className="flex flex-col gap-2">
                         <Link to="/elan-elave-et" style={{ ...btnOrange, justifyContent: 'center' }} onClick={() => setMobileOpen(false)}>
                             <Plus style={{ width: 15, height: 15 }} /> Elan əlavə et

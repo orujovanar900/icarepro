@@ -106,9 +106,12 @@ function ErpRoute() {
  */
 function KabinetRoute() {
     const { isAuthenticated, user } = useAuthStore();
-    if (isAuthenticated && user && user.role !== 'ICARECI') {
+    // Platform staff (SUPERADMIN etc.) redirect away; all other roles + guests can access Kabinet
+    if (isAuthenticated && user) {
         const PLATFORM_STAFF = ['SUPERADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE', 'CONTENT'];
-        return <Navigate to={PLATFORM_STAFF.includes(user.role) ? '/admin' : '/dashboard'} replace />;
+        if (PLATFORM_STAFF.includes(user.role)) {
+            return <Navigate to="/admin" replace />;
+        }
     }
     return <Outlet />;
 }

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useAuthStore } from '@/store/auth';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { LogOut, User as UserIcon, Menu, Bell, AlertCircle, AlertTriangle, Clock, CheckCircle, Sun, Moon } from 'lucide-react';
+import { LogOut, User as UserIcon, Menu, Bell, Heart, AlertCircle, AlertTriangle, Clock, CheckCircle, Sun, Moon } from 'lucide-react';
 import { Button } from './Button';
 import { translateRole } from '@/utils/roles';
 
@@ -145,6 +145,15 @@ export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
                     </div>
                     <Moon className="h-4 w-4 text-muted ml-1.5" />
                 </button>
+                {/* Favorites heart */}
+                <button
+                    onClick={() => navigate('/kabinet?tab=favorites')}
+                    className="p-2 text-muted hover:text-red transition-colors"
+                    title="Sevimlilər"
+                >
+                    <Heart className="h-5 w-5" fill="#EF4444" stroke="#EF4444" />
+                </button>
+
                 <div className="relative ml-2">
                     <button
                         onClick={() => setIsNotifOpen(!isNotifOpen)}
