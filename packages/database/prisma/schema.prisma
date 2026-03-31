@@ -184,6 +184,7 @@ model Organization {
   subscriptionPlan     SubscriptionPlan   @default(FREE_TRIAL)
   planExpiresAt        DateTime?
   gracePeriodStartedAt DateTime?
+  maxProperties        Int?
 
   senadUstasiUsedMonth Int       @default(0)
   senadUstasiResetDate DateTime? @default(now())

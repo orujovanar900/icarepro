@@ -36,10 +36,23 @@ export function usePlan() {
     else if (subPlanStr === 'BIZNES' || subPlanStr === 'PROFESSIONAL') currentPlan = 'pro';
     else if (subPlanStr === 'KORPORATIV') currentPlan = 'business';
 
+    // ENTERPRISE uses custom maxProperties from org, defaults to unlimited
+    const isEnterprise = subPlanStr === 'ENTERPRISE';
+    const orgMaxProperties = (user?.organization as any)?.maxProperties;
+
     return {
-        plan: currentPlan,
-        isFree: currentPlan === 'free',
-        can: (feature: FeatureGate, count = 0) => checkPlanLimit(currentPlan, feature, count)
+        plan: isEnterprise ? 'business' : currentPlan,
+        isFree: !isEnterprise && currentPlan === 'free',
+        isEnterprise,
+        can: (feature: FeatureGate, count = 0) => {
+            if (isEnterprise) {
+                if (feature === 'addUnit') return orgMaxProperties ? count < orgMaxProperties : true;
+                if (feature === 'maxUnits') return orgMaxProperties ?? Infinity;
+                return true; // Enterprise unlocks all features
+            }
+            return checkPlanLimit(currentPlan, feature, count);
+        },
+        maxUnits: isEnterprise ? (orgMaxProperties ?? Infinity) : PLAN_LIMITS[currentPlan].maxUnits,
     };
 }
 
@@ -51,7 +64,7 @@ export function getUserTier(plan: string | null | undefined): UserTier {
     if (!plan || plan === 'PORTAL_ONLY' || plan === 'FREE_TRIAL') return 'PORTAL_ONLY';
     if (plan === 'BASHLANQIC') return 'BASIC';
     if (plan === 'BIZNES') return 'PROFESSIONAL';
-    if (plan === 'KORPORATIV') return 'CORPORATE';
+    if (plan === 'KORPORATIV' || plan === 'ENTERPRISE') return 'CORPORATE';
     return 'PORTAL_ONLY';
 }
 

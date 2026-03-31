@@ -25,6 +25,7 @@ export function PlanModal({ org, onClose }: { org: any; onClose: () => void }) {
 
     // ENTERPRISE extra fields
     const [customPrice, setCustomPrice] = useState('');
+    const [maxProperties, setMaxProperties] = useState(org.maxProperties?.toString() ?? '');
     const [contractNumber, setContractNumber] = useState('');
     const [accountManager, setAccountManager] = useState('');
     const [enterpriseNotes, setEnterpriseNotes] = useState('');
@@ -48,6 +49,7 @@ export function PlanModal({ org, onClose }: { org: any; onClose: () => void }) {
             api.patch(`/admin/organizations/${org.id}/subscription`, {
                 subscriptionPlan: plan,
                 ...(expiresAt ? { expiresAt } : {}),
+                ...(plan === 'ENTERPRISE' && maxProperties ? { maxProperties: Number(maxProperties) } : {}),
                 note: buildNote() || undefined,
             }),
         onSuccess: () => {
@@ -100,22 +102,35 @@ export function PlanModal({ org, onClose }: { org: any; onClose: () => void }) {
 
                 {/* ENTERPRISE extra fields */}
                 {plan === 'ENTERPRISE' && (
-                    <div className="space-y-3 p-4 rounded-xl border-2 border-amber-300/50 bg-amber-50/30">
-                        <p className="text-sm font-bold text-amber-700 flex items-center gap-1.5">
+                    <div className="space-y-3 p-4 rounded-xl border-2 border-gold/40" style={{ background: 'var(--color-surface)' }}>
+                        <p className="text-sm font-bold text-gold flex items-center gap-1.5">
                             <span>&#11088;</span> İndividual plan məlumatları
                         </p>
-                        <div>
-                            <label className="block text-sm font-semibold text-muted mb-1">Xüsusi qiymət (AZN/ay)</label>
-                            <input
-                                type="number"
-                                value={customPrice}
-                                onChange={(e) => setCustomPrice(e.target.value)}
-                                placeholder="Məsələn: 250"
-                                className={inputClass}
-                            />
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-sm font-semibold text-text mb-1">Xüsusi qiymət (AZN/ay)</label>
+                                <input
+                                    type="number"
+                                    value={customPrice}
+                                    onChange={(e) => setCustomPrice(e.target.value)}
+                                    placeholder="Məsələn: 250"
+                                    className={inputClass}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-text mb-1">Obyekt limiti</label>
+                                <input
+                                    type="number"
+                                    value={maxProperties}
+                                    onChange={(e) => setMaxProperties(e.target.value)}
+                                    placeholder="Məsələn: 100"
+                                    className={inputClass}
+                                />
+                                <span className="text-xs text-muted mt-1 block">Maksimum əmlak sayı</span>
+                            </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-semibold text-muted mb-1">Müqavilə nömrəsi</label>
+                            <label className="block text-sm font-semibold text-text mb-1">Müqavilə nömrəsi</label>
                             <input
                                 type="text"
                                 value={contractNumber}
@@ -125,8 +140,7 @@ export function PlanModal({ org, onClose }: { org: any; onClose: () => void }) {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-semibold text-muted mb-1">Account menecer</label>
-
+                            <label className="block text-sm font-semibold text-text mb-1">Account menecer</label>
                             <input
                                 type="text"
                                 value={accountManager}
@@ -136,7 +150,7 @@ export function PlanModal({ org, onClose }: { org: any; onClose: () => void }) {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-semibold text-muted mb-1">Əlavə qeydlər</label>
+                            <label className="block text-sm font-semibold text-text mb-1">Əlavə qeydlər</label>
                             <textarea
                                 value={enterpriseNotes}
                                 onChange={(e) => setEnterpriseNotes(e.target.value)}

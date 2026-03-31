@@ -389,12 +389,13 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
     // PATCH /admin/organizations/:id/subscription
     fastify.patch('/organizations/:id/subscription', { preHandler: [authenticate, requireRole(['SUPERADMIN'])] }, async (req, reply) => {
         const { id } = req.params as { id: string }
-        const { status, expiresAt, additionalDays, subscriptionPlan, note } = req.body as {
+        const { status, expiresAt, additionalDays, subscriptionPlan, note, maxProperties } = req.body as {
             status?: string,
             expiresAt?: string,
             additionalDays?: number,
             subscriptionPlan?: string,
-            note?: string
+            note?: string,
+            maxProperties?: number,
         }
 
         const org = await fastify.prisma.organization.findUnique({ where: { id } })
@@ -427,6 +428,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
                 subscriptionPlan: subscriptionPlan as any,
                 plan: (planToOrgPlan[subscriptionPlan] || 'FREE') as any,
             } : {}),
+            ...(maxProperties !== undefined ? { maxProperties } : {}),
         }
 
         const updatedOrg = await fastify.prisma.organization.update({
