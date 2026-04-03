@@ -102,13 +102,13 @@ export function PlanModal({ org, onClose }: { org: any; onClose: () => void }) {
 
                 {/* ENTERPRISE extra fields */}
                 {plan === 'ENTERPRISE' && (
-                    <div className="space-y-3 p-4 rounded-xl border-2 border-gold/40" style={{ background: 'var(--color-surface)' }}>
+                    <div className="space-y-3 p-4 rounded-xl border-2 border-gold/40 bg-gold/5">
                         <p className="text-sm font-bold text-gold flex items-center gap-1.5">
                             <span>&#11088;</span> İndividual plan məlumatları
                         </p>
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="block text-sm font-semibold text-text mb-1">Xüsusi qiymət (AZN/ay)</label>
+                                <label className="block text-sm font-semibold text-gold/90 mb-1">Xüsusi qiymət (AZN/ay)</label>
                                 <input
                                     type="number"
                                     value={customPrice}
@@ -118,7 +118,7 @@ export function PlanModal({ org, onClose }: { org: any; onClose: () => void }) {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-text mb-1">Obyekt limiti</label>
+                                <label className="block text-sm font-semibold text-gold/90 mb-1">Obyekt limiti</label>
                                 <input
                                     type="number"
                                     value={maxProperties}
@@ -130,7 +130,7 @@ export function PlanModal({ org, onClose }: { org: any; onClose: () => void }) {
                             </div>
                         </div>
                         <div>
-                            <label className="block text-sm font-semibold text-text mb-1">Müqavilə nömrəsi</label>
+                            <label className="block text-sm font-semibold text-gold/90 mb-1">Müqavilə nömrəsi</label>
                             <input
                                 type="text"
                                 value={contractNumber}
@@ -140,7 +140,7 @@ export function PlanModal({ org, onClose }: { org: any; onClose: () => void }) {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-semibold text-text mb-1">Account menecer</label>
+                            <label className="block text-sm font-semibold text-gold/90 mb-1">Account menecer</label>
                             <input
                                 type="text"
                                 value={accountManager}
@@ -150,7 +150,7 @@ export function PlanModal({ org, onClose }: { org: any; onClose: () => void }) {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-semibold text-text mb-1">Əlavə qeydlər</label>
+                            <label className="block text-sm font-semibold text-gold/90 mb-1">Əlavə qeydlər</label>
                             <textarea
                                 value={enterpriseNotes}
                                 onChange={(e) => setEnterpriseNotes(e.target.value)}
