@@ -488,7 +488,6 @@ export function Properties() {
                             {[
                                 { v: 'TEMIRLI', l: '✨ Təmirli' },
                                 { v: 'TEMIRSIZ', l: '🔨 Təmirsiz' },
-                                { v: 'FERQI_YOXDUR', l: '🤷 Fərqi yoxdur' },
                             ].map(rv => (
                                 <button key={rv.v} type="button"
                                     onClick={() => setPropRenovation(p => p === rv.v ? '' : rv.v)}
@@ -940,7 +939,7 @@ export function Properties() {
                     <strong className="text-text">{deleteConfirmProperty?.name}</strong> obyektini silmək istədiyinizə əminsiniz?
                 </p>
                 <p className="text-xs text-muted mb-6">
-                    Obyekt arxivləşdirilib gərınməz olacaq. &quot;Silinnələr&quot; səksi yaində yenidən bərpa edə bilərsiniz.
+                    Obyekt arxivləşdirilib görünməz olacaq. &quot;Silinmişlər&quot; səksiyasından yenidən bərpa edə bilərsiniz.
                 </p>
                 <div className="flex gap-4">
                     <Button variant="outline" className="flex-1" onClick={() => setDeleteConfirmProperty(null)}>Ləğv et</Button>
