@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "zsh",
+      "runtimeArgs": ["-c", "cd '/Users/anar/Desktop/Work/Lotus AI Studio/Icare App/icareproapp' && /Users/anar/Library/pnpm/pnpm --filter @icare/web dev"],
+      "port": 3000
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "zsh",
+      "runtimeArgs": ["-c", "cd '/Users/anar/Desktop/Work/Lotus AI Studio/Icare App/icareproapp' && /Users/anar/Library/pnpm/pnpm --filter @icare/api dev"],
+      "port": 4000
+    }
+  ]
+}

@@ -88,8 +88,9 @@ export function Register() {
     }
 
     const onSubmit = async (data: RegisterFormValues) => {
+        setSubmitError(null);
         if (isAgentlik && (!data.organizationName || data.organizationName.trim().length < 2)) {
-            addToast({ type: 'error', message: 'Şirkət adı ən azı 2 simvol olmalıdır.' });
+            setSubmitError('Şirkət adı ən azı 2 simvol olmalıdır.');
             return;
         }
         try {
@@ -197,6 +198,41 @@ export function Register() {
                                 <span className="text-xs" style={{ color: '#9CA3AF' }}>Məlumatlarınızı daxil edin</span>
                                 <div className="flex-1 h-px bg-[#E5E0D8]" />
                             </div>
+
+                            {submitError && (
+                                <div style={{
+                                    background: '#FEF2F2',
+                                    border: '1px solid #FECACA',
+                                    borderRadius: '8px',
+                                    padding: '12px 16px',
+                                    marginBottom: '8px',
+                                }}>
+                                    <p style={{
+                                        color: '#DC2626',
+                                        fontSize: '14px',
+                                        fontWeight: '500',
+                                        margin: 0,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px'
+                                    }}>
+                                        <span>⚠️</span>
+                                        {submitError}
+                                    </p>
+                                    {submitError.includes('mövcuddur') && (
+                                        <Link to="/login" style={{
+                                            color: '#C9A84C',
+                                            fontSize: '13px',
+                                            textDecoration: 'underline',
+                                            display: 'block',
+                                            marginTop: '6px',
+                                            marginLeft: '24px'
+                                        }}>
+                                            Daxil olun →
+                                        </Link>
+                                    )}
+                                </div>
+                            )}
 
                             <Input
                                 label="Ad Soyad"

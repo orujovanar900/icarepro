@@ -55,6 +55,7 @@ export function Login() {
     }
 
     const onSubmit = async (data: LoginFormValues) => {
+        setSubmitError(null);
         try {
             setIsLoading(true);
             const response = await api.post('/auth/login', data);
@@ -124,6 +125,40 @@ export function Login() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
+                            {submitError && (
+                                <div style={{
+                                    background: '#FEF2F2',
+                                    border: '1px solid #FECACA',
+                                    borderRadius: '8px',
+                                    padding: '12px 16px',
+                                    marginBottom: '8px',
+                                }}>
+                                    <p style={{
+                                        color: '#DC2626',
+                                        fontSize: '14px',
+                                        fontWeight: '500',
+                                        margin: 0,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px'
+                                    }}>
+                                        <span>⚠️</span>
+                                        {submitError}
+                                    </p>
+                                    {submitError.includes('mövcuddur') && (
+                                        <Link to="/login" style={{
+                                            color: '#C9A84C',
+                                            fontSize: '13px',
+                                            textDecoration: 'underline',
+                                            display: 'block',
+                                            marginTop: '6px',
+                                            marginLeft: '24px'
+                                        }}>
+                                            Daxil olun →
+                                        </Link>
+                                    )}
+                                </div>
+                            )}
                             <Input
                                 label="E-poçt"
                                 type="email"
