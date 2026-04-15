@@ -6,6 +6,7 @@ import { authenticate } from '../middleware/authenticate.js'
 import { requireRole } from '../middleware/requireRole.js'
 import { sendZodError } from '../utils/zodError.js'
 import { withOrg } from '../utils/withOrg.js'
+import { addWatermark } from '../utils/watermark.js'
 
 const createSchema = z.object({
     number: z.string().min(1),
@@ -314,17 +315,19 @@ const propertiesRoutes: FastifyPluginAsync = async (fastify) => {
             return reply.code(400).send({ success: false, error: 'Yalnız şəkil yükləyə bilərsiniz' })
         }
 
-        const fileBuffer = await data.toBuffer()
-        if (fileBuffer.length > 4 * 1024 * 1024) {
+        const rawBuffer = await data.toBuffer()
+        if (rawBuffer.length > 4 * 1024 * 1024) {
             return reply.code(400).send({ success: false, error: 'Maksimum fayl ölçüsü 4MB olmalıdır' })
         }
+
+        const fileBuffer = await addWatermark(rawBuffer)
 
         const ext = data.filename.split('.').pop() ?? 'jpg'
         const path = `${req.user.organizationId}/${id}/${Date.now()}.${ext}`
 
         const { error } = await supabase.storage
             .from('property-photos')
-            .upload(path, fileBuffer, { contentType: data.mimetype, upsert: false })
+            .upload(path, fileBuffer, { contentType: 'image/jpeg', upsert: false })
 
         if (error) {
             fastify.log.error(error)

@@ -22,6 +22,7 @@ export interface ListingDetail {
     expectedFreeDate?: string;
     publisherType?: string;
     publisherName?: string;
+    publisherPhone?: string;
     isVip: boolean;
     isPushed: boolean;
     isPanorama: boolean;

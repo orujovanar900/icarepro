@@ -10,6 +10,7 @@ import { QueueModal } from '@/components/portal/QueueModal';
 import { ReportModal } from '@/components/portal/ReportModal';
 import { useListingDetail } from '@/hooks/useListingDetail';
 import { useAuthStore } from '@/store/auth';
+import { PhoneReveal } from '@/components/portal/PhoneReveal';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -587,9 +588,14 @@ export function ListingDetail() {
                             <div style={{ width: 36, height: 36, borderRadius: '50%', background: C.navy, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontSize: 16 }}>
                                 {listing.publisherType === 'Hüquqi şəxs' ? '🏢' : '👤'}
                             </div>
-                            <div>
+                            <div style={{ flex: 1 }}>
                                 <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: C.navy }}>{listing.publisherName ?? '—'}</p>
                                 <p style={{ margin: 0, fontSize: 12, color: C.muted }}>{listing.publisherType ?? '—'}</p>
+                                {listing.publisherPhone && (
+                                    <div style={{ marginTop: 6 }}>
+                                        <PhoneReveal phone={listing.publisherPhone} />
+                                    </div>
+                                )}
                             </div>
                         </div>
 

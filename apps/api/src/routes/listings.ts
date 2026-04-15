@@ -7,6 +7,7 @@ import { requireRole } from '../middleware/requireRole.js'
 import { sendZodError } from '../utils/zodError.js'
 import { withOrg } from '../utils/withOrg.js'
 import { writeAuditLog } from '../utils/audit.js'
+import { addWatermark } from '../utils/watermark.js'
 import {
   sendQueueConfirmation,
   sendListingApproved,
@@ -274,18 +275,23 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
 
     const isOwner = authenticatedOrgId === listing.organizationId
 
-    const [queueCount, highestOfferAgg] = await Promise.all([
+    const [queueCount, highestOfferAgg, orgOwner] = await Promise.all([
       fastify.prisma.queueEntry.count({ where: { listingId: id, status: 'ACTIVE' } }),
       isOwner ? fastify.prisma.queueEntry.aggregate({
         where: { listingId: id, status: 'ACTIVE' },
         _max: { priceOffer: true },
       }) : Promise.resolve(null),
+      fastify.prisma.user.findFirst({
+        where: { organizationId: listing.organizationId, role: 'OWNER' },
+        select: { phone: true },
+      }),
     ])
 
     const returnData: any = {
       ...listing,
       queueCount,
       heatLevel: computeHeatLevel(queueCount),
+      publisherPhone: orgOwner?.phone ?? null,
     }
 
     if (isOwner) {
@@ -788,10 +794,12 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ success: false, error: 'Yalnız JPG, PNG, WEBP yükləyə bilərsiniz' })
     }
 
-    const fileBuffer = await data.toBuffer()
-    if (fileBuffer.length > 10 * 1024 * 1024) {
+    const rawBuffer = await data.toBuffer()
+    if (rawBuffer.length > 10 * 1024 * 1024) {
       return reply.code(400).send({ success: false, error: 'Maksimum fayl ölçüsü 10MB-dır' })
     }
+
+    const fileBuffer = await addWatermark(rawBuffer)
 
     const fields = data.fields as Record<string, any>
     // Sanitize to alphanumeric + hyphens only to prevent path traversal in Supabase storage
@@ -802,7 +810,7 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
 
     const { error } = await supabase.storage
       .from('listing-photos')
-      .upload(path, fileBuffer, { contentType: data.mimetype, upsert: false })
+      .upload(path, fileBuffer, { contentType: 'image/jpeg', upsert: false })
 
     if (error) {
       fastify.log.error(error)
