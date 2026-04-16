@@ -22,6 +22,7 @@ export interface ListingDetail {
     expectedFreeDate?: string;
     publisherType?: string;
     publisherName?: string;
+    publisherPhone?: string;
     isVip: boolean;
     isPushed: boolean;
     isPanorama: boolean;
@@ -30,10 +31,14 @@ export interface ListingDetail {
     lat?: number;
     lng?: number;
     createdAt: string;
+    updatedAt: string;
     queueCount: number;
     highestOffer?: number;
-    basePrice: number; // ADDED
+    basePrice: number;
     heatLevel: 'AZ' | 'ORTA' | 'YUKSEK';
+    listingNumber?: number;
+    viewCount?: number;
+    phoneRevealCount?: number;
 }
 
 export interface QueueSummary {

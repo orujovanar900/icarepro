@@ -519,6 +519,9 @@ model Listing {
   renovation        String?   // TEMIRLI | TEMIRSIZ | FERQI_YOXDUR
   metroStation      String?   // nearest metro station name
   landmark          String?   // nearest landmark / nişangah
+  listingNumber     Int       @unique @default(autoincrement())
+  viewCount         Int       @default(0)
+  phoneRevealCount  Int       @default(0)
   deletedAt         DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt

@@ -237,6 +237,11 @@ export const ListingCard = React.memo(function ListingCard({ listing, index = 0,
                 {/* Heat bar */}
                 <HeatBar level={listing.heatLevel} />
 
+                {/* Listing number */}
+                {listing.listingNumber && (
+                    <p className="text-[11px]" style={{ color: C.muted }}>Elan №{listing.listingNumber}</p>
+                )}
+
                 {/* CTA */}
                 <button
                     className="w-full mt-auto py-2.5 rounded-[10px] text-sm font-medium text-white transition-colors"

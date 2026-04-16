@@ -10,6 +10,8 @@ import { QueueModal } from '@/components/portal/QueueModal';
 import { ReportModal } from '@/components/portal/ReportModal';
 import { useListingDetail } from '@/hooks/useListingDetail';
 import { useAuthStore } from '@/store/auth';
+import { PhoneReveal } from '@/components/portal/PhoneReveal';
+import { api } from '@/lib/api';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -501,6 +503,15 @@ export function ListingDetail() {
                     {listing.district && (
                         <p style={{ margin: '6px 0 0', fontSize: 14, color: C.muted }}>📍 {listing.district}, {listing.address}</p>
                     )}
+                    {/* Stats row */}
+                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 0', marginTop: 10, fontSize: 12, color: C.muted }}>
+                        <span>👁 {listing.viewCount ?? 0} baxış</span>
+                        <span style={{ margin: '0 8px' }}>•</span>
+                        <span>📞 {listing.phoneRevealCount ?? 0} nömrə sorğusu</span>
+                        <span style={{ margin: '0 8px' }}>•</span>
+                        {listing.listingNumber && <><span>Elan №{listing.listingNumber}</span><span style={{ margin: '0 8px' }}>•</span></>}
+                        <span>Yeniləndi: {formatDate(listing.updatedAt)}</span>
+                    </div>
                 </div>
 
                 {/* Two-column grid */}
@@ -582,15 +593,28 @@ export function ListingDetail() {
                             </div>
                         </div>
 
-                        {/* Publisher */}
-                        <div style={{ background: '#F0EDE6', borderRadius: 10, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <div style={{ width: 36, height: 36, borderRadius: '50%', background: C.navy, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontSize: 16 }}>
-                                {listing.publisherType === 'Hüquqi şəxs' ? '🏢' : '👤'}
+                        {/* Publisher / Contact block */}
+                        <div style={{ background: '#F0EDE6', borderRadius: 12, padding: '16px', border: '1px solid #E5DDD0' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: listing.publisherPhone ? 12 : 0 }}>
+                                <div style={{ width: 40, height: 40, borderRadius: '50%', background: C.navy, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontSize: 18, flexShrink: 0 }}>
+                                    {listing.publisherType === 'AGENTLIK' ? '🏢' : '👤'}
+                                </div>
+                                <div>
+                                    <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: C.navy }}>{listing.publisherName ?? '—'}</p>
+                                    <p style={{ margin: 0, fontSize: 12, color: C.muted }}>
+                                        {listing.publisherType === 'SAHIBI' ? 'Sahibkar' : listing.publisherType === 'AGENT' ? 'Agent' : listing.publisherType === 'AGENTLIK' ? 'Agentlik' : listing.publisherType ?? '—'}
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: C.navy }}>{listing.publisherName ?? '—'}</p>
-                                <p style={{ margin: 0, fontSize: 12, color: C.muted }}>{listing.publisherType ?? '—'}</p>
-                            </div>
+                            {listing.publisherPhone && (
+                                <PhoneReveal
+                                    phone={listing.publisherPhone}
+                                    className="w-full justify-center"
+                                    onReveal={() => {
+                                        api.post(`/listings/${listing.id}/reveal-phone`).catch(() => {});
+                                    }}
+                                />
+                            )}
                         </div>
 
                         {/* Queue Info Box */}

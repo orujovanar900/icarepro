@@ -195,6 +195,7 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
           isVip: true, isPushed: true, isPanorama: true,
           amenities: true, photos: true, lat: true, lng: true,
           buildingType: true, renovation: true, metroStation: true, landmark: true,
+          listingNumber: true,
           createdAt: true,
         },
         orderBy,
@@ -286,7 +287,8 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
         isVip: true, isPushed: true, isPanorama: true,
         amenities: true, photos: true, lat: true, lng: true,
         buildingType: true, renovation: true, metroStation: true, landmark: true,
-        createdAt: true,
+        listingNumber: true, viewCount: true, phoneRevealCount: true,
+        createdAt: true, updatedAt: true,
       },
     })
 
@@ -294,18 +296,29 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
 
     const isOwner = authenticatedOrgId === listing.organizationId
 
-    const [queueCount, highestOfferAgg] = await Promise.all([
+    const [queueCount, highestOfferAgg, orgOwner] = await Promise.all([
       fastify.prisma.queueEntry.count({ where: { listingId: id, status: 'ACTIVE' } }),
       isOwner ? fastify.prisma.queueEntry.aggregate({
         where: { listingId: id, status: 'ACTIVE' },
         _max: { priceOffer: true },
       }) : Promise.resolve(null),
+      fastify.prisma.user.findFirst({
+        where: { organizationId: listing.organizationId, role: 'OWNER' },
+        select: { phone: true },
+      }),
     ])
+
+    // Fire and forget — increment view count without blocking response
+    fastify.prisma.listing.update({
+      where: { id },
+      data: { viewCount: { increment: 1 } },
+    }).catch(() => {})
 
     const returnData: any = {
       ...listing,
       queueCount,
       heatLevel: computeHeatLevel(queueCount),
+      publisherPhone: orgOwner?.phone ?? null,
     }
 
     if (isOwner) {
@@ -316,6 +329,31 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
       success: true,
       data: returnData,
     })
+  })
+
+  // POST /listings/:id/reveal-phone — increment reveal counter, return masked phone
+  fastify.post('/:id/reveal-phone', async (req, reply) => {
+    try { await req.jwtVerify() } catch { /* anonymous allowed */ }
+    const { id } = req.params as { id: string }
+
+    const listing = await fastify.prisma.listing.findFirst({
+      where: { id, status: 'ACTIVE', deletedAt: null },
+      select: { organizationId: true },
+    })
+    if (!listing) return reply.code(404).send({ success: false, error: 'Elan tapılmadı' })
+
+    const orgOwner = await fastify.prisma.user.findFirst({
+      where: { organizationId: listing.organizationId, role: 'OWNER' },
+      select: { phone: true },
+    })
+
+    // Fire and forget — increment phone reveal counter
+    fastify.prisma.listing.update({
+      where: { id },
+      data: { phoneRevealCount: { increment: 1 } },
+    }).catch(() => {})
+
+    return reply.send({ success: true, data: { phone: orgOwner?.phone ?? null } })
   })
 
   // GET /listings/:id/queue/summary
