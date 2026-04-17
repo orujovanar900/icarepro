@@ -46,8 +46,11 @@ export function AdminListings() {
     const queryClient = useQueryClient();
     const addToast = useToastStore((s) => s.addToast);
 
-    const [mainTab, setMainTab] = useState<'listings' | 'reports'>('listings');
+    const [mainTab, setMainTab] = useState<'listings' | 'reports' | 'yoldash'>('listings');
     const [statusFilter, setStatusFilter] = useState<ListingStatus>('PENDING');
+    const [yoldashStatus, setYoldashStatus] = useState<'PENDING' | 'APPROVED' | 'REJECTED' | 'ALL'>('PENDING');
+    const [yoldashRejectTarget, setYoldashRejectTarget] = useState<{ id: string } | null>(null);
+    const [yoldashRejectReason, setYoldashRejectReason] = useState('');
 
     // Preview modal state
     const [previewListing, setPreviewListing] = useState<any>(null);
@@ -101,6 +104,31 @@ export function AdminListings() {
         onError: () => addToast({ message: 'Xəta baş verdi', type: 'error' }),
     });
 
+    /* ── Yoldaş query ── */
+    const { data: yoldashData, isLoading: yoldashLoading } = useQuery({
+        queryKey: ['admin-yoldash', yoldashStatus],
+        queryFn: async () => {
+            const params = yoldashStatus !== 'ALL' ? `?status=${yoldashStatus}` : '?status=ALL';
+            const res = await api.get(`/admin/yoldash${params}`);
+            return res.data;
+        },
+        enabled: mainTab === 'yoldash',
+    });
+
+    /* ── Yoldaş moderate mutation ── */
+    const yoldashMutation = useMutation({
+        mutationFn: ({ id, status, rejectionReason }: { id: string; status: 'APPROVED' | 'REJECTED'; rejectionReason?: string }) =>
+            api.patch(`/admin/yoldash/${id}`, { status, rejectionReason }),
+        onSuccess: (_, vars) => {
+            const msg = vars.status === 'APPROVED' ? 'Yoldaş elanı təsdiqləndi' : 'Yoldaş elanı rədd edildi';
+            addToast({ message: msg, type: 'success' });
+            queryClient.invalidateQueries({ queryKey: ['admin-yoldash'] });
+            setYoldashRejectTarget(null);
+            setYoldashRejectReason('');
+        },
+        onError: () => addToast({ message: 'Xəta baş verdi', type: 'error' }),
+    });
+
     /* ── Resolve report mutation ── */
     const resolveReportMutation = useMutation({
         mutationFn: (reportId: string) =>
@@ -122,7 +150,21 @@ export function AdminListings() {
 
     const listings: any[] = Array.isArray(listingsData?.data) ? listingsData.data : (Array.isArray(listingsData) ? listingsData : []);
     const reports: any[] = Array.isArray(reportsData?.data) ? reportsData.data : (Array.isArray(reportsData) ? reportsData : []);
+    const yoldashAds: any[] = Array.isArray(yoldashData?.data) ? yoldashData.data : [];
     const stats = statsData?.data ?? statsData ?? {};
+
+    const YOLDASH_STATUS_LABELS: Record<string, string> = {
+        PENDING: 'Gözləyir',
+        APPROVED: 'Təsdiqləndi',
+        REJECTED: 'Rədd edildi',
+    };
+    const YOLDASH_TABS: { key: 'PENDING' | 'APPROVED' | 'REJECTED' | 'ALL'; label: string }[] = [
+        { key: 'PENDING', label: '⏳ Gözləyir' },
+        { key: 'APPROVED', label: '✅ Təsdiqləndi' },
+        { key: 'REJECTED', label: '❌ Rədd edildi' },
+        { key: 'ALL', label: 'Hamısı' },
+    ];
+    const GENDER_AZ: Record<string, string> = { MALE: 'Kişi', FEMALE: 'Qadın', ANY: 'Fərq etməz' };
 
     const STATUS_TABS: { key: ListingStatus; label: string }[] = [
         { key: 'PENDING', label: `⏳ Gözləyir${stats.pending ? ` (${stats.pending})` : ''}` },
@@ -159,6 +201,14 @@ export function AdminListings() {
                     }`}
                 >
                     🚩 Şikayətlər
+                </button>
+                <button
+                    onClick={() => setMainTab('yoldash')}
+                    className={`pb-3 px-1 text-sm font-semibold border-b-2 transition-colors ${
+                        mainTab === 'yoldash' ? 'border-gold text-gold' : 'border-transparent text-muted hover:text-text'
+                    }`}
+                >
+                    🤝 Yoldaş
                 </button>
             </div>
 
@@ -364,6 +414,154 @@ export function AdminListings() {
                         </Card>
                     )}
                 </>
+            )}
+
+            {/* ── YOLDAŞ TAB ── */}
+            {mainTab === 'yoldash' && (
+                <>
+                    <div className="flex flex-wrap gap-2">
+                        {YOLDASH_TABS.map(tab => (
+                            <button
+                                key={tab.key}
+                                onClick={() => setYoldashStatus(tab.key)}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all ${
+                                    yoldashStatus === tab.key
+                                        ? 'bg-gold/10 border-gold/50 text-gold'
+                                        : 'border-border text-muted hover:border-gold/30'
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {yoldashLoading ? (
+                        <div className="space-y-2">
+                            {[1, 2, 3].map(i => <div key={i} className="h-16 bg-surface animate-pulse rounded-xl" />)}
+                        </div>
+                    ) : (
+                        <Card className="overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-surface border-b border-border text-muted">
+                                        <tr>
+                                            <th className="p-4 font-medium">Ad / Yaş</th>
+                                            <th className="p-4 font-medium">Rayon</th>
+                                            <th className="p-4 font-medium">Büdcə</th>
+                                            <th className="p-4 font-medium">Telefon</th>
+                                            <th className="p-4 font-medium">Tarix</th>
+                                            <th className="p-4 font-medium">Status</th>
+                                            <th className="p-4 font-medium text-right">Əməliyyat</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border">
+                                        {yoldashAds.map((ad: any) => (
+                                            <tr key={ad.id} className="hover:bg-surface/50 transition-colors">
+                                                <td className="p-4">
+                                                    <div className="font-medium text-text">{ad.displayName}</div>
+                                                    <div className="text-xs text-muted">{ad.age} yaş · {GENDER_AZ[ad.gender] ?? ad.gender}</div>
+                                                </td>
+                                                <td className="p-4 text-muted text-sm">
+                                                    {(ad.districts ?? []).slice(0, 2).join(', ')}
+                                                    {(ad.districts?.length ?? 0) > 2 ? ` +${ad.districts.length - 2}` : ''}
+                                                </td>
+                                                <td className="p-4 text-muted">{ad.budgetMin}–{ad.budgetMax} ₼</td>
+                                                <td className="p-4 text-muted font-mono text-xs">{ad.phone}</td>
+                                                <td className="p-4 text-muted text-xs">{formatDate(ad.createdAt)}</td>
+                                                <td className="p-4">
+                                                    <Badge variant={
+                                                        ad.status === 'APPROVED' ? 'aktiv'
+                                                        : ad.status === 'REJECTED' ? 'danger'
+                                                        : 'draft'
+                                                    }>
+                                                        {YOLDASH_STATUS_LABELS[ad.status] ?? ad.status}
+                                                    </Badge>
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        {ad.status !== 'APPROVED' && (
+                                                            <Button
+                                                                size="sm" variant="ghost"
+                                                                className="h-8 px-2 text-green-400 hover:bg-green-400/10 hover:text-green-400 text-xs font-semibold"
+                                                                onClick={() => yoldashMutation.mutate({ id: ad.id, status: 'APPROVED' })}
+                                                                disabled={yoldashMutation.isPending}
+                                                            >
+                                                                <CheckCircle2 className="w-4 h-4 mr-1" /> Təsdiqlə
+                                                            </Button>
+                                                        )}
+                                                        {ad.status !== 'REJECTED' && (
+                                                            <Button
+                                                                size="sm" variant="ghost"
+                                                                className="h-8 px-2 text-red hover:bg-red/10 hover:text-red text-xs font-semibold"
+                                                                onClick={() => setYoldashRejectTarget({ id: ad.id })}
+                                                            >
+                                                                <XCircle className="w-4 h-4 mr-1" /> Rədd et
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {yoldashAds.length === 0 && (
+                                            <tr>
+                                                <td colSpan={7} className="p-8 text-center text-muted">
+                                                    Bu filtrdə Yoldaş elanı yoxdur.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </Card>
+                    )}
+                </>
+            )}
+
+            {/* ── Yoldaş Reject Modal ── */}
+            {yoldashRejectTarget && (
+                <Modal
+                    isOpen
+                    onClose={() => { setYoldashRejectTarget(null); setYoldashRejectReason(''); }}
+                    title="Yoldaş elanını rədd et"
+                >
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-xs text-muted font-medium block mb-1">Rədd səbəbi</label>
+                            <textarea
+                                value={yoldashRejectReason}
+                                onChange={(e) => setYoldashRejectReason(e.target.value)}
+                                placeholder="Səbəbi yazın..."
+                                rows={4}
+                                className="w-full px-3 py-2 rounded-md border border-border bg-bg text-text text-sm focus:outline-none focus:ring-2 focus:ring-red resize-none"
+                            />
+                        </div>
+                        <div className="flex gap-3 pt-2 border-t border-border">
+                            <Button
+                                variant="ghost"
+                                className="flex-1"
+                                onClick={() => { setYoldashRejectTarget(null); setYoldashRejectReason(''); }}
+                            >
+                                Ləğv et
+                            </Button>
+                            <Button
+                                variant="danger"
+                                className="flex-1"
+                                onClick={() => {
+                                    if (!yoldashRejectTarget) return;
+                                    yoldashMutation.mutate({
+                                        id: yoldashRejectTarget.id,
+                                        status: 'REJECTED',
+                                        rejectionReason: yoldashRejectReason || undefined,
+                                    });
+                                }}
+                                disabled={yoldashMutation.isPending}
+                                isLoading={yoldashMutation.isPending}
+                            >
+                                <XCircle className="w-4 h-4 mr-1" /> Rədd et
+                            </Button>
+                        </div>
+                    </div>
+                </Modal>
             )}
 
             {/* ────────── Preview Modal ────────── */}

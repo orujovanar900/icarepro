@@ -238,6 +238,7 @@ model User {
   adminAuditLogs AdminAuditLog[]
   promotionRequests PromotionRequest[]
   subscriptionChanges SubscriptionHistory[]
+  roommateAds    RoommateAd[]
 
   @@map("users")
 }
@@ -699,4 +700,55 @@ model SubscriptionHistory {
   @@index([orgId])
   @@index([createdAt(sort: Desc)])
   @@map("subscription_history")
+}
+
+// ─────────────────────────────────────────
+// Yoldaş — roommate marketplace
+// ─────────────────────────────────────────
+model RoommateAd {
+  id              String   @id @default(cuid())
+
+  // Basic info (required)
+  displayName     String
+  age             Int
+  gender          String   // 'MALE' | 'FEMALE' | 'ANY'
+
+  // Search preferences (required)
+  districts       String[]
+  budgetMin       Int
+  budgetMax       Int
+  startMonth      Int
+  startYear       Int
+  durationMonths  Int?
+  isLongTerm      Boolean  @default(false)
+
+  // Contact (required)
+  phone           String
+  whatsapp        String?
+  telegram        String?
+
+  // Optional profile
+  photoUrl        String?
+  occupation      String?
+  smokes          Boolean?
+  hasPets         Boolean?
+  schedule        String?
+  guests          String?
+  description     String?
+
+  // Status
+  status          String   @default("PENDING")
+  rejectionReason String?
+
+  // Ownership
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  expiresAt       DateTime
+
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("roommate_ads")
 }

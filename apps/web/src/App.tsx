@@ -45,6 +45,9 @@ const Suspended = React.lazy(() => import('./pages/Suspended').then(m => ({ defa
 const DashboardElanlar = React.lazy(() => import('./pages/DashboardElanlar').then(m => ({ default: m.DashboardElanlar })));
 const CreateDashboardListing = React.lazy(() => import('./pages/CreateDashboardListing').then(m => ({ default: m.CreateDashboardListing })));
 const Promotions = React.lazy(() => import('./pages/Promotions').then(m => ({ default: m.Promotions })));
+const Yoldash = React.lazy(() => import('./pages/Yoldash').then(m => ({ default: m.Yoldash })));
+const YoldashDetail = React.lazy(() => import('./pages/YoldashDetail').then(m => ({ default: m.YoldashDetail })));
+const YoldashForm = React.lazy(() => import('./pages/YoldashForm').then(m => ({ default: m.YoldashForm })));
 
 // Superadmin Pages
 const AdminOrganizations = React.lazy(() => import('./pages/admin/AdminOrganizations').then(m => ({ default: m.AdminOrganizations })));
@@ -135,6 +138,9 @@ export default function App() {
                         </Route>
                         <Route path="/elan-elave-et" element={<CreateListing />} />
                         <Route path="/elanlar" element={<SearchResults />} />
+                        <Route path="/yoldas" element={<Yoldash />} />
+                        <Route path="/yoldas/:id" element={<YoldashDetail />} />
+                        <Route path="/yoldas/yeni" element={<YoldashForm />} />
 
                         {/* Public Routes — redirect to /dashboard if already logged in */}
                         <Route element={<PublicRoute />}>

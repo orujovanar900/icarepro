@@ -6,6 +6,7 @@ import { APIProvider } from '@vis.gl/react-google-maps';
 import { PortalNavbar } from '@/components/portal/PortalNavbar';
 import { LedTicker } from '@/components/portal/LedTicker';
 import { PortalFooter } from '@/components/portal/PortalFooter';
+import { YoldashPopup } from '@/components/portal/YoldashPopup';
 import { ListingCard } from '@/components/portal/ListingCard';
 import { FilterModal } from '@/components/portal/FilterPanel';
 import { useListings } from '@/hooks/useListings';
@@ -408,6 +409,9 @@ export function SearchResults() {
             </div>
 
             <PortalFooter />
+
+            {/* Yoldaş dismissible popup */}
+            <YoldashPopup />
 
             {/* FilterModal — advanced filters */}
             <FilterModal

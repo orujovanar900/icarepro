@@ -128,6 +128,7 @@ export const ListingCard = React.memo(function ListingCard({ listing, index = 0,
 
     return (
         <div
+            data-listing-card
             className="flex flex-col rounded-2xl overflow-hidden cursor-pointer transition-all duration-200"
             style={{ background: '#FFFFFF', border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 6px rgba(0,0,0,0.05)' }}
             onClick={() => navigate(`/elan/${listing.id}`)}

@@ -875,6 +875,58 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
 
         return reply.send({ success: true, data: updated })
     })
+
+    // ══════════════════════════════════════
+    // Yoldaş moderation (SUPERADMIN + MODERATOR)
+    // ══════════════════════════════════════
+
+    // GET /admin/yoldash — list roommate ads
+    fastify.get('/yoldash', { preHandler: [authenticate, requireRole(['SUPERADMIN', 'MODERATOR'])] }, async (req, reply) => {
+        const q = req.query as Record<string, string>
+        const statusFilter = q['status'] ?? 'PENDING'
+        const where: any = statusFilter === 'ALL' ? {} : { status: statusFilter }
+
+        const ads = await fastify.prisma.roommateAd.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+        })
+        return reply.send({ success: true, data: ads })
+    })
+
+    // PATCH /admin/yoldash/:id — approve or reject
+    fastify.patch('/yoldash/:id', { preHandler: [authenticate, requireRole(['SUPERADMIN', 'MODERATOR'])] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const { status, rejectionReason } = req.body as {
+            status: 'APPROVED' | 'REJECTED'
+            rejectionReason?: string
+        }
+
+        if (!['APPROVED', 'REJECTED'].includes(status)) {
+            return reply.code(400).send({ success: false, error: 'Status APPROVED və ya REJECTED olmalıdır' })
+        }
+
+        const existing = await fastify.prisma.roommateAd.findUnique({ where: { id } })
+        if (!existing) return reply.code(404).send({ success: false, error: 'Elan tapılmadı' })
+
+        const updated = await fastify.prisma.roommateAd.update({
+            where: { id },
+            data: {
+                status,
+                rejectionReason: status === 'REJECTED' ? (rejectionReason ?? null) : null,
+            },
+        })
+
+        await logAudit(fastify.prisma, {
+            actorUserId: req.user.sub,
+            action: status === 'APPROVED' ? 'roommate_ad_approved' : 'roommate_ad_rejected',
+            entityType: 'roommate_ad',
+            entityId: id,
+            entityLabel: existing.displayName,
+            newValue: { status, ...(rejectionReason ? { rejectionReason } : {}) },
+        })
+
+        return reply.send({ success: true, data: updated })
+    })
 }
 
 export default adminRoutes

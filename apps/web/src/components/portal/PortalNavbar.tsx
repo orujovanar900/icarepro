@@ -53,6 +53,7 @@ export function PortalNavbar() {
                 {/* Desktop nav */}
                 <nav className="hidden md:flex items-center gap-7 text-sm font-medium">
                     <Link to="/elanlar" className="hover:opacity-70 transition-opacity" style={{ color: NAVY, textDecoration: 'none' }}>Obyektlər</Link>
+                    <Link to="/yoldas" className="hover:opacity-70 transition-opacity" style={{ color: MUTED, textDecoration: 'none' }}>🤝 Yoldaş</Link>
                     <Link to="/xerite" className="hover:opacity-70 transition-opacity" style={{ color: MUTED, textDecoration: 'none' }}>Xəritə</Link>
                     <Link to="/haqqinda" className="hover:opacity-70 transition-opacity" style={{ color: MUTED, textDecoration: 'none' }}>Necə işləyir</Link>
                 </nav>
@@ -114,6 +115,7 @@ export function PortalNavbar() {
             {mobileOpen && (
                 <div className="md:hidden bg-white px-5 py-4 flex flex-col gap-3" style={{ borderTop: `1px solid ${BORDER}` }}>
                     <Link to="/elanlar" style={{ color: NAVY, fontWeight: 500, textDecoration: 'none', fontSize: 15 }} onClick={() => setMobileOpen(false)}>Obyektlər</Link>
+                    <Link to="/yoldas" style={{ color: MUTED, fontWeight: 500, textDecoration: 'none', fontSize: 15 }} onClick={() => setMobileOpen(false)}>🤝 Yoldaş</Link>
                     <Link to="/xerite" style={{ color: MUTED, fontWeight: 500, textDecoration: 'none', fontSize: 15 }} onClick={() => setMobileOpen(false)}>Xəritə</Link>
                     <Link to="/haqqinda" style={{ color: MUTED, fontWeight: 500, textDecoration: 'none', fontSize: 15 }} onClick={() => setMobileOpen(false)}>Necə işləyir</Link>
                     <Link
