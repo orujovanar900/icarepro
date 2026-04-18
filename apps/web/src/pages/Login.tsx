@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
 import { useToastStore } from '@/store/toast';
 import { api } from '@/lib/api';
@@ -20,6 +20,8 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export function Login() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const returnUrl = searchParams.get('returnUrl');
     const { login } = useAuthStore();
     const { addToast } = useToastStore();
     const [isLoading, setIsLoading] = React.useState(false);
@@ -70,6 +72,12 @@ export function Login() {
             login({ user, token });
 
             addToast({ type: 'success', message: 'Uğurla daxil oldunuz!' });
+
+            // If a returnUrl was provided (e.g. user was redirected from Yoldaş form), honour it
+            if (returnUrl) {
+                navigate(returnUrl);
+                return;
+            }
 
             // Role + subscription-based redirect
             const PLATFORM_STAFF = ['SUPERADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE', 'CONTENT']

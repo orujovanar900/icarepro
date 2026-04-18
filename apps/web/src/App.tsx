@@ -48,6 +48,7 @@ const Promotions = React.lazy(() => import('./pages/Promotions').then(m => ({ de
 const Yoldash = React.lazy(() => import('./pages/Yoldash').then(m => ({ default: m.Yoldash })));
 const YoldashDetail = React.lazy(() => import('./pages/YoldashDetail').then(m => ({ default: m.YoldashDetail })));
 const YoldashForm = React.lazy(() => import('./pages/YoldashForm').then(m => ({ default: m.YoldashForm })));
+const YoldashEdit = React.lazy(() => import('./pages/YoldashEdit').then(m => ({ default: m.YoldashEdit })));
 
 // Superadmin Pages
 const AdminOrganizations = React.lazy(() => import('./pages/admin/AdminOrganizations').then(m => ({ default: m.AdminOrganizations })));
@@ -141,6 +142,7 @@ export default function App() {
                         <Route path="/yoldas" element={<Yoldash />} />
                         <Route path="/yoldas/:id" element={<YoldashDetail />} />
                         <Route path="/yoldas/yeni" element={<YoldashForm />} />
+                        <Route path="/yoldas/edit/:id" element={<YoldashEdit />} />
 
                         {/* Public Routes — redirect to /dashboard if already logged in */}
                         <Route element={<PublicRoute />}>

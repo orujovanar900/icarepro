@@ -736,6 +736,13 @@ model RoommateAd {
   guests          String?
   description     String?
 
+  // Roommate preferences (what the advertiser accepts in a potential roommate)
+  acceptsSmoker   Boolean?
+  acceptsPets     Boolean?
+
+  // Ad duration (in days) chosen at creation/edit time — drives expiresAt
+  adDurationDays  Int      @default(60)
+
   // Status
   status          String   @default("PENDING")
   rejectionReason String?

@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
+import { createClient } from '@supabase/supabase-js'
 import { authenticate } from '../middleware/authenticate.js'
 import { sendZodError } from '../utils/zodError.js'
 
@@ -7,7 +8,9 @@ import { sendZodError } from '../utils/zodError.js'
 // Zod Schemas
 // ─────────────────────────────────────────
 
-const createRoommateAdSchema = z.object({
+const AD_DURATION_ALLOWED = [30, 60, 90] as const
+
+const roommateAdBodySchema = z.object({
     displayName: z.string().min(1).max(80),
     age: z.number().int().min(16).max(80),
     gender: z.enum(['MALE', 'FEMALE', 'ANY']),
@@ -18,6 +21,9 @@ const createRoommateAdSchema = z.object({
     startYear: z.number().int().min(2024).max(2100),
     durationMonths: z.number().int().positive().nullable().optional(),
     isLongTerm: z.boolean().default(false),
+    adDurationDays: z.number().int().refine(v => (AD_DURATION_ALLOWED as readonly number[]).includes(v), {
+        message: 'adDurationDays must be 30, 60, or 90',
+    }).default(60),
     phone: z.string().min(5).max(30),
     whatsapp: z.string().max(30).optional().nullable(),
     telegram: z.string().max(50).optional().nullable(),
@@ -25,6 +31,8 @@ const createRoommateAdSchema = z.object({
     occupation: z.enum(['STUDENT', 'EMPLOYED', 'ENTREPRENEUR', 'OTHER']).optional().nullable(),
     smokes: z.boolean().optional().nullable(),
     hasPets: z.boolean().optional().nullable(),
+    acceptsSmoker: z.boolean().optional().nullable(),
+    acceptsPets: z.boolean().optional().nullable(),
     schedule: z.enum(['EARLY', 'LATE', 'ANY']).optional().nullable(),
     guests: z.enum(['OFTEN', 'SOMETIMES', 'NEVER']).optional().nullable(),
     description: z.string().max(300).optional().nullable(),
@@ -49,6 +57,8 @@ const PUBLIC_SELECT = {
     occupation: true,
     smokes: true,
     hasPets: true,
+    acceptsSmoker: true,
+    acceptsPets: true,
     schedule: true,
     guests: true,
     description: true,
@@ -61,6 +71,11 @@ const PUBLIC_SELECT = {
 // ─────────────────────────────────────────
 
 const yoldashRoutes: FastifyPluginAsync = async (fastify) => {
+    const supabase = createClient(
+        process.env['SUPABASE_URL'] ?? '',
+        process.env['SUPABASE_SERVICE_KEY'] ?? '',
+    )
+
     // ══════════════════════════════════════
     // PUBLIC — GET /yoldash (list)
     // ══════════════════════════════════════
@@ -118,6 +133,40 @@ const yoldashRoutes: FastifyPluginAsync = async (fastify) => {
     })
 
     // ══════════════════════════════════════
+    // AUTH — POST /yoldash/upload-photo (profile photo)
+    // ══════════════════════════════════════
+    fastify.post('/upload-photo', { preHandler: [authenticate] }, async (req, reply) => {
+        const data = await req.file()
+        if (!data) return reply.code(400).send({ success: false, error: 'Fayl tapılmadı' })
+
+        const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+        if (!allowed.includes(data.mimetype)) {
+            return reply.code(400).send({ success: false, error: 'Yalnız JPG, PNG, WEBP yükləyə bilərsiniz' })
+        }
+
+        const fileBuffer = await data.toBuffer()
+        if (fileBuffer.length > 5 * 1024 * 1024) {
+            return reply.code(400).send({ success: false, error: 'Maksimum fayl ölçüsü 5MB-dır' })
+        }
+
+        const userId = String((req.user as any).sub ?? '').replace(/[^a-zA-Z0-9-]/g, '') || 'anon'
+        const ext = (data.filename.split('.').pop() ?? 'jpg').replace(/[^a-zA-Z0-9]/g, '')
+        const path = `${userId}/${Date.now()}.${ext}`
+
+        const { error } = await supabase.storage
+            .from('yoldash-photos')
+            .upload(path, fileBuffer, { contentType: data.mimetype, upsert: false })
+
+        if (error) {
+            fastify.log.error(error, 'yoldash:photo_upload_failed')
+            return reply.code(500).send({ success: false, error: 'Yükləmə xətası' })
+        }
+
+        const { data: { publicUrl } } = supabase.storage.from('yoldash-photos').getPublicUrl(path)
+        return reply.code(201).send({ success: true, data: { url: publicUrl } })
+    })
+
+    // ══════════════════════════════════════
     // PUBLIC — GET /yoldash/:id (single)
     // ══════════════════════════════════════
     fastify.get('/:id', async (req, reply) => {
@@ -155,12 +204,12 @@ const yoldashRoutes: FastifyPluginAsync = async (fastify) => {
     // AUTH — POST /yoldash  (create ad, status PENDING)
     // ══════════════════════════════════════
     fastify.post('/', { preHandler: [authenticate] }, async (req, reply) => {
-        const parsed = createRoommateAdSchema.safeParse(req.body)
+        const parsed = roommateAdBodySchema.safeParse(req.body)
         if (!parsed.success) return sendZodError(reply, parsed.error)
 
         const userId = (req.user as any).sub as string
         const body = parsed.data
-        const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)
+        const expiresAt = new Date(Date.now() + body.adDurationDays * 24 * 60 * 60 * 1000)
 
         const ad = await fastify.prisma.roommateAd.create({
             data: {
@@ -174,6 +223,7 @@ const yoldashRoutes: FastifyPluginAsync = async (fastify) => {
                 startYear: body.startYear,
                 durationMonths: body.isLongTerm ? null : (body.durationMonths ?? null),
                 isLongTerm: body.isLongTerm,
+                adDurationDays: body.adDurationDays,
                 phone: body.phone,
                 whatsapp: body.whatsapp ?? null,
                 telegram: body.telegram ?? null,
@@ -181,6 +231,8 @@ const yoldashRoutes: FastifyPluginAsync = async (fastify) => {
                 occupation: body.occupation ?? null,
                 smokes: body.smokes ?? null,
                 hasPets: body.hasPets ?? null,
+                acceptsSmoker: body.acceptsSmoker ?? null,
+                acceptsPets: body.acceptsPets ?? null,
                 schedule: body.schedule ?? null,
                 guests: body.guests ?? null,
                 description: body.description ?? null,
@@ -191,6 +243,64 @@ const yoldashRoutes: FastifyPluginAsync = async (fastify) => {
         })
 
         return reply.code(201).send({ success: true, data: ad })
+    })
+
+    // ══════════════════════════════════════
+    // AUTH — PATCH /yoldash/:id  (owner edit — resets to PENDING)
+    // ══════════════════════════════════════
+    fastify.patch('/:id', { preHandler: [authenticate] }, async (req, reply) => {
+        const { id } = req.params as { id: string }
+        const userId = (req.user as any).sub as string
+
+        const existing = await fastify.prisma.roommateAd.findUnique({
+            where: { id },
+            select: { id: true, userId: true },
+        })
+        if (!existing) return reply.code(404).send({ success: false, error: 'Elan tapılmadı' })
+        if (existing.userId !== userId) {
+            return reply.code(403).send({ success: false, error: 'Yalnız öz elanınızı dəyişə bilərsiniz' })
+        }
+
+        const parsed = roommateAdBodySchema.safeParse(req.body)
+        if (!parsed.success) return sendZodError(reply, parsed.error)
+
+        const body = parsed.data
+        const expiresAt = new Date(Date.now() + body.adDurationDays * 24 * 60 * 60 * 1000)
+
+        const updated = await fastify.prisma.roommateAd.update({
+            where: { id },
+            data: {
+                displayName: body.displayName,
+                age: body.age,
+                gender: body.gender,
+                districts: body.districts,
+                budgetMin: body.budgetMin,
+                budgetMax: body.budgetMax,
+                startMonth: body.startMonth,
+                startYear: body.startYear,
+                durationMonths: body.isLongTerm ? null : (body.durationMonths ?? null),
+                isLongTerm: body.isLongTerm,
+                adDurationDays: body.adDurationDays,
+                phone: body.phone,
+                whatsapp: body.whatsapp ?? null,
+                telegram: body.telegram ?? null,
+                photoUrl: body.photoUrl ?? null,
+                occupation: body.occupation ?? null,
+                smokes: body.smokes ?? null,
+                hasPets: body.hasPets ?? null,
+                acceptsSmoker: body.acceptsSmoker ?? null,
+                acceptsPets: body.acceptsPets ?? null,
+                schedule: body.schedule ?? null,
+                guests: body.guests ?? null,
+                description: body.description ?? null,
+                // Editing requires re-moderation
+                status: 'PENDING',
+                rejectionReason: null,
+                expiresAt,
+            },
+        })
+
+        return reply.send({ success: true, data: updated })
     })
 
     // ══════════════════════════════════════

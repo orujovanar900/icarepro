@@ -77,7 +77,28 @@ function getStatusLabel(status: string): string {
     }
 }
 
-type Tab = 'queue' | 'favorites' | 'profile';
+type Tab = 'queue' | 'favorites' | 'yoldash' | 'profile';
+
+const YOLDASH_STATUS_LABEL: Record<string, string> = {
+    PENDING: 'Gözləyir',
+    APPROVED: 'Aktiv',
+    REJECTED: 'Rədd edildi',
+    EXPIRED: 'Müddəti bitib',
+};
+
+function getYoldashStatusStyle(status: string): React.CSSProperties {
+    switch (status) {
+        case 'APPROVED':
+            return { background: '#dcfce7', color: '#16a34a', border: '1px solid #bbf7d0' };
+        case 'PENDING':
+            return { background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a' };
+        case 'REJECTED':
+            return { background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' };
+        case 'EXPIRED':
+        default:
+            return { background: '#f3f4f6', color: MUTED, border: '1px solid #e5e7eb' };
+    }
+}
 
 export function Kabinet() {
     const { isAuthenticated, user } = useAuthStore();
@@ -178,6 +199,7 @@ export function Kabinet() {
                     {([
                         { key: 'queue', label: 'Növbələrim' },
                         { key: 'favorites', label: 'Sevimlilər' },
+                        { key: 'yoldash', label: 'Yoldaş Elanım' },
                         { key: 'profile', label: 'Profil' },
                     ] as { key: Tab; label: string }[]).map((tab) => (
                         <button
@@ -214,7 +236,12 @@ export function Kabinet() {
                     <FavoritesTab addToast={addToast} queryClient={queryClient} />
                 )}
 
-                {/* TAB 3: Profile */}
+                {/* TAB 3: Yoldaş ads */}
+                {activeTab === 'yoldash' && (
+                    <YoldashTab addToast={addToast} queryClient={queryClient} navigate={navigate} />
+                )}
+
+                {/* TAB 4: Profile */}
                 {activeTab === 'profile' && (
                     <ProfileTab
                         user={user}
@@ -564,6 +591,168 @@ function FavoritesTab({
                                     ♥ Sil
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+/* ─────────────────────────── YOLDAŞ TAB ─────────────────────────── */
+function YoldashTab({
+    addToast,
+    queryClient,
+    navigate,
+}: {
+    addToast: (t: { message: string; type: 'success' | 'error' | 'info' }) => void;
+    queryClient: ReturnType<typeof useQueryClient>;
+    navigate: ReturnType<typeof useNavigate>;
+}) {
+    const { data, isLoading } = useQuery({
+        queryKey: ['my-yoldash'],
+        queryFn: async () => {
+            const res = await api.get('/yoldash/mine');
+            return res.data;
+        },
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => api.delete(`/yoldash/${id}`),
+        onSuccess: () => {
+            addToast({ message: 'Elan silindi', type: 'info' });
+            queryClient.invalidateQueries({ queryKey: ['my-yoldash'] });
+        },
+        onError: () => addToast({ message: 'Xəta baş verdi', type: 'error' }),
+    });
+
+    if (isLoading) return <LoadingSpinner />;
+
+    const ads: any[] = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+
+    if (ads.length === 0) {
+        return (
+            <EmptyState
+                icon={
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="1.5">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                }
+                text="Hələ Yoldaş elanınız yoxdur"
+                btnText="Elan ver →"
+                btnHref="/yoldas/yeni"
+            />
+        );
+    }
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {ads.map((ad: any) => {
+                const statusLabel = YOLDASH_STATUS_LABEL[ad.status] ?? ad.status;
+                const statusStyle = getYoldashStatusStyle(ad.status);
+                const districts: string[] = Array.isArray(ad.districts) ? ad.districts : [];
+                const photo = Array.isArray(ad.photos) && ad.photos.length > 0 ? ad.photos[0] : null;
+
+                return (
+                    <div
+                        key={ad.id}
+                        style={{
+                            background: WHITE, borderRadius: 16,
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                            padding: 20, display: 'flex', gap: 16, flexWrap: 'wrap',
+                        }}
+                    >
+                        {/* Thumbnail */}
+                        <div style={{
+                            width: 80, height: 80, borderRadius: 12, flexShrink: 0,
+                            background: photo ? `url(${photo}) center/cover` : LISTING_TYPE_GRADIENTS['DEFAULT'],
+                        }} />
+
+                        {/* Content */}
+                        <div style={{ flex: 1, minWidth: 200 }}>
+                            <div style={{ fontWeight: 700, fontSize: 16, color: NAVY, marginBottom: 4 }}>
+                                {ad.fullName ?? 'Yoldaş elanı'}
+                                {ad.age ? <span style={{ color: MUTED, fontWeight: 500 }}> · {ad.age} yaş</span> : null}
+                            </div>
+                            <div style={{ color: MUTED, fontSize: 13, marginBottom: 8 }}>
+                                {districts.length > 0 ? districts.join(', ') : 'Rayon seçilməyib'}
+                            </div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 13, color: MUTED }}>
+                                {ad.budgetMin != null && ad.budgetMax != null && (
+                                    <span>Büdcə: <strong style={{ color: NAVY }}>{ad.budgetMin}–{ad.budgetMax} AZN</strong></span>
+                                )}
+                                {ad.adDurationDays && (
+                                    <span>Müddət: <strong style={{ color: NAVY }}>{ad.adDurationDays} gün</strong></span>
+                                )}
+                                {ad.viewCount != null && (
+                                    <span>👁 <strong style={{ color: NAVY }}>{ad.viewCount}</strong></span>
+                                )}
+                            </div>
+
+                            {/* Rejection reason */}
+                            {ad.status === 'REJECTED' && ad.rejectionReason && (
+                                <div style={{
+                                    background: '#fee2e2', border: '1px solid #fecaca',
+                                    borderRadius: 8, padding: '10px 12px', marginTop: 12,
+                                    fontSize: 13, color: '#991b1b',
+                                }}>
+                                    <strong>Rədd səbəbi:</strong> {ad.rejectionReason}
+                                </div>
+                            )}
+
+                            {/* Actions */}
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 14, alignItems: 'center' }}>
+                                {ad.status === 'APPROVED' && (
+                                    <button
+                                        onClick={() => navigate(`/yoldas/${ad.id}`)}
+                                        style={{
+                                            background: NAVY, color: WHITE, border: 'none',
+                                            borderRadius: 8, padding: '7px 14px', fontSize: 13,
+                                            fontWeight: 600, cursor: 'pointer',
+                                        }}
+                                    >
+                                        Ətraflı bax
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => navigate(`/yoldas/edit/${ad.id}`)}
+                                    style={{
+                                        background: 'transparent', color: ORANGE, border: `1px solid ${ORANGE}44`,
+                                        borderRadius: 8, padding: '7px 14px', fontSize: 13,
+                                        fontWeight: 600, cursor: 'pointer',
+                                    }}
+                                >
+                                    ✏️ Redaktə et
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (confirm('Elanı silmək istədiyinizə əminsiniz?'))
+                                            deleteMutation.mutate(ad.id);
+                                    }}
+                                    disabled={deleteMutation.isPending}
+                                    style={{
+                                        background: '#fee2e2', color: '#dc2626', border: 'none',
+                                        borderRadius: 8, padding: '7px 14px', fontSize: 13,
+                                        fontWeight: 600, cursor: 'pointer',
+                                    }}
+                                >
+                                    🗑 Sil
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Status badge */}
+                        <div style={{ alignSelf: 'flex-start' }}>
+                            <span style={{
+                                ...statusStyle,
+                                borderRadius: 20, padding: '4px 12px', fontSize: 12,
+                                fontWeight: 600, whiteSpace: 'nowrap',
+                            }}>
+                                {statusLabel}
+                            </span>
                         </div>
                     </div>
                 );
