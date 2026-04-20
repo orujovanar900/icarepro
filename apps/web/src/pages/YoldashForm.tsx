@@ -409,7 +409,7 @@ export function YoldashForm({ mode = 'create', initial, editId }: YoldashFormPro
                         {/* STEP 2 */}
                         {step === 2 && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                                <Field label="Rayonlar *">
+                                <Field label="Yer seçin *">
                                     <button
                                         type="button"
                                         onClick={() => setDistrictsModalOpen(true)}
@@ -426,11 +426,14 @@ export function YoldashForm({ mode = 'create', initial, editId }: YoldashFormPro
                                     >
                                         <span style={{ color: form.districts.length === 0 ? C.muted : C.navy }}>
                                             {form.districts.length === 0
-                                                ? 'Rayon seçin...'
+                                                ? 'Rayon və ya məhəllə seçin...'
                                                 : form.districts.join(', ')}
                                         </span>
                                         <span style={{ color: C.gold, fontSize: 18 }}>📍</span>
                                     </button>
+                                    <p style={{ fontSize: 12, color: C.muted, margin: '5px 0 0' }}>
+                                        Rayon və ya məhəllə seçə bilərsiniz
+                                    </p>
                                 </Field>
 
                                 <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1fr 1fr' }}>
@@ -578,36 +581,94 @@ export function YoldashForm({ mode = 'create', initial, editId }: YoldashFormPro
 
                                 {/* About yourself */}
                                 <div style={{ paddingTop: 6 }}>
-                                    <p style={{ fontSize: 12, fontWeight: 800, color: C.navy, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>
-                                        Sizin haqqınızda
+                                    <p style={{ fontSize: 15, fontWeight: 500, color: C.navy, margin: '0 0 12px' }}>
+                                        Siz haqqında
                                     </p>
-                                    <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1fr 1fr' }}>
-                                        <Field label="Siz siqaret çəkirsiniz?">
-                                            <YesNo
-                                                value={form.smokes}
-                                                onChange={v => update('smokes', v)}
-                                                yesLabel="Çəkirəm"
-                                                noLabel="Çəkmirəm"
-                                            />
-                                        </Field>
-                                        <Field label="Ev heyvanınız var?">
-                                            <YesNo
-                                                value={form.hasPets}
-                                                onChange={v => update('hasPets', v)}
-                                                yesLabel="Var"
-                                                noLabel="Yoxdur"
-                                            />
-                                        </Field>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                                        <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1fr 1fr' }}>
+                                            <Field label="Siz siqaret çəkirsiniz?">
+                                                <YesNo
+                                                    value={form.smokes}
+                                                    onChange={v => update('smokes', v)}
+                                                    yesLabel="Çəkirəm"
+                                                    noLabel="Çəkmirəm"
+                                                />
+                                            </Field>
+                                            <Field label="Ev heyvanınız var?">
+                                                <YesNo
+                                                    value={form.hasPets}
+                                                    onChange={v => update('hasPets', v)}
+                                                    yesLabel="Var"
+                                                    noLabel="Yoxdur"
+                                                />
+                                            </Field>
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>
+                                                Gündəlik rejiminiz necədir?
+                                            </label>
+                                            <p style={{ fontSize: 12, color: C.muted, margin: '0 0 7px' }}>(Siz nə vaxt yatırsınız?)</p>
+                                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                                {[
+                                                    { v: 'EARLY', label: 'Tezdən yatıram' },
+                                                    { v: 'LATE', label: 'Gec yatıram' },
+                                                    { v: 'ANY', label: 'Fərq etməz' },
+                                                ].map(o => (
+                                                    <button
+                                                        key={o.v}
+                                                        type="button"
+                                                        onClick={() => update('schedule', form.schedule === o.v ? '' : o.v as any)}
+                                                        style={{
+                                                            flex: 1, minWidth: 110,
+                                                            padding: '9px 14px', borderRadius: 10,
+                                                            border: `1px solid ${form.schedule === o.v ? C.gold : C.border}`,
+                                                            background: form.schedule === o.v ? 'rgba(201,168,76,0.15)' : C.white,
+                                                            color: C.navy, fontWeight: form.schedule === o.v ? 600 : 500,
+                                                            fontSize: 13, cursor: 'pointer',
+                                                        }}
+                                                    >{o.label}</button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>
+                                                Qonaqlar
+                                            </label>
+                                            <p style={{ fontSize: 12, color: C.muted, margin: '0 0 7px' }}>(Siz qonaq gətirirsiniz?)</p>
+                                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                                {[
+                                                    { v: 'OFTEN', label: 'Tez-tez' },
+                                                    { v: 'SOMETIMES', label: 'Bəzən' },
+                                                    { v: 'NEVER', label: 'Heç vaxt' },
+                                                ].map(o => (
+                                                    <button
+                                                        key={o.v}
+                                                        type="button"
+                                                        onClick={() => update('guests', form.guests === o.v ? '' : o.v as any)}
+                                                        style={{
+                                                            flex: 1,
+                                                            padding: '9px 14px', borderRadius: 10,
+                                                            border: `1px solid ${form.guests === o.v ? C.gold : C.border}`,
+                                                            background: form.guests === o.v ? 'rgba(201,168,76,0.15)' : C.white,
+                                                            color: C.navy, fontWeight: form.guests === o.v ? 600 : 500,
+                                                            fontSize: 13, cursor: 'pointer',
+                                                        }}
+                                                    >{o.label}</button>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* About potential roommate */}
-                                <div>
-                                    <p style={{ fontSize: 12, fontWeight: 800, color: C.navy, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>
-                                        Yoldaşınızda nə qəbul edirsiniz?
+                                <div style={{ paddingTop: 4 }}>
+                                    <p style={{ fontSize: 15, fontWeight: 500, color: C.navy, margin: '0 0 12px' }}>
+                                        Yoldaşınızdan gözləntiləriniz
                                     </p>
                                     <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1fr 1fr' }}>
-                                        <Field label="Siqaret çəkən yoldaş">
+                                        <Field label="Siqaret çəkən yoldaş?">
                                             <YesNo
                                                 value={form.acceptsSmoker}
                                                 onChange={v => update('acceptsSmoker', v)}
@@ -615,7 +676,7 @@ export function YoldashForm({ mode = 'create', initial, editId }: YoldashFormPro
                                                 noLabel="Etmirəm"
                                             />
                                         </Field>
-                                        <Field label="Ev heyvanı olan yoldaş">
+                                        <Field label="Ev heyvanı olan yoldaş?">
                                             <YesNo
                                                 value={form.acceptsPets}
                                                 onChange={v => update('acceptsPets', v)}
@@ -624,33 +685,6 @@ export function YoldashForm({ mode = 'create', initial, editId }: YoldashFormPro
                                             />
                                         </Field>
                                     </div>
-                                </div>
-
-                                <div style={{ display: 'grid', gap: 12, gridTemplateColumns: '1fr 1fr' }}>
-                                    <Field label="Gündəlik rejim (seçimli)">
-                                        <select
-                                            value={form.schedule}
-                                            onChange={e => update('schedule', e.target.value as any)}
-                                            style={inputStyle}
-                                        >
-                                            <option value="">Seçin...</option>
-                                            <option value="EARLY">Tez yatan</option>
-                                            <option value="LATE">Gec yatan</option>
-                                            <option value="ANY">Fərq etməz</option>
-                                        </select>
-                                    </Field>
-                                    <Field label="Qonaqlar (seçimli)">
-                                        <select
-                                            value={form.guests}
-                                            onChange={e => update('guests', e.target.value as any)}
-                                            style={inputStyle}
-                                        >
-                                            <option value="">Seçin...</option>
-                                            <option value="OFTEN">Tez-tez</option>
-                                            <option value="SOMETIMES">Bəzən</option>
-                                            <option value="NEVER">Heç vaxt</option>
-                                        </select>
-                                    </Field>
                                 </div>
 
                                 <Field label={`Qısa təsvir (seçimli) — ${form.description.length}/300`}>
