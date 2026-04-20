@@ -7,6 +7,7 @@ import { LedTicker } from '@/components/portal/LedTicker';
 import { PortalFooter } from '@/components/portal/PortalFooter';
 import { HeroSection } from '@/components/portal/HeroSection';
 import { FilterModal } from '@/components/portal/FilterPanel';
+import { RoommateCard, type RoommateAdCardData } from '@/components/portal/RoommateCard';
 import type { ListingFilters } from '@/hooks/useListings';
 import { api } from '@/lib/api';
 
@@ -122,9 +123,20 @@ function PillBtn({ active, onClick, children, activeColor }: {
 export function Portal() {
     const navigate = useNavigate();
     const [showFilterPanel, setShowFilterPanel] = React.useState(false);
+    const [mode, setMode] = React.useState<'icare' | 'yoldash'>('icare');
 
     // Search state (simple text, submitted on Enter/button)
     const [search, setSearch] = React.useState('');
+
+    // Yoldaş preview (home mode)
+    const yoldashPreview = useQuery({
+        queryKey: ['yoldash-preview'],
+        queryFn: async () => {
+            const res = await api.get('/yoldash?limit=6');
+            return res.data as { data: RoommateAdCardData[]; meta: { total: number } };
+        },
+        enabled: mode === 'yoldash',
+    });
 
     // Advanced filter state — lives here, passed to FilterModal
     const [panelFilters, setPanelFilters] = React.useState<ListingFilters>({
@@ -223,7 +235,95 @@ export function Portal() {
             {/* Hero */}
             <HeroSection total={countData ?? 0} />
 
+            {/* ── Mode toggle: İcarə | Yoldaş ──────────────────────────────── */}
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '18px 20px 0' }}>
+                <div style={{
+                    display: 'inline-flex', background: C.white, borderRadius: 14,
+                    padding: 4, border: `1px solid ${C.borderMed}`,
+                    boxShadow: '0 2px 10px rgba(0,0,0,0.06)',
+                }}>
+                    {[
+                        { v: 'icare', label: '🏠 Növbəli İcarə' },
+                        { v: 'yoldash', label: '🤝 Yoldaş' },
+                    ].map(t => {
+                        const active = mode === t.v;
+                        return (
+                            <button
+                                key={t.v}
+                                type="button"
+                                onClick={() => setMode(t.v as 'icare' | 'yoldash')}
+                                style={{
+                                    padding: '9px 20px', borderRadius: 10,
+                                    background: active ? GOLD_GRAD : 'transparent',
+                                    color: active ? '#0A0B0F' : C.navy,
+                                    border: 'none', cursor: 'pointer',
+                                    fontSize: 14, fontWeight: active ? 700 : 600,
+                                    transition: 'all 0.15s',
+                                }}
+                            >{t.label}</button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* ── Yoldaş inline preview ─────────────────────────────────────── */}
+            {mode === 'yoldash' && (
+                <div style={{ flex: 1, padding: '24px 20px 60px' }}>
+                    <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+                        <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.navy }}>
+                                Kirayə xərclərini bölüşmək üçün yoldaş tap
+                            </h2>
+                            <p style={{ margin: '6px 0 0', fontSize: 14, color: C.muted }}>
+                                Etibarlı, təsdiqlənmiş profillər. Birbaşa əlaqə.
+                            </p>
+                        </div>
+
+                        {yoldashPreview.isLoading ? (
+                            <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+                                {[0, 1, 2].map(i => (
+                                    <div key={i} style={{ height: 280, background: C.white, borderRadius: 16, border: `1px solid ${C.border}`, opacity: 0.6 }} />
+                                ))}
+                            </div>
+                        ) : (yoldashPreview.data?.data.length ?? 0) === 0 ? (
+                            <div style={{ background: C.white, borderRadius: 16, padding: '40px 20px', textAlign: 'center', border: `1px solid ${C.border}` }}>
+                                <p style={{ fontSize: 36, margin: '0 0 8px' }}>🤝</p>
+                                <p style={{ margin: 0, fontSize: 14, color: C.muted }}>
+                                    Hələ elan yoxdur. İlk olaraq öz elanınızı verin.
+                                </p>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+                                {yoldashPreview.data?.data.slice(0, 6).map(ad => <RoommateCard key={ad.id} ad={ad} />)}
+                            </div>
+                        )}
+
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 24, flexWrap: 'wrap' }}>
+                            <button
+                                onClick={() => navigate('/yoldas')}
+                                style={{
+                                    padding: '12px 24px', borderRadius: 12,
+                                    background: C.navy, color: '#FFF',
+                                    border: 'none', cursor: 'pointer',
+                                    fontWeight: 700, fontSize: 14,
+                                }}
+                            >Bütün Yoldaş elanlarına bax</button>
+                            <button
+                                onClick={() => navigate('/yoldas/yeni')}
+                                style={{
+                                    padding: '12px 24px', borderRadius: 12,
+                                    background: GOLD_GRAD, color: '#0A0B0F',
+                                    border: 'none', cursor: 'pointer',
+                                    fontWeight: 700, fontSize: 14,
+                                }}
+                            >＋ Yoldaş elanı ver</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* ── Search section ─────────────────────────────────────────────── */}
+            {mode === 'icare' && (
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '28px 20px 60px' }}>
                 <div style={{ width: '100%', maxWidth: 700 }}>
 
@@ -351,6 +451,7 @@ export function Portal() {
                     )}
                 </div>
             </div>
+            )}
 
             <PortalFooter />
         </div>
