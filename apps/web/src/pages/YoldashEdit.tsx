@@ -83,8 +83,6 @@ export function YoldashEdit() {
         occupation: data.occupation ?? '',
         smokes: data.smokes ?? null,
         hasPets: data.hasPets ?? null,
-        acceptsSmoker: data.acceptsSmoker ?? null,
-        acceptsPets: data.acceptsPets ?? null,
         schedule: data.schedule ?? '',
         guests: data.guests ?? '',
         description: data.description ?? '',
