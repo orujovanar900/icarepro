@@ -8,6 +8,8 @@ import { LedTicker } from '@/components/portal/LedTicker';
 import { PortalFooter } from '@/components/portal/PortalFooter';
 import { QueueModal } from '@/components/portal/QueueModal';
 import { ReportModal } from '@/components/portal/ReportModal';
+import { ReviewsSection } from '@/components/portal/ReviewsSection';
+import { RatingBadge } from '@/components/portal/RatingBadge';
 import { useListingDetail } from '@/hooks/useListingDetail';
 import { useAuthStore } from '@/store/auth';
 
@@ -587,10 +589,28 @@ export function ListingDetail() {
                             <div style={{ width: 36, height: 36, borderRadius: '50%', background: C.navy, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', fontSize: 16 }}>
                                 {listing.publisherType === 'Hüquqi şəxs' ? '🏢' : '👤'}
                             </div>
-                            <div>
-                                <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: C.navy }}>{listing.publisherName ?? '—'}</p>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                {listing.owner ? (
+                                    <Link
+                                        to={`/owner/${listing.owner.id}`}
+                                        style={{ margin: 0, fontSize: 14, fontWeight: 600, color: C.navy, textDecoration: 'none', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                        onMouseEnter={e => { (e.currentTarget as HTMLElement).style.textDecoration = 'underline'; }}
+                                        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.textDecoration = 'none'; }}
+                                    >
+                                        {listing.owner.displayName}
+                                    </Link>
+                                ) : (
+                                    <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: C.navy }}>{listing.publisherName ?? '—'}</p>
+                                )}
                                 <p style={{ margin: 0, fontSize: 12, color: C.muted }}>{listing.publisherType ?? '—'}</p>
                             </div>
+                            {listing.owner && (
+                                <RatingBadge
+                                    rating={listing.owner.averageRating}
+                                    totalReviews={listing.owner.totalReviews}
+                                    size="sm"
+                                />
+                            )}
                         </div>
 
                         {/* Queue Info Box */}
@@ -800,6 +820,13 @@ export function ListingDetail() {
                         </button>
                     </div>
                 </div>
+
+                {/* Reviews for listing owner */}
+                {listing.owner && (
+                    <div style={{ maxWidth: 1200, margin: '24px auto 0', padding: '0 20px 40px' }}>
+                        <ReviewsSection userId={listing.owner.id} title="Sahib haqqında rəylər" />
+                    </div>
+                )}
             </main>
 
             <PortalFooter />

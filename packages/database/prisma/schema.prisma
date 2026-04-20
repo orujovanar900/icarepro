@@ -228,6 +228,10 @@ model User {
   avatarUrl             String?
   jwtVersion            Int       @default(1)
 
+  // Public portal profile
+  averageRating  Float?
+  totalReviews   Int       @default(0)
+
   organization   Organization?   @relation(fields: [organizationId], references: [id])
   payments       Payment[]
   expenses       Expense[]
@@ -238,6 +242,8 @@ model User {
   adminAuditLogs AdminAuditLog[]
   promotionRequests PromotionRequest[]
   subscriptionChanges SubscriptionHistory[]
+  reviewsWritten  Review[] @relation("ReviewsWritten")
+  reviewsReceived Review[] @relation("ReviewsReceived")
 
   @@map("users")
 }
@@ -699,4 +705,22 @@ model SubscriptionHistory {
   @@index([orgId])
   @@index([createdAt(sort: Desc)])
   @@map("subscription_history")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  authorId  String
+  subjectId String
+  rating    Int      // 1..5
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author  User @relation("ReviewsWritten",  fields: [authorId],  references: [id], onDelete: Cascade)
+  subject User @relation("ReviewsReceived", fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([authorId, subjectId])
+  @@index([subjectId])
+  @@index([authorId])
+  @@map("reviews")
 }

@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import type { ListingCardData } from '@/hooks/useListings';
+import { RatingBadge } from './RatingBadge';
 
 // Portal palette
 const C = {
@@ -232,6 +233,46 @@ export const ListingCard = React.memo(function ListingCard({ listing, index = 0,
                     <p className="text-[13px]" style={{ color: C.muted }}>
                         Təxmini boşalma tarixi: <span className="font-medium" style={{ color: C.text }}>📅 {freeDate}</span>
                     </p>
+                )}
+
+                {/* Owner row */}
+                {listing.owner && (
+                    <div
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 8,
+                            paddingTop: 4,
+                        }}
+                    >
+                        <a
+                            href={`/owner/${listing.owner.id}`}
+                            onClick={e => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                navigate(`/owner/${listing.owner!.id}`);
+                            }}
+                            style={{
+                                fontSize: 13,
+                                color: C.navy,
+                                fontWeight: 500,
+                                textDecoration: 'none',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                            }}
+                            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.textDecoration = 'underline'; }}
+                            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.textDecoration = 'none'; }}
+                        >
+                            {listing.owner.displayName}
+                        </a>
+                        <RatingBadge
+                            rating={listing.owner.averageRating}
+                            totalReviews={listing.owner.totalReviews}
+                            size="sm"
+                        />
+                    </div>
                 )}
 
                 {/* Heat bar */}
