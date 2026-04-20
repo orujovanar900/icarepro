@@ -16,6 +16,7 @@ const AdminStats = React.lazy(() => import('./pages/admin/AdminStats').then(m =>
 const Landing = React.lazy(() => import('./pages/Landing').then(m => ({ default: m.Landing })));
 const Portal = React.lazy(() => import('./pages/Portal').then(m => ({ default: m.Portal })));
 const ListingDetail = React.lazy(() => import('./pages/ListingDetail').then(m => ({ default: m.ListingDetail })));
+const OwnerProfile = React.lazy(() => import('./pages/OwnerProfile').then(m => ({ default: m.OwnerProfile })));
 const MapPage = React.lazy(() => import('./pages/MapPage').then(m => ({ default: m.MapPage })));
 const Kabinet = React.lazy(() => import('./pages/Kabinet').then(m => ({ default: m.Kabinet })));
 const CreateListing = React.lazy(() => import('./pages/CreateListing').then(m => ({ default: m.CreateListing })));
@@ -129,6 +130,7 @@ export default function App() {
                         <Route path="/haqqinda" element={<Landing />} />
                         {/* Public portal routes */}
                         <Route path="/elan/:id" element={<ListingDetail />} />
+                        <Route path="/owner/:ownerId" element={<OwnerProfile />} />
                         <Route path="/xerite" element={<MapPage />} />
                         <Route element={<KabinetRoute />}>
                             <Route path="/kabinet" element={<Kabinet />} />

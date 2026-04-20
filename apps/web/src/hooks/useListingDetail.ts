@@ -34,6 +34,13 @@ export interface ListingDetail {
     highestOffer?: number;
     basePrice: number; // ADDED
     heatLevel: 'AZ' | 'ORTA' | 'YUKSEK';
+    owner?: {
+        id: string;
+        displayName: string;
+        avatarUrl?: string | null;
+        averageRating: number | null;
+        totalReviews: number;
+    } | null;
 }
 
 export interface QueueSummary {

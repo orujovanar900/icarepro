@@ -36,6 +36,13 @@ export interface ListingCardData {
     highestOffer?: number;
     heatLevel: 'AZ' | 'ORTA' | 'YUKSEK';
     isFavorited?: boolean;
+    owner?: {
+        id: string;
+        displayName: string;
+        avatarUrl?: string | null;
+        averageRating: number | null;
+        totalReviews: number;
+    } | null;
 }
 
 export interface ListingFilters {

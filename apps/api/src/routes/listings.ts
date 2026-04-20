@@ -171,6 +171,20 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
       if (districts.length > 0) where.district = { in: districts }
     }
 
+    // Filter by a specific owner user (OwnerProfile page)
+    if (q['ownerUserId']) {
+      const ownerUser = await fastify.prisma.user.findUnique({
+        where: { id: q['ownerUserId'] },
+        select: { organizationId: true },
+      })
+      if (ownerUser?.organizationId) {
+        where.organizationId = ownerUser.organizationId
+      } else {
+        // No matching org → return empty result set deterministically
+        where.id = '__NO_MATCH__'
+      }
+    }
+
     // Sort
     const sortMap: Record<string, object> = {
       price_asc:  { basePrice: 'asc' },
@@ -196,6 +210,16 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
           amenities: true, photos: true, lat: true, lng: true,
           buildingType: true, renovation: true, metroStation: true, landmark: true,
           createdAt: true,
+          organization: {
+            select: {
+              users: {
+                where: { role: 'OWNER', isActive: true },
+                select: { id: true, name: true, avatarUrl: true, averageRating: true, totalReviews: true },
+                take: 1,
+                orderBy: { createdAt: 'asc' },
+              },
+            },
+          },
         },
         orderBy,
         take: limit,
@@ -235,12 +259,25 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
       // Not authenticated or invalid token — ignore, all isFavorited = false
     }
 
-    const data = listings.map(l => ({
-      ...l,
-      queueCount: countMap.get(l.id) ?? 0,
-      heatLevel: computeHeatLevel(countMap.get(l.id) ?? 0),
-      isFavorited: favSet.has(l.id),
-    }))
+    const data = listings.map(l => {
+      const { organization, ...rest } = l as any
+      const ownerUser = organization?.users?.[0]
+      return {
+        ...rest,
+        queueCount: countMap.get(l.id) ?? 0,
+        heatLevel: computeHeatLevel(countMap.get(l.id) ?? 0),
+        isFavorited: favSet.has(l.id),
+        owner: ownerUser
+          ? {
+              id: ownerUser.id,
+              displayName: ownerUser.name,
+              avatarUrl: ownerUser.avatarUrl,
+              averageRating: ownerUser.averageRating,
+              totalReviews: ownerUser.totalReviews,
+            }
+          : null,
+      }
+    })
 
     return reply.send({ success: true, data, meta: { total, page, limit, pages: Math.ceil(total / limit) } })
   })
@@ -287,6 +324,16 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
         amenities: true, photos: true, lat: true, lng: true,
         buildingType: true, renovation: true, metroStation: true, landmark: true,
         createdAt: true,
+        organization: {
+          select: {
+            users: {
+              where: { role: 'OWNER', isActive: true },
+              select: { id: true, name: true, avatarUrl: true, averageRating: true, totalReviews: true },
+              take: 1,
+              orderBy: { createdAt: 'asc' },
+            },
+          },
+        },
       },
     })
 
@@ -302,8 +349,19 @@ const listingsRoutes: FastifyPluginAsync = async (fastify) => {
       }) : Promise.resolve(null),
     ])
 
+    const ownerUser = listing.organization?.users?.[0]
+    const { organization: _org, ...listingRest } = listing
     const returnData: any = {
-      ...listing,
+      ...listingRest,
+      owner: ownerUser
+        ? {
+            id: ownerUser.id,
+            displayName: ownerUser.name,
+            avatarUrl: ownerUser.avatarUrl,
+            averageRating: ownerUser.averageRating,
+            totalReviews: ownerUser.totalReviews,
+          }
+        : null,
       queueCount,
       heatLevel: computeHeatLevel(queueCount),
     }
